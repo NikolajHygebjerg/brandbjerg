@@ -18,9 +18,9 @@ npm run dev
 | `/` | Forside med indgang til alle dele |
 | `/overblik` | Ledelsesoverblik: arkitektur, roller, integrationer, faser |
 | `/dashboard` | Admin KPI og aktivitetslog |
-| `/planlaegning/arshjul` | Årshjul med kurser pr. måned |
-| `/planlaegning/kurser` | Kursusliste med status og fyldning |
-| `/planlaegning/kurser/[id]` | Kursusdetalje med faner (mock) |
+| `/planlaegning/arshjul` | Årshjul — mål, ugeplan, godkendelse |
+| `/planlaegning/statusark` | Statusark med tilmeldte og link til kursusplan |
+| `/planlaegning/kurser/[id]` | Modul 2 — kursusleder, budget, modulplan, UBAK |
 | `/kommunikation` | Kampagner og e-mail-skabeloner |
 | `/tilmeldinger` | Tilmeldinger og betalingsstatus |
 | `/afvikling` | Afvikling og deltagerlister |
@@ -31,9 +31,10 @@ npm run dev
 ## Præsentationstips
 
 1. Start på `/overblik` for arkitektur og sammenhænge
-2. Gå til `/dashboard` for dagligt overblik
-3. Vis et kursus under `/planlaegning/kurser/kur-001`
-4. Afslut med `/katalog` for deltagerperspektiv
+2. Gå til `/planlaegning/arshjul` — sæt mål, tilføj kurser pr. uge, godkend plan
+3. Åbn `/planlaegning/statusark` — se tilmeldte og klik ind på kursus
+4. Vis `/planlaegning/kurser/kur-001` — modulplan med UBAK-felter
+5. Afslut med `/katalog` for deltagerperspektiv
 
 ## Teknisk
 

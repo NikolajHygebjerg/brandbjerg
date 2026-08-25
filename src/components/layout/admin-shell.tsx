@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   Coins,
   Home,
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/planlaegning/arshjul", label: "Årshjul", icon: CalendarDays },
+  { href: "/planlaegning/statusark", label: "Statusark", icon: ClipboardCheck },
   { href: "/planlaegning/kurser", label: "Kurser", icon: ClipboardList },
   { href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
   { href: "/tilmeldinger", label: "Tilmeldinger", icon: Users },

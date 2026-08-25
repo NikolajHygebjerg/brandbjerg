@@ -7,6 +7,8 @@ export type CourseStatus =
   | "afvikles"
   | "afsluttet";
 
+export type PlanStatus = "udkast" | "afventer_godkendelse" | "godkendt";
+
 export type Department =
   | "Planlægning"
   | "Kommunikation"
@@ -14,6 +16,50 @@ export type Department =
   | "Afvikling"
   | "Regnskab"
   | "Ledelse";
+
+export type TeacherType = "intern" | "ekstern";
+
+export interface Teacher {
+  id: string;
+  name: string;
+  type: TeacherType;
+}
+
+export interface UbakSplit {
+  hojskoleTid: number;
+  faerdighedstilvaenning: number;
+  ubak: number;
+}
+
+export interface CourseModule {
+  id: string;
+  source: "skabelon" | "liste" | "manuel";
+  underviser: string;
+  underviserType: TeacherType;
+  pris: number;
+  overskrift: string;
+  broedtekst: string;
+  tidFra: string;
+  tidTil: string;
+  interneNoter: string;
+  onskerPedel: string;
+  onskerKoekken: string;
+  ubak: UbakSplit;
+}
+
+export interface CourseDay {
+  id: string;
+  date: string;
+  label: string;
+  modules: CourseModule[];
+}
+
+export interface PlannedWeekCourse {
+  id: string;
+  title: string;
+  targetStudents: number;
+  weekNumber: number;
+}
 
 export interface Course {
   id: string;
@@ -29,6 +75,14 @@ export interface Course {
   instructor: string;
   location: string;
   department: Department;
+  weekNumber: number;
+  courseLeaderId: string;
+  hostIds: string[];
+  budget: number;
+  marketingBudget: number;
+  planStatus: PlanStatus;
+  days: CourseDay[];
+  moduleTemplateName?: string;
 }
 
 export interface Enrollment {
@@ -62,6 +116,77 @@ export interface Activity {
   time: string;
 }
 
+export const teachers: Teacher[] = [
+  { id: "lar-01", name: "Lise Møller", type: "intern" },
+  { id: "lar-02", name: "Thomas Berg", type: "intern" },
+  { id: "lar-03", name: "Anna Krogh", type: "intern" },
+  { id: "lar-04", name: "Mikkel Sørensen", type: "intern" },
+  { id: "lar-05", name: "Sofie Lind", type: "intern" },
+  { id: "lar-06", name: "Helle Vang", type: "intern" },
+  { id: "lar-07", name: "Klaus Hartmann", type: "ekstern" },
+  { id: "lar-08", name: "Eva Søndergaard", type: "ekstern" },
+];
+
+export const moduleLibrary = [
+  { id: "mod-lib-1", title: "Velkomst og introduktion", duration: 90 },
+  { id: "mod-lib-2", title: "Fællesspisning", duration: 60 },
+  { id: "mod-lib-3", title: "Workshop — praktisk øvelse", duration: 120 },
+  { id: "mod-lib-4", title: "Refleksion i gruppe", duration: 45 },
+  { id: "mod-lib-5", title: "Afslutning og evaluering", duration: 30 },
+];
+
+export const annualTargetDefault = 420;
+
+export const initialWeekPlan: PlannedWeekCourse[] = [
+  { id: "wp-1", title: "Akvarelmaleri for begyndere", targetStudents: 16, weekNumber: 11 },
+  { id: "wp-2", title: "Kreativ skrivning", targetStudents: 14, weekNumber: 11 },
+  { id: "wp-3", title: "Nordisk mad & fermentering", targetStudents: 12, weekNumber: 15 },
+  { id: "wp-4", title: "Stille retreat – mindfulness", targetStudents: 20, weekNumber: 18 },
+  { id: "wp-5", title: "Digital fortælling & podcast", targetStudents: 18, weekNumber: 23 },
+  { id: "wp-6", title: "Sommerkursus: Keramik", targetStudents: 14, weekNumber: 28 },
+  { id: "wp-7", title: "Filosofi i hverdagen", targetStudents: 16, weekNumber: 28 },
+  { id: "wp-8", title: "Vinterlæseklub", targetStudents: 24, weekNumber: 4 },
+];
+
+function emptyUbak(): UbakSplit {
+  return { hojskoleTid: 0, faerdighedstilvaenning: 0, ubak: 0 };
+}
+
+function sampleModules(dayLabel: string): CourseModule[] {
+  return [
+    {
+      id: `${dayLabel}-m1`,
+      source: "skabelon",
+      underviser: "Lise Møller",
+      underviserType: "intern",
+      pris: 0,
+      overskrift: "Velkomst og introduktion",
+      broedtekst: "Vi starter med en fælles introduktion til kursets tema.",
+      tidFra: "09:00",
+      tidTil: "10:30",
+      interneNoter: "Husk flipover og kaffe",
+      onskerPedel: "",
+      onskerKoekken: "",
+      ubak: { hojskoleTid: 30, faerdighedstilvaenning: 15, ubak: 45 },
+    },
+    {
+      id: `${dayLabel}-m2`,
+      source: "liste",
+      underviser: "Lise Møller",
+      underviserType: "intern",
+      pris: 150,
+      overskrift: "Praktisk workshop",
+      broedtekst: "Deltagerne arbejder hands-on med teknikker og materialer.",
+      tidFra: "10:45",
+      tidTil: "12:30",
+      interneNoter: "",
+      onskerPedel: "Stilladser i atelier",
+      onskerKoekken: "",
+      ubak: { hojskoleTid: 15, faerdighedstilvaenning: 60, ubak: 30 },
+    },
+  ];
+}
+
 export const statusLabels: Record<CourseStatus, string> = {
   udkast: "Udkast",
   godkendt: "Godkendt",
@@ -70,6 +195,12 @@ export const statusLabels: Record<CourseStatus, string> = {
   fuldt: "Fuldt booket",
   afvikles: "Afvikles",
   afsluttet: "Afsluttet",
+};
+
+export const planStatusLabels: Record<PlanStatus, string> = {
+  udkast: "Udkast",
+  afventer_godkendelse: "Afventer godkendelse",
+  godkendt: "Godkendt — statusark aktivt",
 };
 
 export const statusColors: Record<CourseStatus, string> = {
@@ -97,6 +228,17 @@ export const courses: Course[] = [
     instructor: "Lise Møller",
     location: "Atelier Øst",
     department: "Planlægning",
+    weekNumber: 11,
+    courseLeaderId: "lar-01",
+    hostIds: ["lar-05"],
+    budget: 28_000,
+    marketingBudget: 4_500,
+    planStatus: "godkendt",
+    moduleTemplateName: "weekendkursus-2dage.csv",
+    days: [
+      { id: "d1", date: "2026-03-14", label: "Dag 1", modules: sampleModules("d1") },
+      { id: "d2", date: "2026-03-15", label: "Dag 2", modules: sampleModules("d2") },
+    ],
   },
   {
     id: "kur-002",
@@ -112,6 +254,18 @@ export const courses: Course[] = [
     instructor: "Thomas Berg",
     location: "Køkkenlaboratoriet",
     department: "Planlægning",
+    weekNumber: 15,
+    courseLeaderId: "lar-02",
+    hostIds: ["lar-03"],
+    budget: 45_000,
+    marketingBudget: 6_000,
+    planStatus: "godkendt",
+    moduleTemplateName: "madkursus-3dage.csv",
+    days: [
+      { id: "d1", date: "2026-04-10", label: "Dag 1", modules: sampleModules("k2d1") },
+      { id: "d2", date: "2026-04-11", label: "Dag 2", modules: [] },
+      { id: "d3", date: "2026-04-12", label: "Dag 3", modules: [] },
+    ],
   },
   {
     id: "kur-003",
@@ -127,6 +281,17 @@ export const courses: Course[] = [
     instructor: "Anna Krogh",
     location: "Skovhytten",
     department: "Kommunikation",
+    weekNumber: 18,
+    courseLeaderId: "lar-03",
+    hostIds: [],
+    budget: 38_000,
+    marketingBudget: 8_000,
+    planStatus: "godkendt",
+    days: [
+      { id: "d1", date: "2026-05-02", label: "Dag 1", modules: [] },
+      { id: "d2", date: "2026-05-03", label: "Dag 2", modules: [] },
+      { id: "d3", date: "2026-05-04", label: "Dag 3", modules: [] },
+    ],
   },
   {
     id: "kur-004",
@@ -142,6 +307,16 @@ export const courses: Course[] = [
     instructor: "Mikkel Sørensen",
     location: "Medieværksted",
     department: "Planlægning",
+    weekNumber: 23,
+    courseLeaderId: "lar-04",
+    hostIds: ["lar-07"],
+    budget: 22_000,
+    marketingBudget: 3_500,
+    planStatus: "afventer_godkendelse",
+    days: [
+      { id: "d1", date: "2026-06-06", label: "Dag 1", modules: [] },
+      { id: "d2", date: "2026-06-07", label: "Dag 2", modules: [] },
+    ],
   },
   {
     id: "kur-005",
@@ -157,6 +332,13 @@ export const courses: Course[] = [
     instructor: "Sofie Lind",
     location: "Keramikværksted",
     department: "Planlægning",
+    weekNumber: 28,
+    courseLeaderId: "lar-05",
+    hostIds: [],
+    budget: 52_000,
+    marketingBudget: 5_000,
+    planStatus: "udkast",
+    days: [],
   },
   {
     id: "kur-006",
@@ -172,139 +354,82 @@ export const courses: Course[] = [
     instructor: "Helle Vang",
     location: "Biblioteket",
     department: "Afvikling",
+    weekNumber: 4,
+    courseLeaderId: "lar-06",
+    hostIds: [],
+    budget: 15_000,
+    marketingBudget: 2_000,
+    planStatus: "godkendt",
+    days: [
+      { id: "d1", date: "2026-01-24", label: "Dag 1", modules: sampleModules("k6d1") },
+      { id: "d2", date: "2026-01-25", label: "Dag 2", modules: sampleModules("k6d2") },
+    ],
   },
 ];
 
 export const enrollments: Enrollment[] = [
-  {
-    id: "til-101",
-    courseId: "kur-001",
-    name: "Mette Hansen",
-    email: "mette@example.dk",
-    status: "betalt",
-    registeredAt: "2026-02-10",
-    amount: 1_450,
-  },
-  {
-    id: "til-102",
-    courseId: "kur-001",
-    name: "Jens Pedersen",
-    email: "jens@example.dk",
-    status: "betalt",
-    registeredAt: "2026-02-11",
-    amount: 1_450,
-  },
-  {
-    id: "til-103",
-    courseId: "kur-001",
-    name: "Camilla Olsen",
-    email: "camilla@example.dk",
-    status: "reserveret",
-    registeredAt: "2026-02-18",
-    amount: 1_450,
-  },
-  {
-    id: "til-104",
-    courseId: "kur-002",
-    name: "Peter Nielsen",
-    email: "peter@example.dk",
-    status: "venteliste",
-    registeredAt: "2026-02-20",
-    amount: 2_950,
-  },
-  {
-    id: "til-105",
-    courseId: "kur-003",
-    name: "Louise Frandsen",
-    email: "louise@example.dk",
-    status: "betalt",
-    registeredAt: "2026-02-15",
-    amount: 3_200,
-  },
+  { id: "til-101", courseId: "kur-001", name: "Mette Hansen", email: "mette@example.dk", status: "betalt", registeredAt: "2026-02-10", amount: 1_450 },
+  { id: "til-102", courseId: "kur-001", name: "Jens Pedersen", email: "jens@example.dk", status: "betalt", registeredAt: "2026-02-11", amount: 1_450 },
+  { id: "til-103", courseId: "kur-001", name: "Camilla Olsen", email: "camilla@example.dk", status: "reserveret", registeredAt: "2026-02-18", amount: 1_450 },
+  { id: "til-104", courseId: "kur-002", name: "Peter Nielsen", email: "peter@example.dk", status: "venteliste", registeredAt: "2026-02-20", amount: 2_950 },
+  { id: "til-105", courseId: "kur-003", name: "Louise Frandsen", email: "louise@example.dk", status: "betalt", registeredAt: "2026-02-15", amount: 3_200 },
 ];
 
 export const campaigns: Campaign[] = [
-  {
-    id: "kam-01",
-    title: "Forårskampagne – kreative kurser",
-    courses: ["kur-001", "kur-005"],
-    channel: "Nyhedsbrev + SoMe",
-    startDate: "2026-02-01",
-    endDate: "2026-03-01",
-    budget: 8_000,
-    leads: 340,
-    conversions: 28,
-    owner: "Kommunikation",
-  },
-  {
-    id: "kam-02",
-    title: "Mad & wellness push",
-    courses: ["kur-002", "kur-003"],
-    channel: "Facebook + lokale aviser",
-    startDate: "2026-03-15",
-    endDate: "2026-04-15",
-    budget: 12_500,
-    leads: 210,
-    conversions: 15,
-    owner: "Kommunikation",
-  },
+  { id: "kam-01", title: "Forårskampagne – kreative kurser", courses: ["kur-001", "kur-005"], channel: "Nyhedsbrev + SoMe", startDate: "2026-02-01", endDate: "2026-03-01", budget: 8_000, leads: 340, conversions: 28, owner: "Kommunikation" },
+  { id: "kam-02", title: "Mad & wellness push", courses: ["kur-002", "kur-003"], channel: "Facebook + lokale aviser", startDate: "2026-03-15", endDate: "2026-04-15", budget: 12_500, leads: 210, conversions: 15, owner: "Kommunikation" },
 ];
 
 export const activities: Activity[] = [
-  {
-    id: "act-1",
-    courseId: "kur-001",
-    department: "Salg",
-    message: "Ny tilmelding: Mette Hansen (betalt)",
-    time: "I dag 09:14",
-  },
-  {
-    id: "act-2",
-    courseId: "kur-001",
-    department: "Kommunikation",
-    message: "SoMe-post planlagt til torsdag",
-    time: "I dag 08:30",
-  },
-  {
-    id: "act-3",
-    courseId: "kur-002",
-    department: "Salg",
-    message: "Kurset er nu fuldt – venteliste aktiveret",
-    time: "I går 16:45",
-  },
-  {
-    id: "act-4",
-    courseId: "kur-003",
-    department: "Regnskab",
-    message: "Bogføringskladde klar til KOMiT-import",
-    time: "I går 11:20",
-  },
-  {
-    id: "act-5",
-    courseId: "kur-001",
-    department: "Afvikling",
-    message: "Lokalebookning bekræftet: Atelier Øst",
-    time: "20. feb 14:00",
-  },
-];
-
-export const months = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Maj",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Dec",
+  { id: "act-1", courseId: "kur-001", department: "Salg", message: "Ny tilmelding: Mette Hansen (betalt)", time: "I dag 09:14" },
+  { id: "act-2", courseId: "kur-001", department: "Kommunikation", message: "SoMe-post planlagt til torsdag", time: "I dag 08:30" },
+  { id: "act-3", courseId: "kur-002", department: "Salg", message: "Kurset er nu fuldt – venteliste aktiveret", time: "I går 16:45" },
+  { id: "act-4", courseId: "kur-003", department: "Regnskab", message: "Bogføringskladde klar til KOMiT-import", time: "I går 11:20" },
+  { id: "act-5", courseId: "kur-001", department: "Afvikling", message: "Lokalebookning bekræftet: Atelier Øst", time: "20. feb 14:00" },
 ];
 
 export function getCourse(id: string) {
   return courses.find((c) => c.id === id);
+}
+
+export function getTeacher(id: string) {
+  return teachers.find((t) => t.id === id);
+}
+
+export function weekLabel(weekNumber: number) {
+  return `Uge ${weekNumber}`;
+}
+
+export function sumPlannedStudents(items: PlannedWeekCourse[]) {
+  return items.reduce((sum, c) => sum + c.targetStudents, 0);
+}
+
+export function createEmptyModule(): CourseModule {
+  return {
+    id: `mod-${Date.now()}`,
+    source: "manuel",
+    underviser: "",
+    underviserType: "intern",
+    pris: 0,
+    overskrift: "",
+    broedtekst: "",
+    tidFra: "09:00",
+    tidTil: "10:00",
+    interneNoter: "",
+    onskerPedel: "",
+    onskerKoekken: "",
+    ubak: emptyUbak(),
+  };
+}
+
+export function moduleDurationMinutes(mod: CourseModule) {
+  const [fh, fm] = mod.tidFra.split(":").map(Number);
+  const [th, tm] = mod.tidTil.split(":").map(Number);
+  return th * 60 + tm - (fh * 60 + fm);
+}
+
+export function ubakTotal(mod: CourseModule) {
+  return mod.ubak.hojskoleTid + mod.ubak.faerdighedstilvaenning + mod.ubak.ubak;
 }
 
 export function formatDKK(amount: number) {
