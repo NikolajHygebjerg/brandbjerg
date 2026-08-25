@@ -5,9 +5,11 @@ import { CheckCircle2, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   defaultMealDetails,
+  defaultLokaleSpec,
   moduleDurationMinutes,
   timingTotal,
   type CourseModule,
+  type LokaleSpecifikation,
   type MealDetails,
   type ModuleLon,
 } from "@/lib/mock-data";
@@ -16,6 +18,10 @@ import {
   lokaler,
   specifikationer,
 } from "@/lib/kitchen-options";
+import {
+  bordopstillinger,
+  ugedage,
+} from "@/lib/lokale-spec-options";
 
 type ModuleEditDialogProps = {
   module: CourseModule;
@@ -89,7 +95,7 @@ export function ModuleEditDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="module-dialog-title"
-        className={`relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${
+        className={`relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${
           isMeal ? "ring-2 ring-amber-200" : ""
         }`}
       >
@@ -142,7 +148,6 @@ export function ModuleEditDialog({
               duration={duration}
               timingSum={timingSum}
               onChange={onChange}
-              toggleMeal={toggleMeal}
             />
           )}
         </div>
@@ -288,147 +293,291 @@ function RegularForm({
   duration,
   timingSum,
   onChange,
-  toggleMeal,
 }: {
   mod: CourseModule;
   duration: number;
   timingSum: number;
   onChange: (patch: Partial<CourseModule>) => void;
-  toggleMeal: (checked: boolean) => void;
 }) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <FieldInput
-        label="Overskrift"
-        value={mod.overskrift}
-        onChange={(v) => onChange({ overskrift: v })}
-      />
-      <FieldSelect
-        label="Rolle"
-        value={mod.rolle}
-        onChange={(v) => onChange({ rolle: v })}
-        options={[
-          { value: "", label: "Vælg rolle…" },
-          { value: "Kursusleder", label: "Kursusleder" },
-          { value: "Foredragsholder", label: "Foredragsholder" },
-          { value: "Køkken", label: "Køkken" },
-          { value: "Vært", label: "Vært" },
-        ]}
-      />
-      <FieldInput
-        label="Underviser / ansvarlig"
-        value={mod.underviser}
-        onChange={(v) => onChange({ underviser: v })}
-      />
-      <FieldSelect
-        label="Undervisertype"
-        value={mod.underviserType}
-        onChange={(v) =>
-          onChange({ underviserType: v as "intern" | "ekstern" })
-        }
-        options={[
-          { value: "intern", label: "Intern underviser" },
-          { value: "ekstern", label: "Ekstern underviser" },
-        ]}
-      />
-      <FieldSelect
-        label="Løn (foredragsholder)"
-        value={mod.lon}
-        onChange={(v) => onChange({ lon: v as ModuleLon })}
-        options={[
-          { value: "", label: "Ingen løn" },
-          { value: "A", label: "A-løn" },
-          { value: "B", label: "B-løn" },
-        ]}
-      />
-      <FieldInput
-        label="Pris (DKK)"
-        type="number"
-        value={String(mod.pris)}
-        onChange={(v) => onChange({ pris: Number(v) })}
-      />
-      <FieldInput
-        label="Tid fra"
-        value={mod.tidFra}
-        onChange={(v) => onChange({ tidFra: v })}
-      />
-      <FieldInput
-        label="Tid til"
-        value={mod.tidTil}
-        onChange={(v) => onChange({ tidTil: v })}
-      />
-      <div className="sm:col-span-2">
-        <FieldTextarea
-          label="Brødtekst til hjemmesiden"
-          value={mod.broedtekst}
-          onChange={(v) => onChange({ broedtekst: v })}
-          rows={3}
-        />
-      </div>
-      <div className="sm:col-span-2">
-        <FieldTextarea
-          label="Interne noter"
-          value={mod.interneNoter}
-          onChange={(v) => onChange({ interneNoter: v })}
-          rows={2}
-        />
-      </div>
-      <FieldInput
-        label="Ønsker til pedel"
-        value={mod.onskerPedel}
-        onChange={(v) => onChange({ onskerPedel: v })}
-      />
-      <FieldInput
-        label="Ønsker til køkken"
-        value={mod.onskerKoekken}
-        onChange={(v) => onChange({ onskerKoekken: v })}
-      />
-      <label className="flex items-center gap-2 text-sm sm:col-span-2">
-        <input
-          type="checkbox"
-          checked={Boolean(mod.erMaltid)}
-          onChange={(e) => toggleMeal(e.target.checked)}
-        />
-        Måltid / forplejning (vises for køkkenet)
-      </label>
+  const spec = mod.lokaleSpec ?? defaultLokaleSpec();
 
-      {!mod.erMaltid && (
-        <div className="sm:col-span-2 rounded-lg bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-800">
-            UBAK — minutter i modulet
-          </p>
-          <p className="text-xs text-slate-500">
-            Modulvarighed: {duration} min · Fordeling i alt: {timingSum} min
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-4">
-            <TimingField
-              label="UBAK"
-              value={mod.timing.ubak}
-              onChange={(v) =>
-                onChange({ timing: { ...mod.timing, ubak: v } })
+  function updateSpec(patch: Partial<LokaleSpecifikation>) {
+    onChange({ lokaleSpec: { ...spec, ...patch } });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FieldInput
+          label="Overskrift"
+          value={mod.overskrift}
+          onChange={(v) => onChange({ overskrift: v })}
+        />
+        <FieldSelect
+          label="Rolle"
+          value={mod.rolle}
+          onChange={(v) => onChange({ rolle: v })}
+          options={[
+            { value: "", label: "Vælg rolle…" },
+            { value: "Kursusleder", label: "Kursusleder" },
+            { value: "Foredragsholder", label: "Foredragsholder" },
+            { value: "Køkken", label: "Køkken" },
+            { value: "Vært", label: "Vært" },
+          ]}
+        />
+        <FieldInput
+          label="Underviser / ansvarlig"
+          value={mod.underviser}
+          onChange={(v) => onChange({ underviser: v })}
+        />
+        <FieldSelect
+          label="Undervisertype"
+          value={mod.underviserType}
+          onChange={(v) =>
+            onChange({ underviserType: v as "intern" | "ekstern" })
+          }
+          options={[
+            { value: "intern", label: "Intern underviser" },
+            { value: "ekstern", label: "Ekstern underviser" },
+          ]}
+        />
+        <FieldSelect
+          label="Løn (foredragsholder)"
+          value={mod.lon}
+          onChange={(v) => onChange({ lon: v as ModuleLon })}
+          options={[
+            { value: "", label: "Ingen løn" },
+            { value: "A", label: "A-løn" },
+            { value: "B", label: "B-løn" },
+          ]}
+        />
+        <FieldInput
+          label="Pris (DKK)"
+          type="number"
+          value={String(mod.pris)}
+          onChange={(v) => onChange({ pris: Number(v) })}
+        />
+        <FieldInput
+          label="Tid fra"
+          value={mod.tidFra}
+          onChange={(v) => onChange({ tidFra: v })}
+        />
+        <FieldInput
+          label="Tid til"
+          value={mod.tidTil}
+          onChange={(v) => onChange({ tidTil: v })}
+        />
+        <div className="sm:col-span-2">
+          <FieldTextarea
+            label="Brødtekst til hjemmesiden"
+            value={mod.broedtekst}
+            onChange={(v) => onChange({ broedtekst: v })}
+            rows={3}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <FieldTextarea
+            label="Interne noter"
+            value={mod.interneNoter}
+            onChange={(v) => onChange({ interneNoter: v })}
+            rows={2}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-800">
+          Lokalespecifikation
+        </p>
+        <p className="text-xs text-slate-500">
+          Som i Pedel-arket i praktisk seddel
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <FieldSelect
+            label="Lokaler"
+            value={spec.lokale}
+            onChange={(v) => updateSpec({ lokale: v })}
+            options={[
+              { value: "", label: "Vælg lokale…" },
+              ...lokaler.map((l) => ({ value: l, label: l })),
+            ]}
+          />
+          <FieldInput
+            label="Antal personer"
+            type="number"
+            value={String(spec.antalPersoner || "")}
+            onChange={(v) => updateSpec({ antalPersoner: Number(v) || 0 })}
+          />
+          <FieldSelect
+            label="Bordopstilling"
+            value={spec.bordopstilling}
+            onChange={(v) => updateSpec({ bordopstilling: v })}
+            options={bordopstillinger.map((b) => ({ value: b, label: b }))}
+          />
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={spec.skalBrugesFlereDage}
+              onChange={(e) =>
+                updateSpec({ skalBrugesFlereDage: e.target.checked })
               }
             />
-            <TimingField
-              label="FT"
-              value={mod.timing.ft}
-              onChange={(v) => onChange({ timing: { ...mod.timing, ft: v } })}
+            Skal bruges flere dage
+          </label>
+
+          {spec.skalBrugesFlereDage && (
+            <>
+              <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                <p className="text-xs font-semibold text-blue-900">Klar fra</p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  <FieldSelect
+                    label="Ugedag"
+                    value={spec.klarFraUgedag}
+                    onChange={(v) => updateSpec({ klarFraUgedag: v })}
+                    options={[
+                      { value: "", label: "Vælg ugedag…" },
+                      ...ugedage.map((u) => ({ value: u, label: u })),
+                    ]}
+                  />
+                  <FieldInput
+                    label="Kl."
+                    value={spec.klarFraKl}
+                    onChange={(v) => updateSpec({ klarFraKl: v })}
+                    placeholder="11:00"
+                  />
+                </div>
+              </div>
+              <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                <p className="text-xs font-semibold text-blue-900">
+                  Ledig fra
+                </p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  <FieldSelect
+                    label="Ugedag"
+                    value={spec.ledigFraUgedag}
+                    onChange={(v) => updateSpec({ ledigFraUgedag: v })}
+                    options={[
+                      { value: "", label: "Vælg ugedag…" },
+                      ...ugedage.map((u) => ({ value: u, label: u })),
+                    ]}
+                  />
+                  <FieldInput
+                    label="Kl."
+                    value={spec.ledigFraKl}
+                    onChange={(v) => updateSpec({ ledigFraKl: v })}
+                    placeholder="13:30"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="sm:col-span-2 grid gap-2 sm:grid-cols-2">
+            <CheckboxField
+              label="Dug"
+              checked={spec.dug}
+              onChange={(v) => updateSpec({ dug: v })}
             />
-            <TimingField
-              label="PTS"
-              value={mod.timing.pts}
-              onChange={(v) =>
-                onChange({ timing: { ...mod.timing, pts: v } })
-              }
+            <CheckboxField
+              label="Levende lys"
+              checked={spec.levendeLys}
+              onChange={(v) => updateSpec({ levendeLys: v })}
             />
-            <TimingField
-              label="BH"
-              value={mod.timing.bh}
-              onChange={(v) => onChange({ timing: { ...mod.timing, bh: v } })}
+            <CheckboxField
+              label="Blomster"
+              checked={spec.blomster}
+              onChange={(v) => updateSpec({ blomster: v })}
+            />
+            <CheckboxField
+              label="Stor whiteboard"
+              checked={spec.storWhiteboard}
+              onChange={(v) => updateSpec({ storWhiteboard: v })}
+            />
+            <CheckboxField
+              label="Flipover/whiteboard"
+              checked={spec.flipoverWhiteboard}
+              onChange={(v) => updateSpec({ flipoverWhiteboard: v })}
+            />
+            <CheckboxField
+              label="Projektor"
+              checked={spec.projektor}
+              onChange={(v) => updateSpec({ projektor: v })}
+            />
+            <CheckboxField
+              label="Mobil lærred + projektor"
+              checked={spec.mobilLaerredProjektor}
+              onChange={(v) => updateSpec({ mobilLaerredProjektor: v })}
+            />
+            <CheckboxField
+              label="Mobil lydanlæg"
+              checked={spec.mobilLydanlaeg}
+              onChange={(v) => updateSpec({ mobilLydanlaeg: v })}
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <FieldTextarea
+              label="Noter"
+              value={spec.noter}
+              onChange={(v) => updateSpec({ noter: v })}
+              rows={3}
             />
           </div>
         </div>
-      )}
+      </div>
+
+      <div className="rounded-lg bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-800">
+          UBAK — minutter i modulet
+        </p>
+        <p className="text-xs text-slate-500">
+          Modulvarighed: {duration} min · Fordeling i alt: {timingSum} min
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-4">
+          <TimingField
+            label="UBAK"
+            value={mod.timing.ubak}
+            onChange={(v) => onChange({ timing: { ...mod.timing, ubak: v } })}
+          />
+          <TimingField
+            label="FT"
+            value={mod.timing.ft}
+            onChange={(v) => onChange({ timing: { ...mod.timing, ft: v } })}
+          />
+          <TimingField
+            label="PTS"
+            value={mod.timing.pts}
+            onChange={(v) => onChange({ timing: { ...mod.timing, pts: v } })}
+          />
+          <TimingField
+            label="BH"
+            value={mod.timing.bh}
+            onChange={(v) => onChange({ timing: { ...mod.timing, bh: v } })}
+          />
+        </div>
+      </div>
     </div>
+  );
+}
+
+function CheckboxField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {label}
+    </label>
   );
 }
 

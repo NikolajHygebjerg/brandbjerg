@@ -1,5 +1,5 @@
 import type { CourseModule, ModuleTiming } from "../mock-data";
-import { defaultMealDetails } from "../mock-data";
+import { defaultMealDetails, defaultLokaleSpec } from "../mock-data";
 import {
   inferForplejningFromTitle,
   inferSpecifikationFromTitle,
@@ -425,8 +425,6 @@ export function templateRowToModule(
     tidFra: row.tidFra,
     tidTil: row.tidTil,
     interneNoter: "",
-    onskerPedel: "",
-    onskerKoekken: row.erMaltid ? "" : "",
     timing: { ...row.timing },
     lon: row.lon,
     erMaltid: row.erMaltid ?? false,
@@ -436,6 +434,7 @@ export function templateRowToModule(
           specifikation: inferSpecifikationFromTitle(row.overskrift),
         })
       : undefined,
+    lokaleSpec: row.erMaltid ? undefined : defaultLokaleSpec(),
     klar: false,
   };
 }

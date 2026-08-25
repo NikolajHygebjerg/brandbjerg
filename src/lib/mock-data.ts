@@ -43,6 +43,27 @@ export interface MealDetails {
   sendesTilKoekken: boolean;
 }
 
+/** Lokalespecifikation — som i Pedel-arket (praktisk seddel) */
+export interface LokaleSpecifikation {
+  lokale: string;
+  skalBrugesFlereDage: boolean;
+  klarFraUgedag: string;
+  klarFraKl: string;
+  ledigFraUgedag: string;
+  ledigFraKl: string;
+  antalPersoner: number;
+  bordopstilling: string;
+  dug: boolean;
+  levendeLys: boolean;
+  blomster: boolean;
+  storWhiteboard: boolean;
+  flipoverWhiteboard: boolean;
+  projektor: boolean;
+  mobilLaerredProjektor: boolean;
+  mobilLydanlaeg: boolean;
+  noter: string;
+}
+
 export interface CourseModule {
   id: string;
   source: "skabelon" | "liste" | "manuel";
@@ -55,12 +76,11 @@ export interface CourseModule {
   tidFra: string;
   tidTil: string;
   interneNoter: string;
-  onskerPedel: string;
-  onskerKoekken: string;
   timing: ModuleTiming;
   lon: ModuleLon;
   erMaltid?: boolean;
   maltid?: MealDetails;
+  lokaleSpec?: LokaleSpecifikation;
   klar: boolean;
 }
 
@@ -188,6 +208,31 @@ export function defaultMealDetails(
   };
 }
 
+export function defaultLokaleSpec(
+  overrides?: Partial<LokaleSpecifikation>,
+): LokaleSpecifikation {
+  return {
+    lokale: "",
+    skalBrugesFlereDage: false,
+    klarFraUgedag: "",
+    klarFraKl: "",
+    ledigFraUgedag: "",
+    ledigFraKl: "",
+    antalPersoner: 0,
+    bordopstilling: "Normal",
+    dug: false,
+    levendeLys: false,
+    blomster: false,
+    storWhiteboard: false,
+    flipoverWhiteboard: false,
+    projektor: false,
+    mobilLaerredProjektor: false,
+    mobilLydanlaeg: false,
+    noter: "",
+    ...overrides,
+  };
+}
+
 function sampleModules(
   dayLabel: string,
   opts?: { firstReady?: boolean; secondReady?: boolean },
@@ -207,10 +252,13 @@ function sampleModules(
       tidFra: "09:00",
       tidTil: "10:30",
       interneNoter: "Husk flipover og kaffe",
-      onskerPedel: "",
-      onskerKoekken: "",
       timing: { ubak: 45, ft: 15, pts: 0, bh: 0 },
       lon: "A",
+      lokaleSpec: defaultLokaleSpec({
+        lokale: "H1",
+        antalPersoner: 16,
+        flipoverWhiteboard: true,
+      }),
       klar: firstReady,
     },
     {
@@ -225,10 +273,9 @@ function sampleModules(
       tidFra: "10:45",
       tidTil: "12:30",
       interneNoter: "Ken bookes via sekretariat",
-      onskerPedel: "Stilladser i atelier",
-      onskerKoekken: "",
       timing: { ubak: 30, ft: 60, pts: 0, bh: 0 },
       lon: "B",
+      lokaleSpec: defaultLokaleSpec({ lokale: "Atelier", projektor: true }),
       klar: secondReady,
     },
   ];
@@ -531,10 +578,9 @@ export function createEmptyModule(): CourseModule {
     tidFra: "09:00",
     tidTil: "10:00",
     interneNoter: "",
-    onskerPedel: "",
-    onskerKoekken: "",
     timing: emptyTiming(),
     lon: "",
+    lokaleSpec: defaultLokaleSpec(),
     klar: false,
   };
 }

@@ -167,6 +167,9 @@ function ModuleTile({
       {mod.rolle && (
         <p className="mt-1 text-xs text-slate-600">{mod.rolle}</p>
       )}
+      {mod.lokaleSpec?.lokale && (
+        <p className="mt-1 text-xs text-slate-500">{mod.lokaleSpec.lokale}</p>
+      )}
 
       <div className="mt-2 flex flex-wrap gap-1">
         {mod.erMaltid && (
