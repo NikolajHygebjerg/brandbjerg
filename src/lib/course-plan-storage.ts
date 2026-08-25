@@ -1,4 +1,6 @@
 import type { Course, CourseChecklist, CourseDay } from "./mock-data";
+import type { BudgetManualLines, CourseBudgetInput } from "./budget/budget-types";
+import { defaultBudgetManualLines } from "./budget/budget-calculator";
 
 export type ProgramSaveStatus = "kladde" | "faerdig";
 
@@ -8,6 +10,8 @@ export interface StoredCoursePlan {
   moduleTemplateName?: string;
   checklist?: CourseChecklist;
   programStatus: ProgramSaveStatus;
+  budgetManual?: BudgetManualLines;
+  budgetInput?: Partial<CourseBudgetInput>;
   updatedAt: string;
 }
 
@@ -29,6 +33,8 @@ export function loadCoursePlan(courseId: string): StoredCoursePlan | null {
       moduleTemplateName: parsed.moduleTemplateName,
       checklist: parsed.checklist,
       programStatus: parsed.programStatus ?? "kladde",
+      budgetManual: parsed.budgetManual,
+      budgetInput: parsed.budgetInput,
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
     };
   } catch {
@@ -39,7 +45,10 @@ export function loadCoursePlan(courseId: string): StoredCoursePlan | null {
 export type PlanSnapshotInput = Pick<
   Course,
   "days" | "modulePlanMode" | "moduleTemplateName" | "checklist"
->;
+> & {
+  budgetManual?: BudgetManualLines;
+  budgetInput?: Partial<CourseBudgetInput>;
+};
 
 export function createPlanSnapshot(
   course: PlanSnapshotInput,
@@ -53,6 +62,8 @@ export function createPlanSnapshot(
     checklist: checklistOverride
       ? { ...course.checklist, ...checklistOverride }
       : course.checklist,
+    budgetManual: course.budgetManual,
+    budgetInput: course.budgetInput,
     programStatus,
   };
 }

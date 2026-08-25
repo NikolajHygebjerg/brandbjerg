@@ -380,7 +380,8 @@ function ChecklistAction({
       return (
         <div className="space-y-2">
           <p className="text-xs text-slate-600">
-            Budget: {course.budget.toLocaleString("da-DK")} kr · Marketing:{" "}
+            Budget udregnes automatisk under Oversigt & økonomi (Budget_4dage)
+            ud fra moduler, pris og deltagere. Marketing:{" "}
             {course.marketingBudget.toLocaleString("da-DK")} kr
           </p>
           {checklist.economyStatus === "pending" && (

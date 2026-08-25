@@ -6,6 +6,10 @@ import { CheckCircle2, FileSpreadsheet, LayoutTemplate, Save } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
+import {
+  CourseBudgetPanel,
+  defaultBudgetManualLines,
+} from "@/components/mockup/course-budget-panel";
 import { ModuleEditDialog } from "@/components/mockup/module-edit-dialog";
 import {
   ModulePlanBoard,
@@ -49,6 +53,7 @@ import {
   saveCoursePlan,
   type ProgramSaveStatus,
 } from "@/lib/course-plan-storage";
+import type { BudgetManualLines, CourseBudgetInput } from "@/lib/budget/budget-types";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -63,6 +68,12 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   const [planStatus, setPlanStatus] = useState<ProgramSaveStatus>("kladde");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [budgetManual, setBudgetManual] = useState<BudgetManualLines>(
+    defaultBudgetManualLines,
+  );
+  const [budgetInputOverrides, setBudgetInputOverrides] = useState<
+    Partial<CourseBudgetInput>
+  >({});
   const hydratedRef = useRef(false);
   const { registerSession } = useCourseDetailSession();
 
@@ -84,6 +95,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
       if (stored.days.length > 0) {
         setLastActiveDayId(stored.days[0]?.id ?? "");
       }
+      if (stored.budgetManual) setBudgetManual(stored.budgetManual);
+      if (stored.budgetInput) setBudgetInputOverrides(stored.budgetInput);
       setPlanStatus(stored.programStatus);
       setLastSavedAt(stored.updatedAt);
     }
@@ -104,7 +117,11 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         options.status ??
         (options.markProgramDone ? "faerdig" : planStatus);
       const snapshot = createPlanSnapshot(
-        course,
+        {
+          ...course,
+          budgetManual,
+          budgetInput: budgetInputOverrides,
+        },
         status,
         options.markProgramDone ? { programPlanned: true } : undefined,
       );
@@ -131,7 +148,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
       return saved;
     },
-    [course, planStatus],
+    [course, planStatus, budgetManual, budgetInputOverrides],
   );
 
   useEffect(() => {
@@ -139,9 +156,16 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     persistPlan({ silent: true });
   }, [
     course.days,
+    course.price,
+    course.capacity,
+    course.enrolled,
+    course.startDate,
+    course.endDate,
     course.modulePlanMode,
     course.moduleTemplateName,
     course.checklist,
+    budgetManual,
+    budgetInputOverrides,
     persistPlan,
   ]);
 
@@ -463,8 +487,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           </Card>
 
           <Card>
-            <CardTitle>Datoer, pris & budget</CardTitle>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            <CardTitle>Datoer & kapacitet</CardTitle>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Startdato">
                 <input
                   type="date"
@@ -481,32 +505,12 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
                 />
               </Field>
-              <Field label="Kursuspris">
-                <input
-                  type="number"
-                  value={course.price}
-                  onChange={(e) =>
-                    updateCourse({ price: Number(e.target.value) })
-                  }
-                  className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
-                />
-              </Field>
               <Field label="Kapacitet">
                 <input
                   type="number"
                   value={course.capacity}
                   onChange={(e) =>
                     updateCourse({ capacity: Number(e.target.value) })
-                  }
-                  className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
-                />
-              </Field>
-              <Field label="Budget">
-                <input
-                  type="number"
-                  value={course.budget}
-                  onChange={(e) =>
-                    updateCourse({ budget: Number(e.target.value) })
                   }
                   className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
                 />
@@ -522,12 +526,18 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                 />
               </Field>
             </dl>
-            <p className="mt-3 text-sm text-slate-600">
-              Pris: {formatDKK(course.price)} · Budget:{" "}
-              {formatDKK(course.budget)} · Marketing:{" "}
-              {formatDKK(course.marketingBudget)}
-            </p>
           </Card>
+
+          <CourseBudgetPanel
+            course={course}
+            budgetManual={budgetManual}
+            budgetInputOverrides={budgetInputOverrides}
+            onUpdateCourse={updateCourse}
+            onUpdateBudgetManual={setBudgetManual}
+            onUpdateBudgetInput={(patch) =>
+              setBudgetInputOverrides((prev) => ({ ...prev, ...patch }))
+            }
+          />
         </div>
       )}
 

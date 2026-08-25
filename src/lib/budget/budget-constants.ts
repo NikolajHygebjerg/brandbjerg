@@ -1,0 +1,20 @@
+/** Satser fra Budget_4dage / Datavalidering (Uge 35 — Liv i haven) */
+export const BUDGET_RATES = {
+  kostVoksnePerDag: 90,
+  kostTillægPerDag: 0,
+  kostBoernPerDag: 45,
+  fasteUdgifterPerDag: 450,
+  forbrugsafgifterPerDag: 45,
+  rengoringPerVaerelse: 130,
+  linnedPerPerson: 40,
+  enevaerelseTillaeg: 1400,
+  aeldresagsRabat: -350,
+  linnedIndtaegt: 150,
+  tilskudRateDefault: 0.65,
+  tilskudTakstDefault: 734.5,
+  lonA: 3656.25,
+  lonB: 4218.75,
+  transportRateDefault: 2.28,
+  maxBudgetTotalDefault: 50_000,
+  maxBudgetPerParticipantDefault: 30_000,
+} as const;
