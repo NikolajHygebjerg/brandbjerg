@@ -15,6 +15,8 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
+import { useCourseDetailSession } from "@/context/course-detail-session";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,10 +31,11 @@ const nav = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { session } = useCourseDetailSession();
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
+      <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
         <div className="border-b border-slate-200 px-5 py-5">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-700 text-sm font-bold text-white">
@@ -47,7 +50,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="space-y-1 p-3">
           {nav.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -69,6 +72,35 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        {session ? (
+          <div className="flex min-h-0 flex-1 flex-col border-t-2 border-slate-300">
+            <div className="flex-1 overflow-y-auto p-3">
+              <CourseChecklistPanel
+                variant="sidebar"
+                course={session.course}
+                onUpdateChecklist={session.updateChecklist}
+                onMarkProgramDone={session.onMarkProgramDone}
+                onGoToModulplan={session.onGoToModulplan}
+                mockAccountantView={session.mockAccountantView}
+              />
+            </div>
+            <div className="border-t border-slate-200 px-3 py-2">
+              <label className="flex items-center gap-2 text-[11px] text-slate-500">
+                <input
+                  type="checkbox"
+                  checked={session.mockAccountantView}
+                  onChange={(e) =>
+                    session.setMockAccountantView(e.target.checked)
+                  }
+                />
+                Vis bogholder-knap (mock)
+              </label>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
 
         <div className="border-t border-slate-200 p-4">
           <Link

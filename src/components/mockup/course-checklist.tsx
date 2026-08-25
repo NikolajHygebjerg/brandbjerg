@@ -32,6 +32,7 @@ type ChecklistProps = {
   onMarkProgramDone: () => void;
   onGoToModulplan: () => void;
   mockAccountantView?: boolean;
+  variant?: "default" | "sidebar";
 };
 
 export function CourseChecklistPanel({
@@ -40,6 +41,7 @@ export function CourseChecklistPanel({
   onMarkProgramDone,
   onGoToModulplan,
   mockAccountantView = false,
+  variant = "default",
 }: ChecklistProps) {
   const [showMissingModules, setShowMissingModules] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -130,19 +132,38 @@ export function CourseChecklistPanel({
   ];
 
   const doneCount = items.filter((i) => i.done).length;
+  const isSidebar = variant === "sidebar";
 
-  return (
-    <Card className="border-emerald-200">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+  const content = (
+    <>
+      <div
+        className={
+          isSidebar
+            ? "flex flex-col gap-2"
+            : "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+        }
+      >
         <div>
-          <CardTitle>Kursus-checkliste</CardTitle>
-          <CardDescription>
-            Kursusleder kan altid se hvad der mangler · {doneCount}/{items.length}{" "}
-            færdige
+          <CardTitle className={isSidebar ? "text-sm" : undefined}>
+            Kursus-checkliste
+          </CardTitle>
+          <CardDescription className={isSidebar ? "text-xs" : undefined}>
+            {isSidebar ? (
+              <>
+                {course.title} · {doneCount}/{items.length} færdige
+              </>
+            ) : (
+              <>
+                Kursusleder kan altid se hvad der mangler · {doneCount}/
+                {items.length} færdige
+              </>
+            )}
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-200">
+          <div
+            className={`h-2 overflow-hidden rounded-full bg-slate-200 ${isSidebar ? "w-full flex-1" : "w-32"}`}
+          >
             <div
               className="h-full rounded-full bg-emerald-600 transition-all"
               style={{
@@ -150,13 +171,15 @@ export function CourseChecklistPanel({
               }}
             />
           </div>
-          <span className="text-sm font-medium text-slate-700">
+          <span
+            className={`font-medium text-slate-700 ${isSidebar ? "text-xs" : "text-sm"}`}
+          >
             {Math.round((doneCount / items.length) * 100)}%
           </span>
         </div>
       </div>
 
-      <ul className="mt-4 space-y-2">
+      <ul className={`space-y-2 ${isSidebar ? "mt-3" : "mt-4"}`}>
         {items.map((item) => {
           const isOpen = expandedId === item.id;
           return (
@@ -170,32 +193,46 @@ export function CourseChecklistPanel({
                     : "border-slate-200 bg-white"
               }`}
             >
-              <div className="flex items-center gap-3 p-3">
+              <div
+                className={`flex items-center gap-2 ${isSidebar ? "p-2" : "gap-3 p-3"}`}
+              >
                 {item.done ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                  <CheckCircle2
+                    className={`shrink-0 text-emerald-600 ${isSidebar ? "h-4 w-4" : "h-5 w-5"}`}
+                  />
                 ) : item.urgent ? (
-                  <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+                  <AlertCircle
+                    className={`shrink-0 text-amber-600 ${isSidebar ? "h-4 w-4" : "h-5 w-5"}`}
+                  />
                 ) : (
-                  <Circle className="h-5 w-5 shrink-0 text-slate-300" />
+                  <Circle
+                    className={`shrink-0 text-slate-300 ${isSidebar ? "h-4 w-4" : "h-5 w-5"}`}
+                  />
                 )}
                 <div className="min-w-0 flex-1">
                   <p
-                    className={`text-sm font-medium ${
-                      item.done ? "text-emerald-900" : "text-slate-900"
-                    }`}
+                    className={`font-medium ${
+                      isSidebar ? "text-xs" : "text-sm"
+                    } ${item.done ? "text-emerald-900" : "text-slate-900"}`}
                   >
                     {item.label}
                   </p>
-                  <p className="text-xs text-slate-500">{item.hint}</p>
+                  {!isSidebar && (
+                    <p className="text-xs text-slate-500">{item.hint}</p>
+                  )}
                 </div>
                 <div className="flex shrink-0 gap-1">
                   {item.id === "modules-ready" && item.hasDetail && (
                     <button
                       type="button"
                       onClick={() => setShowMissingModules(!showMissingModules)}
-                      className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                      className={`rounded-lg bg-slate-100 font-medium text-slate-700 hover:bg-slate-200 ${
+                        isSidebar ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"
+                      }`}
                     >
-                      Se manglende ({unreadyModules.length})
+                      {isSidebar
+                        ? `(${unreadyModules.length})`
+                        : `Se manglende (${unreadyModules.length})`}
                     </button>
                   )}
                   <button
@@ -211,6 +248,12 @@ export function CourseChecklistPanel({
                   </button>
                 </div>
               </div>
+
+              {isSidebar && !isOpen && (
+                <p className="px-2 pb-2 text-[10px] leading-snug text-slate-500">
+                  {item.hint}
+                </p>
+              )}
 
               {item.id === "modules-ready" && showMissingModules && (
                 <div className="border-t border-slate-100 bg-slate-50 px-3 py-2">
@@ -250,6 +293,7 @@ export function CourseChecklistPanel({
                     onMarkProgramDone={onMarkProgramDone}
                     onGoToModulplan={onGoToModulplan}
                     incompleteModules={incompleteModules}
+                    compact={isSidebar}
                   />
                 </div>
               )}
@@ -257,6 +301,16 @@ export function CourseChecklistPanel({
           );
         })}
       </ul>
+    </>
+  );
+
+  if (isSidebar) {
+    return <div className="min-w-0">{content}</div>;
+  }
+
+  return (
+    <Card className="border-emerald-200">
+      {content}
     </Card>
   );
 }
@@ -271,6 +325,7 @@ function ChecklistAction({
   onMarkProgramDone,
   onGoToModulplan,
   incompleteModules,
+  compact = false,
 }: {
   itemId: string;
   course: Course;
@@ -281,7 +336,9 @@ function ChecklistAction({
   onMarkProgramDone: () => void;
   onGoToModulplan: () => void;
   incompleteModules: ReturnType<typeof getIncompleteModules>;
+  compact?: boolean;
 }) {
+  const buttonClass = compact ? "h-7 text-[11px]" : "h-8 text-xs";
   switch (itemId) {
     case "program":
       return (
@@ -296,14 +353,14 @@ function ChecklistAction({
             <Button
               onClick={onMarkProgramDone}
               disabled={!allModulesFilled || checklist.programPlanned}
-              className="h-8 text-xs"
+              className={buttonClass}
             >
               {checklist.programPlanned ? "Program markeret færdigt" : "Færdig"}
             </Button>
             <Button
               onClick={onGoToModulplan}
               variant="secondary"
-              className="h-8 text-xs"
+              className={buttonClass}
             >
               Rediger modulplan
             </Button>
@@ -329,7 +386,7 @@ function ChecklistAction({
           {checklist.economyStatus === "pending" && (
             <Button
               onClick={() => onUpdateChecklist({ economyStatus: "sent" })}
-              className="h-8 text-xs"
+              className={buttonClass}
             >
               <Send className="h-3.5 w-3.5" />
               Send økonomiforslag til bogholder
@@ -342,7 +399,7 @@ function ChecklistAction({
                 <Button
                   onClick={() => onUpdateChecklist({ economyStatus: "approved" })}
                   variant="secondary"
-                  className="h-8 text-xs"
+                  className={buttonClass}
                 >
                   Bogholder: Godkend (mock)
                 </Button>
@@ -422,7 +479,7 @@ function ChecklistAction({
           <Button
             onClick={() => onUpdateChecklist({ kitchenPlanSent: true })}
             disabled={!checklist.kitchenPlan.trim() || checklist.kitchenPlanSent}
-            className="h-8 text-xs"
+            className={buttonClass}
           >
             <Send className="h-3.5 w-3.5" />
             {checklist.kitchenPlanSent ? "Sendt til køkken" : "Send til køkken"}
@@ -446,7 +503,7 @@ function ChecklistAction({
           <Button
             onClick={() => onUpdateChecklist({ pedelPlanSent: true })}
             disabled={!checklist.pedelPlan.trim() || checklist.pedelPlanSent}
-            className="h-8 text-xs"
+            className={buttonClass}
           >
             <Send className="h-3.5 w-3.5" />
             {checklist.pedelPlanSent ? "Sendt til pedel" : "Send til pedel"}
@@ -474,7 +531,7 @@ function ChecklistAction({
           <Button
             onClick={() => onUpdateChecklist({ welcomeLetterSent: true })}
             disabled={checklist.welcomeLetterSent}
-            className="h-8 text-xs"
+            className={buttonClass}
           >
             <Mail className="h-3.5 w-3.5" />
             {checklist.welcomeLetterSent ? "Velkomstbrev sendt" : "Send velkomstbrev"}

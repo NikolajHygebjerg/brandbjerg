@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Trash2, FileSpreadsheet, LayoutTemplate, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
-import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
+import { useCourseDetailSession } from "@/context/course-detail-session";
 import {
   createEmptyModule,
   formatDate,
@@ -49,6 +49,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     initial.days[0]?.modules[0]?.id ?? null,
   );
   const [mockAccountantView, setMockAccountantView] = useState(false);
+  const { registerSession } = useCourseDetailSession();
 
   const leader = getStaff(course.courseLeaderId);
   const hosts = course.hostIds.map((id) => getStaff(id)).filter(Boolean);
@@ -59,6 +60,30 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   function updateCourse(patch: Partial<Course>) {
     setCourse((prev) => ({ ...prev, ...patch }));
   }
+
+  function updateChecklist(patch: Partial<CourseChecklist>) {
+    setCourse((prev) => ({
+      ...prev,
+      checklist: { ...prev.checklist, ...patch },
+    }));
+  }
+
+  function markProgramDone() {
+    updateChecklist({ programPlanned: true });
+  }
+
+  useEffect(() => {
+    registerSession({
+      course,
+      updateChecklist,
+      onMarkProgramDone: markProgramDone,
+      onGoToModulplan: () => setTab("modulplan"),
+      mockAccountantView,
+      setMockAccountantView,
+    });
+
+    return () => registerSession(null);
+  }, [course, mockAccountantView, registerSession]);
 
   function updateDay(dayId: string, updater: (day: CourseDay) => CourseDay) {
     setCourse((prev) => ({
@@ -103,17 +128,6 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
       ...day,
       modules: day.modules.filter((m) => m.id !== moduleId),
     }));
-  }
-
-  function updateChecklist(patch: Partial<CourseChecklist>) {
-    setCourse((prev) => ({
-      ...prev,
-      checklist: { ...prev.checklist, ...patch },
-    }));
-  }
-
-  function markProgramDone() {
-    updateChecklist({ programPlanned: true });
   }
 
   function updateModule(
@@ -196,23 +210,6 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           – {formatDate(course.endDate)}
         </p>
       </div>
-
-      <CourseChecklistPanel
-        course={course}
-        onUpdateChecklist={updateChecklist}
-        onMarkProgramDone={markProgramDone}
-        onGoToModulplan={() => setTab("modulplan")}
-        mockAccountantView={mockAccountantView}
-      />
-
-      <label className="flex items-center gap-2 text-xs text-slate-500">
-        <input
-          type="checkbox"
-          checked={mockAccountantView}
-          onChange={(e) => setMockAccountantView(e.target.checked)}
-        />
-        Vis bogholder-knap (mock til demo)
-      </label>
 
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         {tabs.map((t) => (
