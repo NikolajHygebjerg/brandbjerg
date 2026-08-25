@@ -64,3 +64,4 @@ npm run dev
 - Next.js 16, TypeScript, Tailwind CSS
 - Mockdata i `src/lib/mock-data.ts`
 - Ingen database, auth eller betaling — kun UI
+# brandbjerg
