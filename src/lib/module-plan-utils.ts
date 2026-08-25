@@ -1,4 +1,4 @@
-import type { CourseDay, CourseModule } from "./mock-data";
+import { moduleDurationMinutes, type CourseDay, type CourseModule } from "./mock-data";
 import type { ProgramTemplate } from "./program-templates/liv-i-haven-5dage";
 import { templateRowToModule } from "./program-templates/liv-i-haven-5dage";
 
@@ -87,4 +87,74 @@ export function allModules(days: CourseDay[]): CourseModule[] {
 
 export function minToHours(min: number): string {
   return (min / 60).toFixed(2).replace(".", ",");
+}
+
+export function parseTime(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return 0;
+  return h * 60 + m;
+}
+
+export function formatTime(minutes: number): string {
+  const clamped = Math.max(0, minutes);
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Klokkeslet for modul indsat på et givet index (overtager slot-modulets tid). */
+export function timesForSlot(
+  modules: CourseModule[],
+  index: number,
+  fallback: CourseModule,
+): { tidFra: string; tidTil: string } {
+  const slot = modules[index];
+  if (slot) {
+    return { tidFra: slot.tidFra, tidTil: slot.tidTil };
+  }
+
+  const duration = moduleDurationMinutes(fallback);
+
+  if (modules.length > 0) {
+    const last = modules[modules.length - 1];
+    const tidFra = last.tidTil;
+    return { tidFra, tidTil: formatTime(parseTime(tidFra) + duration) };
+  }
+
+  return { tidFra: fallback.tidFra, tidTil: fallback.tidTil };
+}
+
+export function moveModuleInPlan(
+  days: CourseDay[],
+  fromDayId: string,
+  moduleId: string,
+  toDayId: string,
+  toIndex: number,
+): CourseDay[] {
+  const fromDay = days.find((d) => d.id === fromDayId);
+  const fromIndex = fromDay?.modules.findIndex((m) => m.id === moduleId) ?? -1;
+  if (fromIndex === -1 || !fromDay) return days;
+
+  const movedModule = fromDay.modules[fromIndex];
+  const withoutModule = days.map((day) =>
+    day.id === fromDayId
+      ? { ...day, modules: day.modules.filter((m) => m.id !== moduleId) }
+      : day,
+  );
+
+  return withoutModule.map((day) => {
+    if (day.id !== toDayId) return day;
+
+    let insertIndex = toIndex;
+    if (fromDayId === toDayId && fromIndex < toIndex) {
+      insertIndex -= 1;
+    }
+    insertIndex = Math.max(0, Math.min(insertIndex, day.modules.length));
+
+    const times = timesForSlot(day.modules, insertIndex, movedModule);
+    const modules = [...day.modules];
+    modules.splice(insertIndex, 0, { ...movedModule, ...times });
+
+    return { ...day, modules };
+  });
 }

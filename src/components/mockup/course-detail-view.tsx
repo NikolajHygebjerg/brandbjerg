@@ -29,6 +29,7 @@ import {
   computeProgramTotals,
   countInclusiveDays,
   minToHours,
+  moveModuleInPlan,
 } from "@/lib/module-plan-utils";
 import {
   getTemplateForDayCount,
@@ -252,6 +253,22 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         m.id === moduleId ? { ...m, ...patch } : m,
       ),
     }));
+  }
+
+  function moveModule(
+    fromDayId: string,
+    moduleId: string,
+    toDayId: string,
+    toIndex: number,
+  ) {
+    setCourse((prev) => ({
+      ...prev,
+      days: moveModuleInPlan(prev.days, fromDayId, moduleId, toDayId, toIndex),
+    }));
+    setLastActiveDayId(toDayId);
+    if (editingModule?.moduleId === moduleId) {
+      setEditingModule({ dayId: toDayId, moduleId });
+    }
   }
 
   function initializeModulplan(mode: "skabelon" | "bunden") {
@@ -650,8 +667,9 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-slate-600">
-                  Klik på et modul for at redigere. Alle dage vises side om side
-                  som i Program_UBAK.
+                  Klik på et modul for at redigere. Træk via håndtaget for at
+                  flytte mellem dage og tidspunkter — klokkeslettet opdateres
+                  automatisk.
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
@@ -693,6 +711,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   setEditingModule({ dayId, moduleId });
                 }}
                 onAddModule={(dayId) => addManualModule(dayId)}
+                onMoveModule={moveModule}
               />
 
               {editingModuleData && editingDay && (
