@@ -34,7 +34,7 @@ export const programUbak5Dage: ProgramTemplate = {
   name: "Program_UBAK — 5 dages kursus",
   sheetName: "Program_UBAK",
   dayCount: 5,
-  sourceFile: "Uge 35 - Liv i haven",
+  sourceFile: "Uge 35 - Program_UBAK",
   weekdayLabels: ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag"],
   days: [
     // Mandag
@@ -42,7 +42,7 @@ export const programUbak5Dage: ProgramTemplate = {
       {
         tidFra: "07:30",
         tidTil: "08:30",
-        overskrift: "Liv i haven / Morgenmad",
+        overskrift: "Morgenmad",
         rolle: "Køkken",
         underviserType: "intern",
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
