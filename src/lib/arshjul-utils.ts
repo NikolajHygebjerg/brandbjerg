@@ -133,6 +133,7 @@ export function historySummary(
 }
 
 const STORAGE_KEY = "brandbjerg-arshjul-plans";
+const ACTIVE_YEAR_KEY = "brandbjerg-arshjul-active-year";
 
 export function loadPlansFromStorage(): AnnualPlan[] | null {
   if (typeof window === "undefined") return null;
@@ -148,6 +149,23 @@ export function loadPlansFromStorage(): AnnualPlan[] | null {
 export function savePlansToStorage(plans: AnnualPlan[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+}
+
+export function loadActiveYearFromStorage(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ACTIVE_YEAR_KEY);
+    if (!raw) return null;
+    const y = parseInt(raw, 10);
+    return Number.isFinite(y) ? y : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveActiveYearToStorage(year: number) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACTIVE_YEAR_KEY, String(year));
 }
 
 /** Genberegn slutdato når start eller antal dage ændres */

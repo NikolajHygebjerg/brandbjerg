@@ -20,7 +20,9 @@ import {
   getWeekDates,
   historySummary,
   loadPlansFromStorage,
+  loadActiveYearFromStorage,
   recalcEndDate,
+  saveActiveYearToStorage,
   savePlansToStorage,
   suggestStudentCount,
   sumBudgetStudents,
@@ -35,7 +37,7 @@ import {
 import { planStatusLabels, type PlanStatus } from "@/lib/mock-data";
 
 const WEEKS = Array.from({ length: 52 }, (_, i) => i + 1);
-const AVAILABLE_YEARS = [2026, 2025, 2024, 2023, 2022, 2021];
+const BASE_YEARS = [2026, 2025, 2024, 2023, 2022, 2021];
 const COURSE_TYPES = [
   "UL (åben)",
   "UL (lukket)",
@@ -52,6 +54,16 @@ function inputClass(extra = "") {
   return `rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm ${extra}`;
 }
 
+function mergePlansWithDefaults(
+  stored: AnnualPlan[],
+  defaults: AnnualPlan[],
+): AnnualPlan[] {
+  const byYear = new Map<number, AnnualPlan>();
+  for (const d of defaults) byYear.set(d.year, d);
+  for (const s of stored) byYear.set(s.year, s);
+  return Array.from(byYear.values()).sort((a, b) => b.year - a.year);
+}
+
 export function ArshjulPlanner() {
   const [plans, setPlans] = useState<AnnualPlan[]>(defaultAnnualPlans);
   const [hydrated, setHydrated] = useState(false);
@@ -62,12 +74,36 @@ export function ArshjulPlanner() {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [newYearInput, setNewYearInput] = useState("2027");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [yearError, setYearError] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = loadPlansFromStorage();
-    if (stored?.length) setPlans(stored);
+    const merged = stored?.length
+      ? mergePlansWithDefaults(stored, defaultAnnualPlans)
+      : defaultAnnualPlans;
+    setPlans(merged);
+
+    const savedYear = loadActiveYearFromStorage();
+    if (savedYear && merged.some((p) => p.year === savedYear)) {
+      setActiveYear(savedYear);
+    }
     setHydrated(true);
   }, []);
+
+  const displayYears = useMemo(() => {
+    const years = new Set<number>([
+      ...BASE_YEARS,
+      ...plans.map((p) => p.year),
+    ]);
+    const maxExisting = Math.max(...plans.map((p) => p.year), 2026);
+    years.add(maxExisting + 1);
+    return Array.from(years).sort((a, b) => b - a);
+  }, [plans]);
+
+  function selectYear(y: number) {
+    setActiveYear(y);
+    saveActiveYearToStorage(y);
+  }
 
   const activePlan = plans.find((p) => p.year === activeYear);
   const isEditable = activePlan != null && activePlan.planStatus !== "godkendt";
@@ -91,24 +127,34 @@ export function ArshjulPlanner() {
   function persistPlans(next: AnnualPlan[], message: string) {
     setPlans(next);
     savePlansToStorage(next);
+    saveActiveYearToStorage(activeYear);
     setSaveMessage(message);
     setTimeout(() => setSaveMessage(null), 4000);
+  }
+
+  function saveDraft() {
+    if (!activePlan) return;
+    setPlans((prev) => {
+      const next = prev.map((p) =>
+        p.year === activeYear
+          ? { ...p, planStatus: "udkast" as PlanStatus, readonly: false }
+          : p,
+      );
+      savePlansToStorage(next);
+      saveActiveYearToStorage(activeYear);
+      const saved = next.find((p) => p.year === activeYear);
+      setSaveMessage(
+        `Kladde gemt for ${activeYear} (mål: ${saved?.targetStudents ?? 0}, ${saved?.courses.length ?? 0} kurser)`,
+      );
+      setTimeout(() => setSaveMessage(null), 4000);
+      return next;
+    });
   }
 
   function updateActivePlan(updater: (plan: AnnualPlan) => AnnualPlan) {
     setPlans((prev) =>
       prev.map((p) => (p.year === activeYear ? updater(p) : p)),
     );
-  }
-
-  function saveDraft() {
-    if (!activePlan) return;
-    const next = plans.map((p) =>
-      p.year === activeYear
-        ? { ...p, planStatus: "udkast" as PlanStatus, readonly: false }
-        : p,
-    );
-    persistPlans(next, `Kladde gemt for ${activeYear} (mål: ${target}, ${weekCourses.length} kurser)`);
   }
 
   function saveApproved() {
@@ -208,12 +254,23 @@ export function ArshjulPlanner() {
     const nextYear =
       presetYear ?? Math.max(...plans.map((p) => p.year)) + 1;
     setNewYearInput(String(nextYear));
+    setYearError(null);
     setShowCopyDialog(true);
   }
 
   function createNewYear(mode: "copy" | "blank") {
     const toYear = parseInt(newYearInput, 10);
-    if (!toYear || plans.some((p) => p.year === toYear)) return;
+    if (!toYear) {
+      setYearError("Angiv et gyldigt årstal");
+      return;
+    }
+    if (plans.some((p) => p.year === toYear)) {
+      setYearError(`${toYear} findes allerede — vælg det i årslisten ovenfor`);
+      selectYear(toYear);
+      setShowCopyDialog(false);
+      return;
+    }
+    setYearError(null);
 
     let courses: BrandbjergPlannedCourse[] = [];
     if (mode === "copy") {
@@ -240,6 +297,7 @@ export function ArshjulPlanner() {
         : `${toYear} oprettet som tomt udkast`,
     );
     setActiveYear(toYear);
+    saveActiveYearToStorage(toYear);
     setShowCopyDialog(false);
   }
 
@@ -280,9 +338,13 @@ export function ArshjulPlanner() {
             newYearInput={newYearInput}
             setNewYearInput={setNewYearInput}
             copySourceYear={copySourcePlan?.year ?? 2026}
+            yearError={yearError}
             onCopy={createNewYearFromCopy}
             onBlank={createNewYearBlank}
-            onCancel={() => setShowCopyDialog(false)}
+            onCancel={() => {
+              setShowCopyDialog(false);
+              setYearError(null);
+            }}
           />
         )}
       </div>
@@ -306,26 +368,38 @@ export function ArshjulPlanner() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {AVAILABLE_YEARS.map((y) => {
-              const exists = plans.some((p) => p.year === y);
+            {displayYears.map((y) => {
+              const plan = plans.find((p) => p.year === y);
+              const exists = Boolean(plan);
+              const isDraft = exists && plan!.planStatus !== "godkendt";
               return (
                 <button
                   key={y}
                   type="button"
                   onClick={() => {
-                    if (exists) setActiveYear(y);
+                    if (exists) selectYear(y);
                     else openNewYearDialog(y);
                   }}
                   className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                     activeYear === y
                       ? "bg-emerald-700 text-white"
                       : exists
-                        ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? isDraft
+                          ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                         : "border border-dashed border-slate-300 bg-white text-slate-500 hover:border-emerald-400 hover:text-emerald-700"
                   }`}
+                  title={
+                    exists
+                      ? isDraft
+                        ? `${y} — kladde`
+                        : `${y} — godkendt`
+                      : `Opret årshjul ${y}`
+                  }
                 >
                   {y}
                   {!exists && " (+)"}
+                  {isDraft && activeYear !== y && " ·"}
                 </button>
               );
             })}
@@ -346,9 +420,13 @@ export function ArshjulPlanner() {
           newYearInput={newYearInput}
           setNewYearInput={setNewYearInput}
           copySourceYear={copySourcePlan?.year ?? 2026}
+          yearError={yearError}
           onCopy={createNewYearFromCopy}
           onBlank={createNewYearBlank}
-          onCancel={() => setShowCopyDialog(false)}
+          onCancel={() => {
+            setShowCopyDialog(false);
+            setYearError(null);
+          }}
         />
       )}
 
@@ -585,6 +663,7 @@ function NewYearDialog({
   newYearInput,
   setNewYearInput,
   copySourceYear,
+  yearError,
   onCopy,
   onBlank,
   onCancel,
@@ -592,6 +671,7 @@ function NewYearDialog({
   newYearInput: string;
   setNewYearInput: (v: string) => void;
   copySourceYear: number;
+  yearError: string | null;
   onCopy: () => void;
   onBlank: () => void;
   onCancel: () => void;
@@ -603,6 +683,9 @@ function NewYearDialog({
         Vælg år og om du vil kopiere kurser fra et tidligere år, eller starte
         helt forfra med et tomt årshjul.
       </CardDescription>
+      {yearError && (
+        <p className="mt-2 text-sm font-medium text-amber-800">{yearError}</p>
+      )}
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <div>
           <label className="text-xs font-medium text-blue-900">Nyt år</label>
