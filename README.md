@@ -2,7 +2,21 @@
 
 Interaktiv mockup af en custom kursusplatform til højskole. Bygget til præsentation for ledelsen — viser sider, funktioner og sammenhænge uden fuld backend.
 
-## Start mockuppen
+## Offentligt link (telefon & tablet)
+
+**Live mockup:** https://temporary-agile-boron-nfvvr9v.vercel.app
+
+> Linket udløber efter ca. 60 minutter, medmindre du gør det permanent (se nedenfor).
+
+**Gør linket permanent:** Åbn [claim-deployment på Vercel](https://vercel.com/claim-deployment?code=510940f6-1882-4e8d-bec2-6a255cb2fb4c) og log ind med GitHub/e-mail. Derefter forbliver URL’en aktiv.
+
+Anbefalede sider på telefonen:
+- `/overblik` — ledelsespræsentation
+- `/planlaegning/arshjul` — modul 1
+- `/planlaegning/statusark` — statusark
+- `/planlaegning/kurser/kur-001` — modul 2
+
+## Start mockuppen lokalt
 
 ```bash
 npm install
