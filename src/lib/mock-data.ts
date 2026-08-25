@@ -45,6 +45,24 @@ export interface CourseModule {
   onskerPedel: string;
   onskerKoekken: string;
   ubak: UbakSplit;
+  klar: boolean;
+}
+
+export type EconomyChecklistStatus = "pending" | "sent" | "approved";
+
+export interface CourseChecklist {
+  programPlanned: boolean;
+  economyStatus: EconomyChecklistStatus;
+  kmrImagesUploaded: boolean;
+  kmrImageCount: number;
+  websiteText: string;
+  websiteTextDone: boolean;
+  kitchenPlan: string;
+  kitchenPlanSent: boolean;
+  pedelPlan: string;
+  pedelPlanSent: boolean;
+  welcomeLetterSent: boolean;
+  welcomeLetterDraft: string;
 }
 
 export interface CourseDay {
@@ -83,6 +101,7 @@ export interface Course {
   planStatus: PlanStatus;
   days: CourseDay[];
   moduleTemplateName?: string;
+  checklist: CourseChecklist;
 }
 
 export interface Enrollment {
@@ -152,7 +171,12 @@ function emptyUbak(): UbakSplit {
   return { hojskoleTid: 0, faerdighedstilvaenning: 0, ubak: 0 };
 }
 
-function sampleModules(dayLabel: string): CourseModule[] {
+function sampleModules(
+  dayLabel: string,
+  opts?: { firstReady?: boolean; secondReady?: boolean },
+): CourseModule[] {
+  const firstReady = opts?.firstReady ?? true;
+  const secondReady = opts?.secondReady ?? false;
   return [
     {
       id: `${dayLabel}-m1`,
@@ -168,23 +192,64 @@ function sampleModules(dayLabel: string): CourseModule[] {
       onskerPedel: "",
       onskerKoekken: "",
       ubak: { hojskoleTid: 30, faerdighedstilvaenning: 15, ubak: 45 },
+      klar: firstReady,
     },
     {
       id: `${dayLabel}-m2`,
       source: "liste",
-      underviser: "Lise Møller",
-      underviserType: "intern",
+      underviser: "Ken Hartmann",
+      underviserType: "ekstern",
       pris: 150,
-      overskrift: "Praktisk workshop",
+      overskrift: "Gæsteforedrag — akvarelt teknik",
       broedtekst: "Deltagerne arbejder hands-on med teknikker og materialer.",
       tidFra: "10:45",
       tidTil: "12:30",
-      interneNoter: "",
+      interneNoter: "Ken bookes via sekretariat",
       onskerPedel: "Stilladser i atelier",
       onskerKoekken: "",
       ubak: { hojskoleTid: 15, faerdighedstilvaenning: 60, ubak: 30 },
+      klar: secondReady,
     },
   ];
+}
+
+export function defaultChecklist(overrides?: Partial<CourseChecklist>): CourseChecklist {
+  return {
+    programPlanned: false,
+    economyStatus: "pending",
+    kmrImagesUploaded: false,
+    kmrImageCount: 0,
+    websiteText: "",
+    websiteTextDone: false,
+    kitchenPlan: "",
+    kitchenPlanSent: false,
+    pedelPlan: "",
+    pedelPlanSent: false,
+    welcomeLetterSent: false,
+    welcomeLetterDraft:
+      "Kære kursist\n\nVelkommen til kurset! Vi glæder os til at se dig.\n\nMed venlig hilsen\nKursuslederen",
+    ...overrides,
+  };
+}
+
+export function isModuleFilled(mod: CourseModule) {
+  return Boolean(
+    mod.overskrift.trim() && mod.underviser.trim() && mod.tidFra && mod.tidTil,
+  );
+}
+
+export function getAllModules(course: Course) {
+  return course.days.flatMap((day) =>
+    day.modules.map((mod) => ({ ...mod, dayLabel: day.label, dayId: day.id })),
+  );
+}
+
+export function getUnreadyModules(course: Course) {
+  return getAllModules(course).filter((m) => !m.klar);
+}
+
+export function getIncompleteModules(course: Course) {
+  return getAllModules(course).filter((m) => !isModuleFilled(m));
 }
 
 export const statusLabels: Record<CourseStatus, string> = {
@@ -236,9 +301,27 @@ export const courses: Course[] = [
     planStatus: "godkendt",
     moduleTemplateName: "weekendkursus-2dage.csv",
     days: [
-      { id: "d1", date: "2026-03-14", label: "Dag 1", modules: sampleModules("d1") },
-      { id: "d2", date: "2026-03-15", label: "Dag 2", modules: sampleModules("d2") },
+      {
+        id: "d1",
+        date: "2026-03-14",
+        label: "Dag 1",
+        modules: sampleModules("d1", { firstReady: true, secondReady: false }),
+      },
+      {
+        id: "d2",
+        date: "2026-03-15",
+        label: "Dag 2",
+        modules: sampleModules("d2", { firstReady: true, secondReady: true }),
+      },
     ],
+    checklist: defaultChecklist({
+      websiteText:
+        "Et inspirerende weekendkursus i akvarelmaleri for begyndere og let øvede. Vi arbejder med farver, komposition og teknik i et trygt og kreativt miljø.",
+      websiteTextDone: true,
+      economyStatus: "sent",
+      kmrImagesUploaded: true,
+      kmrImageCount: 3,
+    }),
   },
   {
     id: "kur-002",
@@ -266,6 +349,7 @@ export const courses: Course[] = [
       { id: "d2", date: "2026-04-11", label: "Dag 2", modules: [] },
       { id: "d3", date: "2026-04-12", label: "Dag 3", modules: [] },
     ],
+    checklist: defaultChecklist({ economyStatus: "approved", kitchenPlanSent: true }),
   },
   {
     id: "kur-003",
@@ -292,6 +376,7 @@ export const courses: Course[] = [
       { id: "d2", date: "2026-05-03", label: "Dag 2", modules: [] },
       { id: "d3", date: "2026-05-04", label: "Dag 3", modules: [] },
     ],
+    checklist: defaultChecklist(),
   },
   {
     id: "kur-004",
@@ -317,6 +402,7 @@ export const courses: Course[] = [
       { id: "d1", date: "2026-06-06", label: "Dag 1", modules: [] },
       { id: "d2", date: "2026-06-07", label: "Dag 2", modules: [] },
     ],
+    checklist: defaultChecklist(),
   },
   {
     id: "kur-005",
@@ -339,6 +425,7 @@ export const courses: Course[] = [
     marketingBudget: 5_000,
     planStatus: "udkast",
     days: [],
+    checklist: defaultChecklist(),
   },
   {
     id: "kur-006",
@@ -364,6 +451,16 @@ export const courses: Course[] = [
       { id: "d1", date: "2026-01-24", label: "Dag 1", modules: sampleModules("k6d1") },
       { id: "d2", date: "2026-01-25", label: "Dag 2", modules: sampleModules("k6d2") },
     ],
+    checklist: defaultChecklist({
+      programPlanned: true,
+      economyStatus: "approved",
+      kmrImagesUploaded: true,
+      kmrImageCount: 5,
+      websiteTextDone: true,
+      kitchenPlanSent: true,
+      pedelPlanSent: true,
+      welcomeLetterSent: true,
+    }),
   },
 ];
 
@@ -419,6 +516,7 @@ export function createEmptyModule(): CourseModule {
     onskerPedel: "",
     onskerKoekken: "",
     ubak: emptyUbak(),
+    klar: false,
   };
 }
 

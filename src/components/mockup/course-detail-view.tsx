@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
+import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
 import {
   createEmptyModule,
   formatDate,
@@ -16,6 +17,7 @@ import {
   teachers,
   ubakTotal,
   type Course,
+  type CourseChecklist,
   type CourseDay,
   type CourseModule,
 } from "@/lib/mock-data";
@@ -31,6 +33,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   const [expandedModule, setExpandedModule] = useState<string | null>(
     initial.days[0]?.modules[0]?.id ?? null,
   );
+  const [mockAccountantView, setMockAccountantView] = useState(false);
 
   const leader = getTeacher(course.courseLeaderId);
   const hosts = course.hostIds.map((id) => getTeacher(id)).filter(Boolean);
@@ -84,6 +87,17 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     }));
   }
 
+  function updateChecklist(patch: Partial<CourseChecklist>) {
+    setCourse((prev) => ({
+      ...prev,
+      checklist: { ...prev.checklist, ...patch },
+    }));
+  }
+
+  function markProgramDone() {
+    updateChecklist({ programPlanned: true });
+  }
+
   function updateModule(
     dayId: string,
     moduleId: string,
@@ -121,6 +135,23 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           – {formatDate(course.endDate)}
         </p>
       </div>
+
+      <CourseChecklistPanel
+        course={course}
+        onUpdateChecklist={updateChecklist}
+        onMarkProgramDone={markProgramDone}
+        onGoToModulplan={() => setTab("modulplan")}
+        mockAccountantView={mockAccountantView}
+      />
+
+      <label className="flex items-center gap-2 text-xs text-slate-500">
+        <input
+          type="checkbox"
+          checked={mockAccountantView}
+          onChange={(e) => setMockAccountantView(e.target.checked)}
+        />
+        Vis bogholder-knap (mock til demo)
+      </label>
 
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         {tabs.map((t) => (
@@ -426,25 +457,42 @@ function ModuleCard({
   const ubakSum = ubakTotal(mod);
 
   return (
-    <Card>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <div>
-          <CardTitle className="text-base">
-            {mod.overskrift || "Nyt modul"}
-          </CardTitle>
+    <Card className={mod.klar ? "border-emerald-200" : ""}>
+      <div className="flex items-start justify-between gap-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="min-w-0 flex-1 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">
+              {mod.overskrift || "Nyt modul"}
+            </CardTitle>
+            {mod.klar && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                <CheckCircle2 className="h-3 w-3" />
+                Klar
+              </span>
+            )}
+          </div>
           <CardDescription>
             {mod.tidFra}–{mod.tidTil} · {mod.underviser || "Ingen underviser"} ·{" "}
             {mod.underviserType === "intern" ? "Intern" : "Ekstern"}
           </CardDescription>
+        </button>
+        <div className="flex shrink-0 flex-col gap-1">
+          <Button
+            onClick={() => onChange({ klar: !mod.klar })}
+            variant={mod.klar ? "secondary" : "primary"}
+            className="h-8 text-xs"
+          >
+            {mod.klar ? "Fjern klar" : "Markér klar"}
+          </Button>
+          <span className="text-center text-xs text-slate-400">
+            {expanded ? "Luk" : "Rediger"}
+          </span>
         </div>
-        <span className="text-xs text-slate-400">
-          {expanded ? "Luk" : "Rediger"}
-        </span>
-      </button>
+      </div>
 
       {expanded && (
         <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
