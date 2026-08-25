@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Copy,
   Eye,
+  FilePlus,
   Plus,
   Save,
   Sparkles,
@@ -210,27 +211,44 @@ export function ArshjulPlanner() {
     setShowCopyDialog(true);
   }
 
-  function createNewYearFromCopy() {
+  function createNewYear(mode: "copy" | "blank") {
     const toYear = parseInt(newYearInput, 10);
     if (!toYear || plans.some((p) => p.year === toYear)) return;
-    const source =
-      plans.filter((p) => p.year < toYear).sort((a, b) => b.year - a.year)[0] ??
-      plans.sort((a, b) => b.year - a.year)[0];
-    if (!source) return;
 
-    const copied = copyCoursesToYear(source.courses, source.year, toYear);
+    let courses: BrandbjergPlannedCourse[] = [];
+    if (mode === "copy") {
+      const source =
+        plans.filter((p) => p.year < toYear).sort((a, b) => b.year - a.year)[0] ??
+        plans.sort((a, b) => b.year - a.year)[0];
+      if (!source) return;
+      courses = copyCoursesToYear(source.courses, source.year, toYear);
+    }
+
     const next = [
       ...plans,
       {
         year: toYear,
         targetStudents: brandbjergAnnualTarget2026,
         planStatus: "udkast" as PlanStatus,
-        courses: copied,
+        courses,
       },
     ];
-    persistPlans(next, `${toYear} oprettet som redigerbart udkast`);
+    persistPlans(
+      next,
+      mode === "copy"
+        ? `${toYear} oprettet med kurser kopieret fra tidligere år`
+        : `${toYear} oprettet som tomt udkast`,
+    );
     setActiveYear(toYear);
     setShowCopyDialog(false);
+  }
+
+  function createNewYearFromCopy() {
+    createNewYear("copy");
+  }
+
+  function createNewYearBlank() {
+    createNewYear("blank");
   }
 
   if (!hydrated) {
@@ -243,17 +261,31 @@ export function ArshjulPlanner() {
 
   if (!activePlan) {
     return (
-      <Card>
-        <CardTitle>Vælg eller opret årshjul</CardTitle>
-        <CardDescription>
-          Der findes ingen plan for {activeYear}. Kopier fra et tidligere år for
-          at starte.
-        </CardDescription>
-        <Button onClick={() => openNewYearDialog()} className="mt-4">
-          <Copy className="h-4 w-4" />
-          Opret {activeYear} fra sidste år
-        </Button>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardTitle>Vælg eller opret årshjul</CardTitle>
+          <CardDescription>
+            Der findes ingen plan for {activeYear}. Kopier fra et tidligere år
+            eller start med et tomt årshjul.
+          </CardDescription>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={() => openNewYearDialog(activeYear)}>
+              <Copy className="h-4 w-4" />
+              Opret {activeYear}
+            </Button>
+          </div>
+        </Card>
+        {showCopyDialog && (
+          <NewYearDialog
+            newYearInput={newYearInput}
+            setNewYearInput={setNewYearInput}
+            copySourceYear={copySourcePlan?.year ?? 2026}
+            onCopy={createNewYearFromCopy}
+            onBlank={createNewYearBlank}
+            onCancel={() => setShowCopyDialog(false)}
+          />
+        )}
+      </div>
     );
   }
 
@@ -310,34 +342,14 @@ export function ArshjulPlanner() {
       </Card>
 
       {showCopyDialog && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardTitle className="text-blue-900">Opret nyt årshjul</CardTitle>
-          <CardDescription className="text-blue-800">
-            Kopierer titler og ugestruktur fra {copySourcePlan?.year ?? 2026}.
-          </CardDescription>
-          <div className="mt-3 flex flex-wrap items-end gap-3">
-            <div>
-              <label className="text-xs font-medium text-blue-900">Nyt år</label>
-              <input
-                type="number"
-                value={newYearInput}
-                onChange={(e) => setNewYearInput(e.target.value)}
-                className="mt-1 block w-28 rounded-lg border border-blue-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <Button onClick={createNewYearFromCopy}>
-              <Copy className="h-4 w-4" />
-              Kopier fra {copySourcePlan?.year ?? 2026}
-            </Button>
-            <Button
-              onClick={() => setShowCopyDialog(false)}
-              variant="ghost"
-              className="text-blue-800"
-            >
-              Annuller
-            </Button>
-          </div>
-        </Card>
+        <NewYearDialog
+          newYearInput={newYearInput}
+          setNewYearInput={setNewYearInput}
+          copySourceYear={copySourcePlan?.year ?? 2026}
+          onCopy={createNewYearFromCopy}
+          onBlank={createNewYearBlank}
+          onCancel={() => setShowCopyDialog(false)}
+        />
       )}
 
       {/* Gem kladde / Godkend */}
@@ -566,6 +578,56 @@ export function ArshjulPlanner() {
         </div>
       </Card>
     </div>
+  );
+}
+
+function NewYearDialog({
+  newYearInput,
+  setNewYearInput,
+  copySourceYear,
+  onCopy,
+  onBlank,
+  onCancel,
+}: {
+  newYearInput: string;
+  setNewYearInput: (v: string) => void;
+  copySourceYear: number;
+  onCopy: () => void;
+  onBlank: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Card className="border-blue-200 bg-blue-50">
+      <CardTitle className="text-blue-900">Opret nyt årshjul</CardTitle>
+      <CardDescription className="text-blue-800">
+        Vælg år og om du vil kopiere kurser fra et tidligere år, eller starte
+        helt forfra med et tomt årshjul.
+      </CardDescription>
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <div>
+          <label className="text-xs font-medium text-blue-900">Nyt år</label>
+          <input
+            type="number"
+            value={newYearInput}
+            onChange={(e) => setNewYearInput(e.target.value)}
+            className="mt-1 block w-28 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Button onClick={onCopy} variant="secondary" className="justify-start">
+          <Copy className="h-4 w-4" />
+          Kopier fra {copySourceYear}
+        </Button>
+        <Button onClick={onBlank} variant="secondary" className="justify-start">
+          <FilePlus className="h-4 w-4" />
+          Start tomt årshjul
+        </Button>
+        <Button onClick={onCancel} variant="ghost" className="text-blue-800">
+          Annuller
+        </Button>
+      </div>
+    </Card>
   );
 }
 
