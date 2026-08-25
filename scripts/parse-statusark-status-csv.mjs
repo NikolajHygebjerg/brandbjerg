@@ -1,0 +1,220 @@
+#!/usr/bin/env node
+/**
+ * Parse Brandbjerg Statusark CSV (Status 2026) → brandbjerg-statusark.ts
+ * Weekly enrollment columns = tilmeldinger pr. kalenderuge fra databasen.
+ */
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CSV_PATH =
+  process.argv[2] ||
+  "/home/ubuntu/.cursor/projects/workspace/uploads/AA_Statusark_2026_-_Korte_Kurser_Status_2026_-2_e904.csv";
+const OUT_PATH = path.join(__dirname, "../src/lib/brandbjerg-statusark.ts");
+
+const WEEK_COL_START = 7;
+const WEEK_COL_END = 77;
+const COL_TOTAL = 78;
+const COL_EXTRA = 79;
+const COL_BUDGET = 80;
+const COL_CANCELLED = 81;
+const COL_MAX = 82;
+const COL_OVER_UNDER = 83;
+const COL_DOUBLE = 84;
+const COL_SINGLE = 85;
+const COL_EXTERNAL = 86;
+const COL_MAX_ROOMS = 87;
+const COL_NOTES = 93;
+
+function weekMetaForColumn(colIndex) {
+  const offset = colIndex - WEEK_COL_START;
+  if (offset === 0) return { year: 2025, week: 34 };
+  if (offset <= 18) return { year: 2025, week: 34 + offset };
+  return { year: 2026, week: offset - 18 };
+}
+
+function parseDate(d) {
+  if (!d || !d.trim()) return null;
+  const m = d.trim().match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if (!m) return null;
+  const yy = parseInt(m[3], 10);
+  const year = yy >= 50 ? 1900 + yy : 2000 + yy;
+  return `${year}-${m[2]}-${m[1]}`;
+}
+
+function parseIntCol(val) {
+  if (!val || !String(val).trim()) return null;
+  const cleaned = String(val).replace(/\./g, "").replace(",", ".").trim();
+  if (cleaned === "-" || cleaned === "0" || cleaned === "-   ") return null;
+  const n = parseInt(cleaned, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseSigned(val) {
+  if (!val || !String(val).trim()) return null;
+  const s = String(val).trim().replace(/\s+/g, "");
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function escapeStr(s) {
+  return String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, " ")
+    .replace(/\r/g, "");
+}
+
+const raw = fs.readFileSync(CSV_PATH, "latin1");
+const lines = raw.split(/\r?\n/);
+const courses = [];
+let id = 0;
+
+for (let i = 3; i < lines.length; i++) {
+  const cols = lines[i].split(";");
+  const weekNumber = parseIntCol(cols[0]);
+  if (!weekNumber || weekNumber < 1 || weekNumber > 53) continue;
+
+  const title = (cols[6] || "").trim();
+  if (!title || title === "-" || title === "0") continue;
+
+  id++;
+  const enrollmentByWeek = [];
+  for (let c = WEEK_COL_START; c <= WEEK_COL_END; c++) {
+    const count = parseSigned(cols[c]);
+    if (count == null || count === 0) continue;
+    const { year, week } = weekMetaForColumn(c);
+    enrollmentByWeek.push({ year, week, count });
+  }
+
+  courses.push({
+    id: `sa26-${id}`,
+    courseWeekNumber: weekNumber,
+    startDate: parseDate(cols[1]),
+    endDate: parseDate(cols[2]),
+    dayCount: parseIntCol(cols[3]),
+    seniorDiscount: (cols[4] || "").trim().toLowerCase() === "ja",
+    type: (cols[5] || "").trim(),
+    title,
+    enrollmentByWeek,
+    totalEnrolled: parseIntCol(cols[COL_TOTAL]) ?? 0,
+    extraEnrolled: parseIntCol(cols[COL_EXTRA]) ?? 0,
+    budgetStudents: parseIntCol(cols[COL_BUDGET]) ?? 0,
+    paidCancellations: parseIntCol(cols[COL_CANCELLED]) ?? 0,
+    maxStudents: parseIntCol(cols[COL_MAX]),
+    overUnderBudget: parseSigned(cols[COL_OVER_UNDER]),
+    rooms: {
+      double: parseIntCol(cols[COL_DOUBLE]),
+      single: parseIntCol(cols[COL_SINGLE]),
+      external: parseIntCol(cols[COL_EXTERNAL]),
+      maxRooms: parseIntCol(cols[COL_MAX_ROOMS]),
+    },
+    statusNote: (cols[COL_NOTES] || "").trim(),
+  });
+}
+
+function weekToTs(w) {
+  return `{ year: ${w.year}, week: ${w.week}, count: ${w.count} }`;
+}
+
+function courseToTs(c) {
+  return `  {
+    id: "${c.id}",
+    courseWeekNumber: ${c.courseWeekNumber},
+    startDate: ${c.startDate ? `"${c.startDate}"` : "null"},
+    endDate: ${c.endDate ? `"${c.endDate}"` : "null"},
+    dayCount: ${c.dayCount ?? "null"},
+    seniorDiscount: ${c.seniorDiscount},
+    type: "${escapeStr(c.type)}",
+    title: "${escapeStr(c.title)}",
+    enrollmentByWeek: [
+${c.enrollmentByWeek.map((w) => "      " + weekToTs(w)).join(",\n")}
+    ],
+    totalEnrolled: ${c.totalEnrolled},
+    extraEnrolled: ${c.extraEnrolled},
+    budgetStudents: ${c.budgetStudents},
+    paidCancellations: ${c.paidCancellations},
+    maxStudents: ${c.maxStudents ?? "null"},
+    overUnderBudget: ${c.overUnderBudget ?? "null"},
+    rooms: {
+      double: ${c.rooms.double ?? "null"},
+      single: ${c.rooms.single ?? "null"},
+      external: ${c.rooms.external ?? "null"},
+      maxRooms: ${c.rooms.maxRooms ?? "null"},
+    },
+    statusNote: "${escapeStr(c.statusNote)}",
+  }`;
+}
+
+const totalEnrolled = courses.reduce((s, c) => s + c.totalEnrolled, 0);
+const totalBudget = courses.reduce((s, c) => s + c.budgetStudents, 0);
+
+const output = `// Brandbjerg Statusark 2026 — parsed from Status CSV
+// Generated by scripts/parse-statusark-status-csv.mjs
+// Ugentlige tilmeldingstal = aggregering fra tilmeldingsdatabasen pr. kalenderuge
+
+/** En tilmelding registreret i databasen — grundlag for KMR-analyse */
+export interface EnrollmentRecord {
+  id: string;
+  courseId: string;
+  registeredAt: string;
+  calendarYear: number;
+  calendarWeek: number;
+  /** Kampagnekilde / UTM — til fremtidig KMR-værktøj */
+  marketingSource?: string;
+  status: "active" | "cancelled_paid" | "cancelled_unpaid" | "waitlist";
+}
+
+/** Aggregeret ugentlig tilmelding (som i statusark-regnearket) */
+export interface WeeklyEnrollment {
+  year: number;
+  week: number;
+  count: number;
+}
+
+export interface RoomStatus {
+  double: number | null;
+  single: number | null;
+  external: number | null;
+  maxRooms: number | null;
+}
+
+export interface StatusarkCourse {
+  id: string;
+  courseWeekNumber: number;
+  startDate: string | null;
+  endDate: string | null;
+  dayCount: number | null;
+  seniorDiscount: boolean;
+  type: string;
+  title: string;
+  /** Tilmeldinger fordelt på kalenderuger — fra database */
+  enrollmentByWeek: WeeklyEnrollment[];
+  totalEnrolled: number;
+  extraEnrolled: number;
+  budgetStudents: number;
+  paidCancellations: number;
+  maxStudents: number | null;
+  overUnderBudget: number | null;
+  rooms: RoomStatus;
+  statusNote: string;
+}
+
+export const statusarkYear = 2026;
+
+export const statusarkCourses: StatusarkCourse[] = [
+${courses.map(courseToTs).join(",\n")}
+];
+
+export const statusarkTotals = {
+  courseCount: ${courses.length},
+  totalEnrolled: ${totalEnrolled},
+  totalBudget: ${totalBudget},
+  annualTarget: 750,
+};
+`;
+
+fs.writeFileSync(OUT_PATH, output, "utf8");
+console.log(`Wrote ${courses.length} courses → ${OUT_PATH}`);
+console.log(`Total enrolled: ${totalEnrolled}, budget sum: ${totalBudget}`);

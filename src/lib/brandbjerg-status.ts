@@ -1,82 +1,66 @@
 import type { Course, CourseStatus } from "./mock-data";
 import { defaultChecklist } from "./mock-data";
 import {
-  brandbjerg2026Courses,
-  type BrandbjergPlannedCourse,
-} from "./brandbjerg-arshjul";
+  statusarkCourses,
+  type StatusarkCourse,
+} from "./brandbjerg-statusark";
+import { netEnrolled } from "./statusark-utils";
 
-/** Mock tilmeldte: bruger 2025-realiseret hvis tilgængelig, ellers ~45% af budget */
-function mockEnrolled(c: BrandbjergPlannedCourse): number {
-  const lastYear = c.history[2025];
-  if (lastYear != null && lastYear > 0) {
-    return Math.min(lastYear, c.maxStudents ?? lastYear);
-  }
-  if (c.budgetStudents > 0) {
-    return Math.round(c.budgetStudents * 0.45);
-  }
-  return 0;
-}
-
-function mockStatus(c: BrandbjergPlannedCourse, enrolled: number): CourseStatus {
+function deriveStatus(c: StatusarkCourse): CourseStatus {
   const cap = c.maxStudents ?? c.budgetStudents;
+  const enrolled = netEnrolled(c.totalEnrolled, c.paidCancellations);
   if (cap > 0 && enrolled >= cap) return "fuldt";
   if (enrolled > 0) return "aaben";
   if (c.startDate && new Date(c.startDate) < new Date()) return "afvikles";
   return "markedsfoeres";
 }
 
-const RESPONSIBLE_MAP: Record<string, string> = {
-  CZ: "lar-04",
-  MLL: "lar-01",
-  AG: "lar-03",
-  KALC: "lar-02",
-};
-
-export function brandbjergToCourse(c: BrandbjergPlannedCourse): Course {
-  const enrolled = mockEnrolled(c);
+export function statusarkToCourse(c: StatusarkCourse): Course {
+  const enrolled = netEnrolled(c.totalEnrolled, c.paidCancellations);
   const capacity = (c.maxStudents ?? c.budgetStudents) || 20;
-  const leaderId = RESPONSIBLE_MAP[c.responsible] ?? "lar-01";
 
   return {
     id: c.id,
     title: c.title,
     category: c.type || "Kort kursus",
-    startDate: c.startDate ?? `${c.weekNumber}-W`,
+    startDate: c.startDate ?? "",
     endDate: c.endDate ?? c.startDate ?? "",
     price: 5_995,
     capacity,
     enrolled,
-    paid: Math.round(enrolled * 0.85),
-    status: mockStatus(c, enrolled),
-    instructor: c.responsible || "—",
+    paid: Math.max(0, enrolled - (c.paidCancellations || 0)),
+    status: deriveStatus(c),
+    instructor: "—",
     location: "Brandbjerg Højskole",
     department: "Planlægning",
-    weekNumber: c.weekNumber,
-    courseLeaderId: leaderId,
+    weekNumber: c.courseWeekNumber,
+    courseLeaderId: "lar-01",
     hostIds: [],
-    budget: capacity * 6_000,
+    budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,
     planStatus: "godkendt",
     days: c.startDate
-      ? [
-          {
-            id: `${c.id}-d1`,
-            date: c.startDate,
-            label: "Dag 1",
-            modules: [],
-          },
-        ]
+      ? [{ id: `${c.id}-d1`, date: c.startDate, label: "Dag 1", modules: [] }]
       : [],
     checklist: defaultChecklist(),
   };
 }
 
-export const statusarkCourses2026 = brandbjerg2026Courses
-  .filter((c) => c.title && c.title !== "-")
-  .map(brandbjergToCourse)
-  .sort((a, b) => a.weekNumber - b.weekNumber || a.title.localeCompare(b.title, "da"));
+export { statusarkCourses };
 
+export function getStatusarkCourse(id: string): StatusarkCourse | undefined {
+  return statusarkCourses.find((c) => c.id === id);
+}
+
+export function getStatusarkCourseAsDetail(id: string): Course | undefined {
+  const raw = getStatusarkCourse(id);
+  return raw ? statusarkToCourse(raw) : undefined;
+}
+
+/** @deprecated use statusarkCourses */
+export const statusarkCourses2026 = statusarkCourses.map(statusarkToCourse);
+
+/** @deprecated use getStatusarkCourseAsDetail */
 export function getBrandbjergCourse(id: string): Course | undefined {
-  const raw = brandbjerg2026Courses.find((c) => c.id === id);
-  return raw ? brandbjergToCourse(raw) : undefined;
+  return getStatusarkCourseAsDetail(id);
 }
