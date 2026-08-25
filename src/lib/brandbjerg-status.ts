@@ -3,6 +3,10 @@ import { defaultLeaderForInitials, getStaffByInitials } from "./brandbjerg-staff
 import type { Course, CourseStatus } from "./mock-data";
 import { defaultChecklist } from "./mock-data";
 import {
+  buildEmptyDays,
+  countInclusiveDays,
+} from "./module-plan-utils";
+import {
   statusarkCourses,
   type StatusarkCourse,
 } from "./brandbjerg-statusark";
@@ -55,9 +59,18 @@ export function statusarkToCourse(c: StatusarkCourse): Course {
     budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,
     planStatus: "godkendt",
-    days: c.startDate
-      ? [{ id: `${c.id}-d1`, date: c.startDate, label: "Dag 1", modules: [] }]
-      : [],
+    days:
+      c.startDate && c.endDate
+        ? buildEmptyDays(
+            c.startDate,
+            countInclusiveDays(c.startDate, c.endDate) ||
+              c.dayCount ||
+              1,
+          ).map((day, i) => ({
+            ...day,
+            id: `${c.id}-d${i + 1}`,
+          }))
+        : [],
     checklist: defaultChecklist(),
   };
 }

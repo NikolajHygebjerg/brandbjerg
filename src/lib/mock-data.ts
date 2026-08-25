@@ -25,17 +25,22 @@ export interface Teacher {
   type: TeacherType;
 }
 
-export interface UbakSplit {
-  hojskoleTid: number;
-  faerdighedstilvaenning: number;
+/** Minutter fordelt på UBAK-kategorier (Program_UBAK) */
+export interface ModuleTiming {
   ubak: number;
+  ft: number;
+  pts: number;
+  bh: number;
 }
+
+export type ModuleLon = "A" | "B" | "";
 
 export interface CourseModule {
   id: string;
   source: "skabelon" | "liste" | "manuel";
   underviser: string;
   underviserType: TeacherType;
+  rolle: string;
   pris: number;
   overskrift: string;
   broedtekst: string;
@@ -44,7 +49,9 @@ export interface CourseModule {
   interneNoter: string;
   onskerPedel: string;
   onskerKoekken: string;
-  ubak: UbakSplit;
+  timing: ModuleTiming;
+  lon: ModuleLon;
+  erMaltid?: boolean;
   klar: boolean;
 }
 
@@ -100,6 +107,7 @@ export interface Course {
   marketingBudget: number;
   planStatus: PlanStatus;
   days: CourseDay[];
+  modulePlanMode?: "skabelon" | "bunden";
   moduleTemplateName?: string;
   checklist: CourseChecklist;
 }
@@ -154,8 +162,8 @@ export const annualTargetDefault = 750;
 // Legacy dummy plan removed — use brandbjerg-arshjul.ts
 export const initialWeekPlan: PlannedWeekCourse[] = [];
 
-function emptyUbak(): UbakSplit {
-  return { hojskoleTid: 0, faerdighedstilvaenning: 0, ubak: 0 };
+export function emptyTiming(): ModuleTiming {
+  return { ubak: 0, ft: 0, pts: 0, bh: 0 };
 }
 
 function sampleModules(
@@ -170,6 +178,7 @@ function sampleModules(
       source: "skabelon",
       underviser: "Lise Møller",
       underviserType: "intern",
+      rolle: "Kursusleder",
       pris: 0,
       overskrift: "Velkomst og introduktion",
       broedtekst: "Vi starter med en fælles introduktion til kursets tema.",
@@ -178,7 +187,8 @@ function sampleModules(
       interneNoter: "Husk flipover og kaffe",
       onskerPedel: "",
       onskerKoekken: "",
-      ubak: { hojskoleTid: 30, faerdighedstilvaenning: 15, ubak: 45 },
+      timing: { ubak: 45, ft: 15, pts: 0, bh: 0 },
+      lon: "A",
       klar: firstReady,
     },
     {
@@ -186,6 +196,7 @@ function sampleModules(
       source: "liste",
       underviser: "Ken Hartmann",
       underviserType: "ekstern",
+      rolle: "Foredragsholder",
       pris: 150,
       overskrift: "Gæsteforedrag — akvarelt teknik",
       broedtekst: "Deltagerne arbejder hands-on med teknikker og materialer.",
@@ -194,7 +205,8 @@ function sampleModules(
       interneNoter: "Ken bookes via sekretariat",
       onskerPedel: "Stilladser i atelier",
       onskerKoekken: "",
-      ubak: { hojskoleTid: 15, faerdighedstilvaenning: 60, ubak: 30 },
+      timing: { ubak: 30, ft: 60, pts: 0, bh: 0 },
+      lon: "B",
       klar: secondReady,
     },
   ];
@@ -490,6 +502,7 @@ export function createEmptyModule(): CourseModule {
     source: "manuel",
     underviser: "",
     underviserType: "intern",
+    rolle: "",
     pris: 0,
     overskrift: "",
     broedtekst: "",
@@ -498,7 +511,8 @@ export function createEmptyModule(): CourseModule {
     interneNoter: "",
     onskerPedel: "",
     onskerKoekken: "",
-    ubak: emptyUbak(),
+    timing: emptyTiming(),
+    lon: "",
     klar: false,
   };
 }
@@ -509,8 +523,8 @@ export function moduleDurationMinutes(mod: CourseModule) {
   return th * 60 + tm - (fh * 60 + fm);
 }
 
-export function ubakTotal(mod: CourseModule) {
-  return mod.ubak.hojskoleTid + mod.ubak.faerdighedstilvaenning + mod.ubak.ubak;
+export function timingTotal(mod: CourseModule) {
+  return mod.timing.ubak + mod.timing.ft + mod.timing.pts + mod.timing.bh;
 }
 
 export function formatDKK(amount: number) {

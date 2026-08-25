@@ -21,6 +21,10 @@ import {
 } from "./arshjul-utils";
 import { defaultLeaderForInitials, getStaffByInitials } from "./brandbjerg-staff";
 import { netEnrolled } from "./statusark-utils";
+import {
+  buildEmptyDays,
+  countInclusiveDays,
+} from "./module-plan-utils";
 
 export interface CourseListEntry {
   id: string;
@@ -187,9 +191,21 @@ export function plannedCourseToDetail(
     budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,
     planStatus: planStatus === "godkendt" ? "godkendt" : "udkast",
-    days: c.startDate
-      ? [{ id: `${c.id}-d1`, date: c.startDate, label: "Dag 1", modules: [] }]
-      : [],
+    days:
+      c.startDate && (c.endDate || c.startDate)
+        ? buildEmptyDays(
+            c.startDate,
+            countInclusiveDays(
+              c.startDate,
+              c.endDate ?? c.startDate,
+            ) ||
+              c.dayCount ||
+              1,
+          ).map((day, i) => ({
+            ...day,
+            id: `${c.id}-d${i + 1}`,
+          }))
+        : [],
     checklist: defaultChecklist(),
   };
 }
