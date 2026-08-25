@@ -22,10 +22,12 @@ import {
   bordopstillinger,
   ugedage,
 } from "@/lib/lokale-spec-options";
+import { ModuleQuestionsReplyPanel } from "@/components/mockup/module-questions";
 
 type ModuleEditDialogProps = {
   module: CourseModule;
   dayLabel: string;
+  courseId?: string;
   open: boolean;
   onClose: () => void;
   onChange: (patch: Partial<CourseModule>) => void;
@@ -35,6 +37,7 @@ type ModuleEditDialogProps = {
 export function ModuleEditDialog({
   module: mod,
   dayLabel,
+  courseId,
   open,
   onClose,
   onChange,
@@ -134,6 +137,14 @@ export function ModuleEditDialog({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          {courseId && (
+            <div className="mb-4">
+              <ModuleQuestionsReplyPanel
+                courseId={courseId}
+                moduleId={mod.id}
+              />
+            </div>
+          )}
           {isMeal ? (
             <MealForm
               mod={mod}

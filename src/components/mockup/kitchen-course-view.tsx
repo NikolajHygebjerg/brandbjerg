@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { UtensilsCrossed } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { AskQuestionButton } from "@/components/mockup/module-questions";
 import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, type Course } from "@/lib/mock-data";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
@@ -105,6 +106,7 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
                     <th className="px-4 py-2">Til kl.</th>
                     <th className="px-4 py-2">Lokaler</th>
                     <th className="px-4 py-2">Noter</th>
+                    <th className="px-4 py-2" />
                   </tr>
                 </thead>
                 <tbody>
@@ -131,6 +133,17 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
                       </td>
                       <td className="max-w-xs px-4 py-3 text-slate-600">
                         {row.note || "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <AskQuestionButton
+                          courseId={courseId}
+                          moduleId={row.moduleId}
+                          department="koekken"
+                          moduleLabel={
+                            row.forplejning || row.specifikation || "Måltid"
+                          }
+                          compact
+                        />
                       </td>
                     </tr>
                   ))}

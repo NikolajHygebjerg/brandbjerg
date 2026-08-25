@@ -728,6 +728,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
               <ModulePlanBoard
                 days={course.days}
+                courseId={course.id}
                 editingModule={editingModule}
                 onSelectModule={(dayId, moduleId) => {
                   setLastActiveDayId(dayId);
@@ -743,6 +744,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
               {editingModuleData && editingDay && (
                 <ModuleEditDialog
                   open
+                  courseId={course.id}
                   module={editingModuleData}
                   dayLabel={editingDay.label}
                   onClose={() => setEditingModule(null)}

@@ -13,6 +13,7 @@ import {
   LayoutTemplate,
   Megaphone,
   Network,
+  Sparkles,
   Users,
   UtensilsCrossed,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const nav = [
   { href: "/planlaegning/kurser", label: "Kurser", icon: ClipboardList },
   { href: "/skabeloner", label: "Skabeloner", icon: LayoutTemplate },
   { href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
+  { href: "/pedel", label: "Pedel og rengøring", icon: Sparkles },
   { href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
   { href: "/tilmeldinger", label: "Tilmeldinger", icon: Users },
   { href: "/afvikling", label: "Afvikling", icon: BarChart3 },

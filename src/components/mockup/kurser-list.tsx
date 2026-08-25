@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { QuestionCountBadge } from "@/components/mockup/module-questions";
 import { StatusBadge } from "@/components/mockup/status-badge";
 import {
   getAvailableCourseYears,
@@ -13,11 +14,17 @@ import {
 } from "@/lib/course-list";
 import { formatDate, weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
+import {
+  countUnansweredQuestions,
+  QUESTIONS_UPDATED_EVENT,
+} from "@/lib/module-questions-storage";
 
 export function KurserList() {
   const [hydrated, setHydrated] = useState(false);
   const [activeYear, setActiveYear] = useState(statusarkYear);
   const [years, setYears] = useState<number[]>([statusarkYear]);
+
+  const [questionTick, setQuestionTick] = useState(0);
 
   useEffect(() => {
     setYears(getAvailableCourseYears());
@@ -25,9 +32,17 @@ export function KurserList() {
     setHydrated(true);
   }, []);
 
+  useEffect(() => {
+    function onUpdate() {
+      setQuestionTick((t) => t + 1);
+    }
+    window.addEventListener(QUESTIONS_UPDATED_EVENT, onUpdate);
+    return () => window.removeEventListener(QUESTIONS_UPDATED_EVENT, onUpdate);
+  }, []);
+
   const courses = useMemo(
     () => (hydrated ? getCoursesForYear(activeYear) : []),
-    [hydrated, activeYear],
+    [hydrated, activeYear, questionTick],
   );
 
   if (!hydrated) {
@@ -126,15 +141,17 @@ function CourseRow({ course }: { course: CourseListEntry }) {
     course.capacity > 0
       ? Math.min(100, Math.round((course.enrolled / course.capacity) * 100))
       : 0;
+  const openQuestions = countUnansweredQuestions(course.id);
 
   return (
     <tr className="border-b border-slate-100 hover:bg-slate-50">
       <td className="px-4 py-3">
         <Link
           href={`/planlaegning/kurser/${course.id}`}
-          className="font-medium text-emerald-800 hover:underline"
+          className="inline-flex items-center gap-2 font-medium text-emerald-800 hover:underline"
         >
           {course.title}
+          <QuestionCountBadge count={openQuestions} />
         </Link>
         <p className="text-xs text-slate-500">{course.type}</p>
       </td>

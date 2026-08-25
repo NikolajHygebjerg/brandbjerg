@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GripVertical, Plus } from "lucide-react";
+import { ModuleQuestionAlert } from "@/components/mockup/module-questions";
 import { formatDate, timingTotal, type CourseDay, type CourseModule } from "@/lib/mock-data";
 
 type EditingModule = {
@@ -21,6 +22,7 @@ type DropTarget = {
 
 type ModulePlanBoardProps = {
   days: CourseDay[];
+  courseId?: string;
   editingModule: EditingModule;
   onSelectModule: (dayId: string, moduleId: string) => void;
   onAddModule: (dayId: string) => void;
@@ -41,6 +43,7 @@ const DRAG_MIME = "application/x-brandbjerg-module";
 
 export function ModulePlanBoard({
   days,
+  courseId,
   editingModule,
   onSelectModule,
   onAddModule,
@@ -85,6 +88,7 @@ export function ModulePlanBoard({
             }
             onDropAtIndex={(index) => handleDrop(day.id, index)}
             onToggleModuleReady={onToggleModuleReady}
+            courseId={courseId}
           />
         ))}
       </div>
@@ -104,6 +108,7 @@ function DayColumn({
   onDragOverIndex,
   onDropAtIndex,
   onToggleModuleReady,
+  courseId,
 }: {
   day: CourseDay;
   activeModuleId: string | null;
@@ -120,6 +125,7 @@ function DayColumn({
     moduleId: string,
     klar: boolean,
   ) => void;
+  courseId?: string;
 }) {
   return (
     <section className="flex w-[220px] shrink-0 flex-col bg-slate-50/50 sm:w-[240px]">
@@ -208,6 +214,7 @@ function DayColumn({
                 onToggleReady={(klar) =>
                   onToggleModuleReady(day.id, mod.id, klar)
                 }
+                courseId={courseId}
               />
             </div>
           ))
@@ -275,6 +282,7 @@ function ModuleTile({
   onDragOver,
   onDrop,
   onToggleReady,
+  courseId,
 }: {
   module: CourseModule;
   dayId: string;
@@ -287,6 +295,7 @@ function ModuleTile({
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onToggleReady: (klar: boolean) => void;
+  courseId?: string;
 }) {
   const timingSum = timingTotal(mod);
   const hasTiming = !mod.erMaltid && timingSum > 0;
@@ -321,10 +330,15 @@ function ModuleTile({
             onChange={onToggleReady}
             className="absolute right-2 top-2 z-10"
           />
+          {courseId && (
+            <div className="absolute right-8 top-2 z-10">
+              <ModuleQuestionAlert courseId={courseId} moduleId={mod.id} />
+            </div>
+          )}
           <button
             type="button"
             onClick={onClick}
-            className={`w-full rounded-lg border-2 border-dashed px-3 py-2.5 pr-8 text-left transition hover:shadow-sm ${
+            className={`w-full rounded-lg border-2 border-dashed px-3 py-2.5 pr-12 text-left transition hover:shadow-sm ${
               active
                 ? "border-amber-500 bg-amber-50 ring-2 ring-amber-200"
                 : mod.klar
@@ -370,10 +384,15 @@ function ModuleTile({
           onChange={onToggleReady}
           className="absolute right-2 top-2 z-10"
         />
+        {courseId && (
+          <div className="absolute right-8 top-2 z-10">
+            <ModuleQuestionAlert courseId={courseId} moduleId={mod.id} />
+          </div>
+        )}
         <button
           type="button"
           onClick={onClick}
-          className={`w-full rounded-lg border px-3 py-2.5 pr-8 text-left transition hover:shadow-sm ${
+          className={`w-full rounded-lg border px-3 py-2.5 pr-12 text-left transition hover:shadow-sm ${
             active
               ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200"
               : mod.klar
