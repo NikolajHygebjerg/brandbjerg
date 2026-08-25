@@ -6,8 +6,8 @@
     "dev": "next dev --port 4317",
     "build": "next build",
     "start": "next start",
-    "deploy": "vercel deploy --prod --yes",
-    "deploy:preview": "vercel deploy --yes",
+    "deploy": "npx vercel deploy --prod --yes",
+    "deploy:preview": "npx vercel deploy --yes",
     "ship": "bash scripts/ship.sh"
   },
   "dependencies": {
