@@ -2,23 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, FileSpreadsheet, LayoutTemplate, CheckCircle2 } from "lucide-react";
+import { FileSpreadsheet, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
+import { ModuleEditDialog } from "@/components/mockup/module-edit-dialog";
+import {
+  ModulePlanBoard,
+  type EditingModule,
+} from "@/components/mockup/module-plan-board";
 import { useCourseDetailSession } from "@/context/course-detail-session";
 import {
   createEmptyModule,
   formatDate,
   formatDKK,
-  moduleDurationMinutes,
   moduleLibrary,
-  timingTotal,
   type Course,
   type CourseChecklist,
   type CourseDay,
   type CourseModule,
-  type ModuleLon,
 } from "@/lib/mock-data";
 import {
   buildDaysFromTemplate,
@@ -42,18 +44,15 @@ type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 export function CourseDetailView({ course: initial }: { course: Course }) {
   const [course, setCourse] = useState(initial);
   const [tab, setTab] = useState<Tab>("oversigt");
-  const [selectedDayId, setSelectedDayId] = useState(
+  const [editingModule, setEditingModule] = useState<EditingModule>(null);
+  const [lastActiveDayId, setLastActiveDayId] = useState(
     initial.days[0]?.id ?? "",
-  );
-  const [expandedModule, setExpandedModule] = useState<string | null>(
-    initial.days[0]?.modules[0]?.id ?? null,
   );
   const [mockAccountantView, setMockAccountantView] = useState(false);
   const { registerSession } = useCourseDetailSession();
 
   const leader = getStaff(course.courseLeaderId);
   const hosts = course.hostIds.map((id) => getStaff(id)).filter(Boolean);
-  const selectedDay = course.days.find((d) => d.id === selectedDayId);
   const dayCount = countInclusiveDays(course.startDate, course.endDate);
   const templateForCourse = getTemplateForDayCount(dayCount);
 
@@ -92,8 +91,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     }));
   }
 
-  function addModuleFromLibrary(libId: string) {
-    if (!selectedDay) return;
+  function addModuleFromLibrary(dayId: string, libId: string) {
     const lib = moduleLibrary.find((m) => m.id === libId);
     if (!lib) return;
     const mod: CourseModule = {
@@ -106,21 +104,22 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
       timing: { ubak: 45, ft: 30, pts: 0, bh: 0 },
       rolle: "Kursusleder",
     };
-    updateDay(selectedDay.id, (day) => ({
+    updateDay(dayId, (day) => ({
       ...day,
       modules: [...day.modules, mod],
     }));
-    setExpandedModule(mod.id);
+    setLastActiveDayId(dayId);
+    setEditingModule({ dayId, moduleId: mod.id });
   }
 
-  function addManualModule() {
-    if (!selectedDay) return;
+  function addManualModule(dayId: string) {
     const mod = createEmptyModule();
-    updateDay(selectedDay.id, (day) => ({
+    updateDay(dayId, (day) => ({
       ...day,
       modules: [...day.modules, mod],
     }));
-    setExpandedModule(mod.id);
+    setLastActiveDayId(dayId);
+    setEditingModule({ dayId, moduleId: mod.id });
   }
 
   function removeModule(dayId: string, moduleId: string) {
@@ -128,6 +127,12 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
       ...day,
       modules: day.modules.filter((m) => m.id !== moduleId),
     }));
+    if (
+      editingModule?.dayId === dayId &&
+      editingModule.moduleId === moduleId
+    ) {
+      setEditingModule(null);
+    }
   }
 
   function updateModule(
@@ -167,8 +172,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           ? `${templateForCourse.sheetName} (${templateForCourse.sourceFile})`
           : undefined,
     });
-    setSelectedDayId(days[0]?.id ?? "");
-    setExpandedModule(days[0]?.modules[0]?.id ?? null);
+    setLastActiveDayId(days[0]?.id ?? "");
+    setEditingModule(null);
   }
 
   function reloadFromTemplate() {
@@ -185,6 +190,13 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
   const programTotals =
     course.days.length > 0 ? computeProgramTotals(course.days) : null;
+
+  const editingDay = editingModule
+    ? course.days.find((d) => d.id === editingModule.dayId)
+    : undefined;
+  const editingModuleData = editingDay?.modules.find(
+    (m) => m.id === editingModule?.moduleId,
+  );
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "oversigt", label: "Oversigt & økonomi" },
@@ -486,86 +498,72 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
             </Card>
           ) : (
             <>
-              <div className="grid gap-6 lg:grid-cols-4">
-                <Card className="lg:col-span-1">
-                  <CardTitle>Dage</CardTitle>
-                  <div className="mt-3 space-y-1">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-slate-600">
+                  Klik på et modul for at redigere. Alle dage vises side om side
+                  som i Program_UBAK.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                    value={lastActiveDayId}
+                    onChange={(e) => setLastActiveDayId(e.target.value)}
+                  >
                     {course.days.map((day) => (
-                      <button
-                        key={day.id}
-                        type="button"
-                        onClick={() => setSelectedDayId(day.id)}
-                        className={`w-full rounded-lg px-3 py-2 text-left text-sm ${
-                          selectedDayId === day.id
-                            ? "bg-emerald-100 font-medium text-emerald-900"
-                            : "hover:bg-slate-100"
-                        }`}
-                      >
+                      <option key={day.id} value={day.id}>
                         {day.label}
-                        <span className="block text-xs text-slate-500">
-                          {formatDate(day.date)} · {day.modules.length} moduler
-                        </span>
-                      </button>
+                      </option>
                     ))}
-                  </div>
-                </Card>
-
-                <div className="space-y-4 lg:col-span-3">
-                  {selectedDay && (
-                    <>
-                      <div className="flex flex-wrap gap-2">
-                        <select
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                          defaultValue=""
-                          onChange={(e) => {
-                            if (e.target.value)
-                              addModuleFromLibrary(e.target.value);
-                            e.target.value = "";
-                          }}
-                        >
-                          <option value="">Tilføj fra modulliste…</option>
-                          {moduleLibrary.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.title}
-                            </option>
-                          ))}
-                        </select>
-                        <Button onClick={addManualModule} variant="secondary">
-                          <Plus className="h-4 w-4" />
-                          Opret modul manuelt
-                        </Button>
-                      </div>
-
-                      {selectedDay.modules.length === 0 ? (
-                        <Card>
-                          <CardDescription>
-                            Ingen moduler på {selectedDay.label} endnu.
-                          </CardDescription>
-                        </Card>
-                      ) : (
-                        selectedDay.modules.map((mod) => (
-                          <ModuleCard
-                            key={mod.id}
-                            module={mod}
-                            expanded={expandedModule === mod.id}
-                            onToggle={() =>
-                              setExpandedModule(
-                                expandedModule === mod.id ? null : mod.id,
-                              )
-                            }
-                            onChange={(patch) =>
-                              updateModule(selectedDay.id, mod.id, patch)
-                            }
-                            onRemove={() =>
-                              removeModule(selectedDay.id, mod.id)
-                            }
-                          />
-                        ))
-                      )}
-                    </>
-                  )}
+                  </select>
+                  <select
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value && lastActiveDayId) {
+                        addModuleFromLibrary(lastActiveDayId, e.target.value);
+                      }
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Tilføj fra modulliste…</option>
+                    {moduleLibrary.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
+              <ModulePlanBoard
+                days={course.days}
+                editingModule={editingModule}
+                onSelectModule={(dayId, moduleId) => {
+                  setLastActiveDayId(dayId);
+                  setEditingModule({ dayId, moduleId });
+                }}
+                onAddModule={(dayId) => addManualModule(dayId)}
+              />
+
+              {editingModuleData && editingDay && (
+                <ModuleEditDialog
+                  open
+                  module={editingModuleData}
+                  dayLabel={editingDay.label}
+                  onClose={() => setEditingModule(null)}
+                  onChange={(patch) =>
+                    updateModule(
+                      editingModule!.dayId,
+                      editingModule!.moduleId,
+                      patch,
+                    )
+                  }
+                  onRemove={() => {
+                    removeModule(editingModule!.dayId, editingModule!.moduleId);
+                    setEditingModule(null);
+                  }}
+                />
+              )}
 
               {programTotals && (
                 <Card className="border-slate-300 bg-slate-50">
@@ -655,239 +653,6 @@ function TotalItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ModuleCard({
-  module: mod,
-  expanded,
-  onToggle,
-  onChange,
-  onRemove,
-}: {
-  module: CourseModule;
-  expanded: boolean;
-  onToggle: () => void;
-  onChange: (patch: Partial<CourseModule>) => void;
-  onRemove: () => void;
-}) {
-  const duration = moduleDurationMinutes(mod);
-  const timingSum = timingTotal(mod);
-
-  return (
-    <Card className={mod.klar ? "border-emerald-200" : mod.erMaltid ? "border-amber-100 bg-amber-50/30" : ""}>
-      <div className="flex items-start justify-between gap-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="min-w-0 flex-1 text-left"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-base">
-              {mod.overskrift || "Nyt modul"}
-            </CardTitle>
-            {mod.erMaltid && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                Måltid
-              </span>
-            )}
-            {mod.klar && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
-                <CheckCircle2 className="h-3 w-3" />
-                Klar
-              </span>
-            )}
-          </div>
-          <CardDescription>
-            {mod.tidFra}–{mod.tidTil}
-            {mod.rolle ? ` · ${mod.rolle}` : ""}
-            {mod.underviser ? ` · ${mod.underviser}` : ""}
-            {mod.lon ? ` · Løn ${mod.lon}` : ""}
-            {!mod.erMaltid && timingSum > 0
-              ? ` · UBAK ${mod.timing.ubak} FT ${mod.timing.ft} PTS ${mod.timing.pts}`
-              : ""}
-          </CardDescription>
-        </button>
-        <div className="flex shrink-0 flex-col gap-1">
-          <Button
-            onClick={() => onChange({ klar: !mod.klar })}
-            variant={mod.klar ? "secondary" : "primary"}
-            className="h-8 text-xs"
-          >
-            {mod.klar ? "Fjern klar" : "Markér klar"}
-          </Button>
-          <span className="text-center text-xs text-slate-400">
-            {expanded ? "Luk" : "Rediger"}
-          </span>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
-          <Input
-            label="Overskrift"
-            value={mod.overskrift}
-            onChange={(v) => onChange({ overskrift: v })}
-          />
-          <div>
-            <label className="text-xs font-medium text-slate-500">Rolle</label>
-            <select
-              value={mod.rolle}
-              onChange={(e) => onChange({ rolle: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            >
-              <option value="">Vælg rolle…</option>
-              <option value="Kursusleder">Kursusleder</option>
-              <option value="Foredragsholder">Foredragsholder</option>
-              <option value="Køkken">Køkken</option>
-              <option value="Vært">Vært</option>
-            </select>
-          </div>
-          <Input
-            label="Underviser / ansvarlig"
-            value={mod.underviser}
-            onChange={(v) => onChange({ underviser: v })}
-          />
-          <div>
-            <label className="text-xs font-medium text-slate-500">
-              Undervisertype
-            </label>
-            <select
-              value={mod.underviserType}
-              onChange={(e) =>
-                onChange({
-                  underviserType: e.target.value as "intern" | "ekstern",
-                })
-              }
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            >
-              <option value="intern">Intern underviser</option>
-              <option value="ekstern">Ekstern underviser</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-slate-500">
-              Løn (foredragsholder)
-            </label>
-            <select
-              value={mod.lon}
-              onChange={(e) => onChange({ lon: e.target.value as ModuleLon })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            >
-              <option value="">Ingen løn</option>
-              <option value="A">A-løn</option>
-              <option value="B">B-løn</option>
-            </select>
-          </div>
-          <Input
-            label="Pris (DKK)"
-            type="number"
-            value={String(mod.pris)}
-            onChange={(v) => onChange({ pris: Number(v) })}
-          />
-          <Input
-            label="Tid fra"
-            value={mod.tidFra}
-            onChange={(v) => onChange({ tidFra: v })}
-          />
-          <Input
-            label="Tid til"
-            value={mod.tidTil}
-            onChange={(v) => onChange({ tidTil: v })}
-          />
-          <div className="sm:col-span-2">
-            <label className="text-xs font-medium text-slate-500">
-              Brødtekst til hjemmesiden
-            </label>
-            <textarea
-              value={mod.broedtekst}
-              onChange={(e) => onChange({ broedtekst: e.target.value })}
-              rows={3}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-xs font-medium text-slate-500">
-              Interne noter
-            </label>
-            <textarea
-              value={mod.interneNoter}
-              onChange={(e) => onChange({ interneNoter: e.target.value })}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            />
-          </div>
-          <Input
-            label="Ønsker til pedel"
-            value={mod.onskerPedel}
-            onChange={(v) => onChange({ onskerPedel: v })}
-          />
-          <Input
-            label="Ønsker til køkken"
-            value={mod.onskerKoekken}
-            onChange={(v) => onChange({ onskerKoekken: v })}
-          />
-          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input
-              type="checkbox"
-              checked={Boolean(mod.erMaltid)}
-              onChange={(e) => onChange({ erMaltid: e.target.checked })}
-            />
-            Måltid (tæller ikke med i UBAK-totaler)
-          </label>
-
-          <div className="sm:col-span-2 rounded-lg bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-800">
-              UBAK — minutter i modulet
-            </p>
-            <p className="text-xs text-slate-500">
-              Modulvarighed: {duration} min · Fordeling i alt: {timingSum} min
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-4">
-              <TimingField
-                label="UBAK"
-                value={mod.timing.ubak}
-                onChange={(v) =>
-                  onChange({ timing: { ...mod.timing, ubak: v } })
-                }
-              />
-              <TimingField
-                label="FT"
-                value={mod.timing.ft}
-                onChange={(v) =>
-                  onChange({ timing: { ...mod.timing, ft: v } })
-                }
-              />
-              <TimingField
-                label="PTS"
-                value={mod.timing.pts}
-                onChange={(v) =>
-                  onChange({ timing: { ...mod.timing, pts: v } })
-                }
-              />
-              <TimingField
-                label="BH"
-                value={mod.timing.bh}
-                onChange={(v) =>
-                  onChange({ timing: { ...mod.timing, bh: v } })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="sm:col-span-2 flex justify-end">
-            <button
-              type="button"
-              onClick={onRemove}
-              className="inline-flex items-center gap-1 text-sm text-red-600 hover:underline"
-            >
-              <Trash2 className="h-4 w-4" />
-              Fjern modul
-            </button>
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
 function HostCheckbox({
   id,
   name,
@@ -909,55 +674,5 @@ function HostCheckbox({
       />
       {name}
     </label>
-  );
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-  type = "text",
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  placeholder?: string;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-slate-500">{label}</label>
-      <input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-      />
-    </div>
-  );
-}
-
-function TimingField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-slate-500">{label}</label>
-      <input
-        type="number"
-        min={0}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-      />
-    </div>
   );
 }
