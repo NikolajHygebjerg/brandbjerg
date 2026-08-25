@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FileSpreadsheet, LayoutTemplate } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, LayoutTemplate, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
@@ -16,6 +16,7 @@ import {
   createEmptyModule,
   formatDate,
   formatDKK,
+  getIncompleteModules,
   moduleLibrary,
   type Course,
   type CourseChecklist,
@@ -38,7 +39,13 @@ import {
   hojskolelaerere,
   kortKursusLedere,
 } from "@/lib/brandbjerg-staff";
-import { loadCoursePlan, saveCoursePlan } from "@/lib/course-plan-storage";
+import {
+  createPlanSnapshot,
+  formatPlanSavedAt,
+  loadCoursePlan,
+  saveCoursePlan,
+  type ProgramSaveStatus,
+} from "@/lib/course-plan-storage";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -50,6 +57,10 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     initial.days[0]?.id ?? "",
   );
   const [mockAccountantView, setMockAccountantView] = useState(false);
+  const [planStatus, setPlanStatus] = useState<ProgramSaveStatus>("kladde");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const hydratedRef = useRef(false);
   const { registerSession } = useCourseDetailSession();
 
   const leader = getStaff(course.courseLeaderId);
@@ -59,31 +70,97 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
   useEffect(() => {
     const stored = loadCoursePlan(initial.id);
-    if (stored?.days?.length) {
+    if (stored) {
       setCourse((prev) => ({
         ...prev,
-        days: stored.days,
+        days: stored.days.length > 0 ? stored.days : prev.days,
         modulePlanMode: stored.modulePlanMode ?? prev.modulePlanMode,
-        moduleTemplateName:
-          stored.moduleTemplateName ?? prev.moduleTemplateName,
+        moduleTemplateName: stored.moduleTemplateName ?? prev.moduleTemplateName,
+        checklist: stored.checklist ?? prev.checklist,
       }));
-      setLastActiveDayId(stored.days[0]?.id ?? "");
+      if (stored.days.length > 0) {
+        setLastActiveDayId(stored.days[0]?.id ?? "");
+      }
+      setPlanStatus(stored.programStatus);
+      setLastSavedAt(stored.updatedAt);
     }
+    hydratedRef.current = true;
   }, [initial.id]);
 
+  const persistPlan = useCallback(
+    (
+      options: {
+        status?: ProgramSaveStatus;
+        markProgramDone?: boolean;
+        silent?: boolean;
+      } = {},
+    ) => {
+      if (!hydratedRef.current) return null;
+
+      const status =
+        options.status ??
+        (options.markProgramDone ? "faerdig" : planStatus);
+      const snapshot = createPlanSnapshot(
+        course,
+        status,
+        options.markProgramDone ? { programPlanned: true } : undefined,
+      );
+      const saved = saveCoursePlan(course.id, snapshot);
+
+      setPlanStatus(saved.programStatus);
+      setLastSavedAt(saved.updatedAt);
+
+      if (options.markProgramDone) {
+        setCourse((prev) => ({
+          ...prev,
+          checklist: { ...prev.checklist, programPlanned: true },
+        }));
+      }
+
+      if (!options.silent) {
+        setSaveNotice(
+          saved.programStatus === "faerdig"
+            ? "Program gemt som færdigt"
+            : "Kladde gemt",
+        );
+        window.setTimeout(() => setSaveNotice(null), 3000);
+      }
+
+      return saved;
+    },
+    [course, planStatus],
+  );
+
   useEffect(() => {
-    if (course.days.length === 0) return;
-    saveCoursePlan(course.id, {
-      days: course.days,
-      modulePlanMode: course.modulePlanMode,
-      moduleTemplateName: course.moduleTemplateName,
-    });
+    if (!hydratedRef.current) return;
+    persistPlan({ silent: true });
   }, [
-    course.id,
     course.days,
     course.modulePlanMode,
     course.moduleTemplateName,
+    course.checklist,
+    persistPlan,
   ]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const onBeforeUnload = () => {
+      persistPlan({ silent: true });
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      persistPlan({ silent: true });
+    };
+  }, [persistPlan]);
+
+  function handleSaveDraft() {
+    persistPlan({ status: "kladde" });
+  }
+
+  function handleProgramFinished() {
+    persistPlan({ status: "faerdig", markProgramDone: true });
+  }
 
   function updateCourse(patch: Partial<Course>) {
     setCourse((prev) => ({ ...prev, ...patch }));
@@ -97,7 +174,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   }
 
   function markProgramDone() {
-    updateChecklist({ programPlanned: true });
+    handleProgramFinished();
   }
 
   useEffect(() => {
@@ -219,6 +296,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
   const programTotals =
     course.days.length > 0 ? computeProgramTotals(course.days) : null;
+
+  const incompleteCount = getIncompleteModules(course).length;
 
   const editingDay = editingModule
     ? course.days.find((d) => d.id === editingModule.dayId)
@@ -527,6 +606,48 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
             </Card>
           ) : (
             <>
+              <Card className="border-slate-200 bg-slate-50">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {planStatus === "faerdig" || course.checklist.programPlanned
+                        ? "Program færdigt"
+                        : "Kladde"}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {lastSavedAt
+                        ? `Sidst gemt ${formatPlanSavedAt(lastSavedAt)} · gemmes automatisk ved navigation og genindlæsning`
+                        : "Gemmes automatisk når du redigerer"}
+                    </p>
+                    {saveNotice && (
+                      <p className="mt-1 text-xs font-medium text-emerald-700">
+                        {saveNotice}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      className="h-9"
+                      onClick={handleSaveDraft}
+                    >
+                      <Save className="h-4 w-4" />
+                      Gem kladde
+                    </Button>
+                    <Button className="h-9" onClick={handleProgramFinished}>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Program færdigt
+                    </Button>
+                  </div>
+                </div>
+                {incompleteCount > 0 && (
+                  <p className="mt-2 text-xs text-amber-700">
+                    {incompleteCount} modul(er) mangler udfyldning — du kan
+                    stadig gemme kladde og fortsætte senere.
+                  </p>
+                )}
+              </Card>
+
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-slate-600">
                   Klik på et modul for at redigere. Alle dage vises side om side
