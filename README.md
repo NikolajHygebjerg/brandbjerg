@@ -4,20 +4,15 @@ Interaktiv mockup af en custom kursusplatform til højskole. Bygget til præsent
 
 ## Offentligt link (telefon & tablet)
 
-**Midlertidigt (virker nu):** https://temporary-agile-boron-nfvvr9v.vercel.app
+**Live (opdateres automatisk ved deploy):** https://temporary-agile-boron-nfvvr9v.vercel.app
 
-**Fast domæne (efter du sætter projektnavn i Vercel):** https://brandbjerg-kurser.vercel.app
+**Fast domæne (når sat op i Vercel):** https://brandbjerg-kurser.vercel.app
 
-### Sådan aktiverer du `brandbjerg-kurser.vercel.app`
+### Commit og deploy efter rettelser
 
-Projektet er allerede **claimed** på din Vercel-konto. Du skal kun omdøbe det:
-
-1. Gå til [vercel.com/dashboard](https://vercel.com/dashboard)
-2. Åbn projektet
-3. **Settings → General → Project Name** → skriv `brandbjerg-kurser`
-4. Gem
-
-Se også [DEPLOY.md](./DEPLOY.md) for fremtidige deploys.
+```bash
+npm run ship -- "Beskrivelse af ændringen"
+```
 
 Anbefalede sider på telefonen:
 - `/overblik` — ledelsespræsentation

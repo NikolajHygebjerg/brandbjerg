@@ -1,37 +1,47 @@
-# Deploy til Vercel — fast domæne
+# Deploy til Vercel
 
-Mål: **https://brandbjerg-kurser.vercel.app**
+## Live mockup (opdateres ved hver deploy)
 
-Mockuppen er allerede deployed og claimed på din Vercel-konto (`nikolaj@idevaerket.dk`).
+**https://temporary-agile-boron-nfvvr9v.vercel.app**
 
-## Trin 1: Sæt projektnavn (giver fast .vercel.app-domæne)
+Seneste deploy inkluderer bl.a. årshjul, statusark og Nyt år-fix.
 
-1. Log ind på [vercel.com/dashboard](https://vercel.com/dashboard)
-2. Åbn det claimed projekt (fx `temporary-agile-boron` eller repo-navn)
-3. Gå til **Settings → General**
-4. Under **Project Name** skriv: `brandbjerg-kurser`
-5. Gem — produktions-URL bliver: `https://brandbjerg-kurser.vercel.app`
+## Automatisk commit + deploy efter rettelser
 
-## Trin 2: Deploy seneste kode (valgfrit)
-
-Fra din computer efter `origin repo clone`:
+Fra projektroden:
 
 ```bash
-cd Brandbjerg
-npm install
-npx vercel login
-npx vercel link    # vælg projektet brandbjerg-kurser
-npx vercel deploy --prod
+npm run ship -- "Beskrivelse af rettelsen"
 ```
 
-## Midlertidigt link (virker indtil permanent er sat op)
+Dette script:
+1. Committer alle ændringer (hvis der er nogen)
+2. Pusher til `origin/main`
+3. Deployer til Vercel produktion
 
-https://temporary-agile-boron-nfvvr9v.vercel.app
+Cloud Agent kører dette efter hver kodeændring.
+
+## Manuel deploy
+
+```bash
+npm run deploy          # produktion
+npm run deploy:preview  # preview-URL
+```
+
+Kræver Vercel CLI (`npx vercel`) — projektet er linket til `brandbjerg-kurser`.
+
+## Fast domæne brandbjerg-kurser.vercel.app
+
+Hvis `brandbjerg-kurser.vercel.app` giver 404:
+
+1. [vercel.com/dashboard](https://vercel.com/dashboard) → projekt **brandbjerg-kurser**
+2. **Settings → Domains** → tilføj `brandbjerg-kurser.vercel.app`
+3. Kør `npm run deploy`
 
 ## Anbefalede sider på telefon
 
 - `/overblik`
 - `/planlaegning/arshjul`
 - `/planlaegning/statusark`
-- `/planlaegning/kurser/kur-001`
+- `/planlaegning/kurser/sa26-7`
 - `/katalog`

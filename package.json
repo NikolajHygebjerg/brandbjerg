@@ -6,8 +6,9 @@
     "dev": "next dev --port 4317",
     "build": "next build",
     "start": "next start",
-    "deploy": "vercel deploy --prod",
-    "deploy:preview": "vercel deploy"
+    "deploy": "vercel deploy --prod --yes",
+    "deploy:preview": "vercel deploy --yes",
+    "ship": "bash scripts/ship.sh"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
