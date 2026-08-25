@@ -371,8 +371,8 @@ function ChecklistAction({
     case "modules-ready":
       return (
         <p className="text-xs text-slate-600">
-          Markér hvert modul som &quot;Klar&quot; i modulplanen, når f.eks.
-          foredragsholder er booket. Brug &quot;Se manglende&quot; for overblik.
+          Sæt flueben i højre hjørne af hvert modul i modulplanen, når det er
+          klar — f.eks. når foredragsholder er booket.
         </p>
       );
 

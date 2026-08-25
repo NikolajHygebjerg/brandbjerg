@@ -712,6 +712,9 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                 }}
                 onAddModule={(dayId) => addManualModule(dayId)}
                 onMoveModule={moveModule}
+                onToggleModuleReady={(dayId, moduleId, klar) =>
+                  updateModule(dayId, moduleId, { klar })
+                }
               />
 
               {editingModuleData && editingDay && (
