@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
 import {
-  courses,
-  formatDate,
-  planStatusLabels,
-  weekLabel,
-} from "@/lib/mock-data";
+  brandbjergAnnualTarget2026,
+  brandbjergBudgetTotal2026,
+} from "@/lib/brandbjerg-arshjul";
+import { statusarkCourses2026 } from "@/lib/brandbjerg-status";
+import { formatDate, planStatusLabels, weekLabel } from "@/lib/mock-data";
 
 export default function StatusarkPage() {
-  const activeCourses = courses.filter((c) => c.status !== "afsluttet");
+  const activeCourses = statusarkCourses2026.filter(
+    (c) => c.status !== "afsluttet",
+  );
+  const totalEnrolled = activeCourses.reduce((s, c) => s + c.enrolled, 0);
+  const totalCapacity = activeCourses.reduce((s, c) => s + c.capacity, 0);
 
   return (
     <div className="space-y-8">
@@ -20,8 +24,8 @@ export default function StatusarkPage() {
           <p className="text-sm text-slate-500">Modul 1 → Statusark</p>
           <h1 className="text-2xl font-bold text-slate-900">Statusark 2026</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Oversigt over godkendte kurser med tilmeldte — klik for at planlægge
-            det enkelte kursus (modul 2)
+            {activeCourses.length} kurser importeret fra jeres regneark — klik
+            for at planlægge det enkelte kursus (modul 2)
           </p>
         </div>
         <Button href="/planlaegning/arshjul" variant="secondary">
@@ -35,22 +39,20 @@ export default function StatusarkPage() {
           <CardDescription>Kurser i statusark</CardDescription>
         </Card>
         <Card>
-          <CardTitle className="text-2xl">
-            {activeCourses.reduce((s, c) => s + c.enrolled, 0)}
-          </CardTitle>
-          <CardDescription>Tilmeldte i alt</CardDescription>
+          <CardTitle className="text-2xl">{totalEnrolled}</CardTitle>
+          <CardDescription>Tilmeldte i alt (mockup)</CardDescription>
         </Card>
         <Card>
-          <CardTitle className="text-2xl">
-            {activeCourses.reduce((s, c) => s + c.capacity, 0)}
-          </CardTitle>
+          <CardTitle className="text-2xl">{totalCapacity}</CardTitle>
           <CardDescription>Kapacitet i alt</CardDescription>
         </Card>
         <Card>
           <CardTitle className="text-2xl">
-            {activeCourses.filter((c) => c.status === "aaben").length}
+            {brandbjergBudgetTotal2026}
           </CardTitle>
-          <CardDescription>Åbne for tilmelding</CardDescription>
+          <CardDescription>
+            Budget kursistpladser · mål {brandbjergAnnualTarget2026}
+          </CardDescription>
         </Card>
       </div>
 
@@ -62,7 +64,7 @@ export default function StatusarkPage() {
                 <th className="px-4 py-3 font-medium">Kursus</th>
                 <th className="px-4 py-3 font-medium">Uge</th>
                 <th className="px-4 py-3 font-medium">Dato</th>
-                <th className="px-4 py-3 font-medium">Mål</th>
+                <th className="px-4 py-3 font-medium">Budget</th>
                 <th className="px-4 py-3 font-medium">Tilmeldte</th>
                 <th className="px-4 py-3 font-medium">Plan</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -71,9 +73,10 @@ export default function StatusarkPage() {
             </thead>
             <tbody>
               {activeCourses.map((course) => {
-                const fillPct = Math.round(
-                  (course.enrolled / course.capacity) * 100,
-                );
+                const fillPct =
+                  course.capacity > 0
+                    ? Math.round((course.enrolled / course.capacity) * 100)
+                    : 0;
                 return (
                   <tr
                     key={course.id}
@@ -88,13 +91,17 @@ export default function StatusarkPage() {
                       </Link>
                       <p className="text-xs text-slate-500">
                         {course.category}
+                        {course.instructor !== "—" &&
+                          ` · ${course.instructor}`}
                       </p>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {weekLabel(course.weekNumber)}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {formatDate(course.startDate)}
+                      {course.startDate.includes("-W")
+                        ? "—"
+                        : formatDate(course.startDate)}
                     </td>
                     <td className="px-4 py-3">{course.capacity}</td>
                     <td className="px-4 py-3">
@@ -102,7 +109,7 @@ export default function StatusarkPage() {
                         <div className="h-2 w-16 overflow-hidden rounded-full bg-slate-200">
                           <div
                             className="h-full rounded-full bg-emerald-600"
-                            style={{ width: `${fillPct}%` }}
+                            style={{ width: `${Math.min(100, fillPct)}%` }}
                           />
                         </div>
                         <span>

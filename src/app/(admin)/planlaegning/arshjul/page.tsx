@@ -5,11 +5,11 @@ export default function ArshjulPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-slate-500">Modul 1 — Planlægning</p>
-        <h1 className="text-2xl font-bold text-slate-900">Årshjul 2026</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Årshjul</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Hele gruppen beslutter hvilke kurser der skal være hver uge. Indtast
-          mål for årskursister, tilføj kurser med forventet deltagerantal, og
-          godkend planen for at oprette statusarket.
+          Brandbjerg Højskole — vælg år, planlæg kurser uge for uge, og kopier
+          titler fra sidste år med automatisk datotilpasning og forslag til antal
+          kursister baseret på historik.
         </p>
       </div>
       <ArshjulPlanner />

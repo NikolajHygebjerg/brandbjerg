@@ -154,18 +154,10 @@ export const moduleLibrary = [
   { id: "mod-lib-5", title: "Afslutning og evaluering", duration: 30 },
 ];
 
-export const annualTargetDefault = 420;
+export const annualTargetDefault = 750;
 
-export const initialWeekPlan: PlannedWeekCourse[] = [
-  { id: "wp-1", title: "Akvarelmaleri for begyndere", targetStudents: 16, weekNumber: 11 },
-  { id: "wp-2", title: "Kreativ skrivning", targetStudents: 14, weekNumber: 11 },
-  { id: "wp-3", title: "Nordisk mad & fermentering", targetStudents: 12, weekNumber: 15 },
-  { id: "wp-4", title: "Stille retreat – mindfulness", targetStudents: 20, weekNumber: 18 },
-  { id: "wp-5", title: "Digital fortælling & podcast", targetStudents: 18, weekNumber: 23 },
-  { id: "wp-6", title: "Sommerkursus: Keramik", targetStudents: 14, weekNumber: 28 },
-  { id: "wp-7", title: "Filosofi i hverdagen", targetStudents: 16, weekNumber: 28 },
-  { id: "wp-8", title: "Vinterlæseklub", targetStudents: 24, weekNumber: 4 },
-];
+// Legacy dummy plan removed — use brandbjerg-arshjul.ts
+export const initialWeekPlan: PlannedWeekCourse[] = [];
 
 function emptyUbak(): UbakSplit {
   return { hojskoleTid: 0, faerdighedstilvaenning: 0, ubak: 0 };

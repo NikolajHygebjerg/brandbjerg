@@ -21,9 +21,9 @@ Se også [DEPLOY.md](./DEPLOY.md) for fremtidige deploys.
 
 Anbefalede sider på telefonen:
 - `/overblik` — ledelsespræsentation
-- `/planlaegning/arshjul` — modul 1
-- `/planlaegning/statusark` — statusark
-- `/planlaegning/kurser/kur-001` — modul 2
+- `/planlaegning/arshjul` — modul 1 (Brandbjerg 2026-data fra CSV)
+- `/planlaegning/statusark` — statusark med 77 kurser
+- `/planlaegning/kurser/bb26-7` — modul 2 (eksempel: Bridge og Højskole)
 
 ## Start mockuppen lokalt
 
