@@ -1,5 +1,6 @@
 import type { CourseModule, ModuleTiming } from "../mock-data";
 import { defaultMealDetails, defaultLokaleSpec } from "../mock-data";
+import { defaultHeldagsturPlan } from "../heldagstur-utils";
 import {
   inferForplejningFromTitle,
   inferSpecifikationFromTitle,
@@ -15,6 +16,7 @@ export interface TemplateModuleRow {
   timing: ModuleTiming;
   lon: "A" | "B" | "";
   erMaltid?: boolean;
+  erHeldagstur?: boolean;
   broedtekst?: string;
 }
 
@@ -153,6 +155,7 @@ export const programUbak5Dage: ProgramTemplate = {
         underviserType: "intern",
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
+        erHeldagstur: true,
         broedtekst: "Heldagsudflugt — frokost undervejs",
       },
       {
@@ -643,6 +646,11 @@ export function templateRowToModule(
         })
       : undefined,
     lokaleSpec: row.erMaltid ? undefined : defaultLokaleSpec(),
+    erHeldagstur: row.erHeldagstur ?? row.overskrift.toLowerCase() === "heldagstur",
+    heldagstur:
+      row.erHeldagstur || row.overskrift.toLowerCase() === "heldagstur"
+        ? defaultHeldagsturPlan()
+        : undefined,
     klar: false,
   };
 }

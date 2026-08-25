@@ -43,6 +43,10 @@ export interface MealDetails {
   sendesTilKoekken: boolean;
 }
 
+export type { HeldagsturPlan } from "./heldagstur-utils";
+import { anyHeldagsturPunktUklar } from "./heldagstur-utils";
+import type { HeldagsturPlan } from "./heldagstur-utils";
+
 /** Lokalespecifikation — som i Pedel-arket (praktisk seddel) */
 export interface LokaleSpecifikation {
   lokale: string;
@@ -80,6 +84,8 @@ export interface CourseModule {
   lon: ModuleLon;
   erMaltid?: boolean;
   maltid?: MealDetails;
+  erHeldagstur?: boolean;
+  heldagstur?: HeldagsturPlan;
   lokaleSpec?: LokaleSpecifikation;
   klar: boolean;
 }
@@ -300,7 +306,24 @@ export function defaultChecklist(overrides?: Partial<CourseChecklist>): CourseCh
   };
 }
 
+export function isHeldagsturModule(mod: CourseModule): boolean {
+  return Boolean(
+    mod.erHeldagstur ||
+      mod.overskrift.trim().toLowerCase() === "heldagstur",
+  );
+}
+
 export function isModuleFilled(mod: CourseModule) {
+  if (isHeldagsturModule(mod)) {
+    const punkter = mod.heldagstur?.punkter ?? [];
+    if (punkter.length === 0) return false;
+    return punkter.every((p) => {
+      if (p.type === "bus") return true;
+      if (p.type === "besoeg") return Boolean(p.besoeg?.overskrift.trim());
+      if (p.type === "maltid") return Boolean(p.maltid?.forplejning);
+      return false;
+    });
+  }
   return Boolean(
     mod.overskrift.trim() && mod.underviser.trim() && mod.tidFra && mod.tidTil,
   );
@@ -313,7 +336,18 @@ export function getAllModules(course: Course) {
 }
 
 export function getUnreadyModules(course: Course) {
-  return getAllModules(course).filter((m) => !m.klar);
+  const unready: ReturnType<typeof getAllModules> = [];
+  for (const mod of getAllModules(course)) {
+    if (isHeldagsturModule(mod)) {
+      const punkter = mod.heldagstur?.punkter ?? [];
+      if (punkter.length === 0 || anyHeldagsturPunktUklar(punkter)) {
+        unready.push(mod);
+      }
+    } else if (!mod.klar) {
+      unready.push(mod);
+    }
+  }
+  return unready;
 }
 
 export function getIncompleteModules(course: Course) {

@@ -15,6 +15,7 @@ export function moduleToTemplateRow(mod: CourseModule): TemplateModuleRow {
     timing: { ...mod.timing },
     lon: mod.lon,
     erMaltid: mod.erMaltid,
+    erHeldagstur: mod.erHeldagstur,
     broedtekst: mod.broedtekst.trim() ? mod.broedtekst : undefined,
   };
 }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   defaultMealDetails,
   defaultLokaleSpec,
+  isHeldagsturModule,
   moduleDurationMinutes,
   timingTotal,
   type CourseModule,
@@ -13,6 +14,8 @@ import {
   type MealDetails,
   type ModuleLon,
 } from "@/lib/mock-data";
+import { HeldagsturPlanEditor, defaultHeldagsturPlan } from "@/components/mockup/heldagstur-plan-editor";
+import type { HeldagsturPlan } from "@/lib/heldagstur-utils";
 import {
   forplejningTyper,
   lokaler,
@@ -44,7 +47,9 @@ export function ModuleEditDialog({
   onRemove,
 }: ModuleEditDialogProps) {
   const isMeal = Boolean(mod.erMaltid);
+  const isHeldagstur = isHeldagsturModule(mod);
   const meal = mod.maltid ?? defaultMealDetails();
+  const heldagstur = mod.heldagstur ?? defaultHeldagsturPlan();
   const duration = moduleDurationMinutes(mod);
   const timingSum = timingTotal(mod);
 
@@ -99,24 +104,30 @@ export function ModuleEditDialog({
         aria-modal="true"
         aria-labelledby="module-dialog-title"
         className={`relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${
-          isMeal ? "ring-2 ring-amber-200" : ""
+          isMeal ? "ring-2 ring-amber-200" : isHeldagstur ? "ring-2 ring-blue-200" : ""
         }`}
       >
         <div
           className={`flex items-start justify-between gap-4 border-b px-5 py-4 ${
             isMeal
               ? "border-amber-200 bg-amber-50"
-              : "border-slate-200 bg-white"
+              : isHeldagstur
+                ? "border-blue-200 bg-blue-50"
+                : "border-slate-200 bg-white"
           }`}
         >
           <div>
             <p
               className={`text-xs font-medium uppercase tracking-wide ${
-                isMeal ? "text-amber-800" : "text-emerald-700"
+                isMeal
+                  ? "text-amber-800"
+                  : isHeldagstur
+                    ? "text-blue-800"
+                    : "text-emerald-700"
               }`}
             >
               {dayLabel} · {mod.tidFra}–{mod.tidTil}
-              {isMeal ? " · Måltid" : ""}
+              {isMeal ? " · Måltid" : isHeldagstur ? " · Heldagstur" : ""}
             </p>
             <h2
               id="module-dialog-title"
@@ -124,7 +135,9 @@ export function ModuleEditDialog({
             >
               {isMeal
                 ? meal.forplejning || mod.overskrift || "Måltid"
-                : mod.overskrift || "Rediger modul"}
+                : isHeldagstur
+                  ? mod.overskrift || "Heldagstur"
+                  : mod.overskrift || "Rediger modul"}
             </h2>
           </div>
           <button
@@ -153,6 +166,12 @@ export function ModuleEditDialog({
               updateMeal={updateMeal}
               toggleMeal={toggleMeal}
             />
+          ) : isHeldagstur ? (
+            <HeldagsturModuleForm
+              mod={mod}
+              heldagstur={heldagstur}
+              onChange={onChange}
+            />
           ) : (
             <RegularForm
               mod={mod}
@@ -173,7 +192,7 @@ export function ModuleEditDialog({
             Fjern modul
           </button>
           <div className="flex flex-wrap gap-2">
-            {!isMeal && (
+            {!isMeal && !isHeldagstur && (
               <Button
                 variant={mod.klar ? "secondary" : "primary"}
                 className="h-9"
@@ -295,6 +314,71 @@ function MealForm({
           </button>
         </label>
       </div>
+    </div>
+  );
+}
+
+function HeldagsturModuleForm({
+  mod,
+  heldagstur,
+  onChange,
+}: {
+  mod: CourseModule;
+  heldagstur: HeldagsturPlan;
+  onChange: (patch: Partial<CourseModule>) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FieldInput
+          label="Overskrift"
+          value={mod.overskrift}
+          onChange={(v) => onChange({ overskrift: v, erHeldagstur: true })}
+        />
+        <FieldSelect
+          label="Rolle"
+          value={mod.rolle}
+          onChange={(v) => onChange({ rolle: v })}
+          options={[
+            { value: "", label: "Vælg rolle…" },
+            { value: "Kursusleder", label: "Kursusleder" },
+            { value: "Vært", label: "Vært" },
+          ]}
+        />
+        <FieldInput
+          label="Tid fra (hel dag)"
+          value={mod.tidFra}
+          onChange={(v) => onChange({ tidFra: v })}
+        />
+        <FieldInput
+          label="Tid til (hel dag)"
+          value={mod.tidTil}
+          onChange={(v) => onChange({ tidTil: v })}
+        />
+        <div className="sm:col-span-2">
+          <FieldTextarea
+            label="Beskrivelse"
+            value={mod.broedtekst}
+            onChange={(v) => onChange({ broedtekst: v })}
+            rows={2}
+          />
+        </div>
+      </div>
+
+      <HeldagsturPlanEditor
+        plan={heldagstur}
+        onChange={(plan) => onChange({ heldagstur: plan, erHeldagstur: true })}
+      />
+
+      <button
+        type="button"
+        onClick={() =>
+          onChange({ erHeldagstur: false, heldagstur: undefined })
+        }
+        className="text-sm text-slate-500 underline hover:text-slate-700"
+      >
+        Konverter til almindeligt modul
+      </button>
     </div>
   );
 }

@@ -118,6 +118,28 @@ export function TemplateEditorView({ templateId }: { templateId: string }) {
     }));
   }
 
+  function toggleHeldagsturPunkt(
+    dayId: string,
+    moduleId: string,
+    punktId: string,
+    klar: boolean,
+  ) {
+    updateDay(dayId, (day) => ({
+      ...day,
+      modules: day.modules.map((m) => {
+        if (m.id !== moduleId || !m.heldagstur) return m;
+        return {
+          ...m,
+          heldagstur: {
+            punkter: m.heldagstur.punkter.map((p) =>
+              p.id === punktId ? { ...p, klar } : p,
+            ),
+          },
+        };
+      }),
+    }));
+  }
+
   function moveModule(
     fromDayId: string,
     moduleId: string,
@@ -223,6 +245,7 @@ export function TemplateEditorView({ templateId }: { templateId: string }) {
             onToggleModuleReady={(dayId, moduleId, klar) =>
               updateModule(dayId, moduleId, { klar })
             }
+            onToggleHeldagsturPunkt={toggleHeldagsturPunkt}
           />
         </div>
       </Card>

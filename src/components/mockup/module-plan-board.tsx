@@ -3,7 +3,18 @@
 import { useState } from "react";
 import { GripVertical, Plus } from "lucide-react";
 import { ModuleQuestionAlert } from "@/components/mockup/module-questions";
-import { formatDate, timingTotal, type CourseDay, type CourseModule } from "@/lib/mock-data";
+import {
+  heldagsturPunktLabels,
+  punktDisplayTitle,
+  type HeldagsturPunkt,
+} from "@/lib/heldagstur-utils";
+import {
+  formatDate,
+  isHeldagsturModule,
+  timingTotal,
+  type CourseDay,
+  type CourseModule,
+} from "@/lib/mock-data";
 
 type EditingModule = {
   dayId: string;
@@ -37,6 +48,12 @@ type ModulePlanBoardProps = {
     moduleId: string,
     klar: boolean,
   ) => void;
+  onToggleHeldagsturPunkt: (
+    dayId: string,
+    moduleId: string,
+    punktId: string,
+    klar: boolean,
+  ) => void;
 };
 
 const DRAG_MIME = "application/x-brandbjerg-module";
@@ -49,6 +66,7 @@ export function ModulePlanBoard({
   onAddModule,
   onMoveModule,
   onToggleModuleReady,
+  onToggleHeldagsturPunkt,
 }: ModulePlanBoardProps) {
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
@@ -88,6 +106,7 @@ export function ModulePlanBoard({
             }
             onDropAtIndex={(index) => handleDrop(day.id, index)}
             onToggleModuleReady={onToggleModuleReady}
+            onToggleHeldagsturPunkt={onToggleHeldagsturPunkt}
             courseId={courseId}
           />
         ))}
@@ -108,6 +127,7 @@ function DayColumn({
   onDragOverIndex,
   onDropAtIndex,
   onToggleModuleReady,
+  onToggleHeldagsturPunkt,
   courseId,
 }: {
   day: CourseDay;
@@ -123,6 +143,12 @@ function DayColumn({
   onToggleModuleReady: (
     dayId: string,
     moduleId: string,
+    klar: boolean,
+  ) => void;
+  onToggleHeldagsturPunkt: (
+    dayId: string,
+    moduleId: string,
+    punktId: string,
     klar: boolean,
   ) => void;
   courseId?: string;
@@ -214,6 +240,9 @@ function DayColumn({
                 onToggleReady={(klar) =>
                   onToggleModuleReady(day.id, mod.id, klar)
                 }
+                onToggleHeldagsturPunkt={(punktId, klar) =>
+                  onToggleHeldagsturPunkt(day.id, mod.id, punktId, klar)
+                }
                 courseId={courseId}
               />
             </div>
@@ -282,6 +311,7 @@ function ModuleTile({
   onDragOver,
   onDrop,
   onToggleReady,
+  onToggleHeldagsturPunkt,
   courseId,
 }: {
   module: CourseModule;
@@ -295,6 +325,7 @@ function ModuleTile({
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onToggleReady: (klar: boolean) => void;
+  onToggleHeldagsturPunkt: (punktId: string, klar: boolean) => void;
   courseId?: string;
 }) {
   const timingSum = timingTotal(mod);
@@ -315,6 +346,64 @@ function ModuleTile({
     : isDragging
       ? "opacity-40"
       : "";
+
+  if (isHeldagsturModule(mod)) {
+    const punkter = mod.heldagstur?.punkter ?? [];
+    return (
+      <div
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        className={`group flex gap-1 ${dragRing}`}
+      >
+        <DragHandle onDragStart={handleDragStart} onDragEnd={onDragEnd} />
+        <div className="relative min-w-0 flex-1">
+          {courseId && (
+            <div className="absolute right-2 top-2 z-10">
+              <ModuleQuestionAlert courseId={courseId} moduleId={mod.id} />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onClick}
+            className={`w-full rounded-lg border-2 border-dashed px-3 py-2.5 pr-8 text-left transition hover:shadow-sm ${
+              active
+                ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
+                : "border-blue-300 bg-blue-50/80 hover:border-blue-400"
+            }`}
+          >
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-blue-800">
+              <span className="rounded bg-blue-200 px-1.5 py-0.5">Heldagstur</span>
+            </div>
+            <p className="mt-1.5 text-[11px] font-semibold tabular-nums text-slate-600">
+              {mod.tidFra}–{mod.tidTil}
+            </p>
+            <p className="mt-1 text-sm font-medium text-slate-900">
+              {mod.overskrift || "Heldagstur"}
+            </p>
+            {punkter.length === 0 && (
+              <p className="mt-2 text-xs text-blue-700">
+                Klik for at oprette dagsplan
+              </p>
+            )}
+          </button>
+
+          {punkter.length > 0 && (
+            <ul className="mt-1 space-y-1 border-l-2 border-blue-200 pl-2">
+              {punkter.map((punkt) => (
+                <HeldagsturPunktTile
+                  key={punkt.id}
+                  punkt={punkt}
+                  onToggleKlar={(klar) =>
+                    onToggleHeldagsturPunkt(punkt.id, klar)
+                  }
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (mod.erMaltid) {
     return (
@@ -432,6 +521,41 @@ function ModuleTile({
       </button>
       </div>
     </div>
+  );
+}
+
+function HeldagsturPunktTile({
+  punkt,
+  onToggleKlar,
+}: {
+  punkt: HeldagsturPunkt;
+  onToggleKlar: (klar: boolean) => void;
+}) {
+  const typeClass =
+    punkt.type === "maltid"
+      ? "border-amber-200 bg-amber-50/90"
+      : "border-slate-200 bg-white";
+
+  return (
+    <li
+      className={`relative rounded-md border px-2 py-1.5 pr-8 ${typeClass}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <ReadyCheckbox
+        checked={punkt.klar}
+        onChange={onToggleKlar}
+        className="absolute right-1 top-1.5 z-10"
+      />
+      <p className="text-[10px] font-bold uppercase text-slate-500">
+        {heldagsturPunktLabels[punkt.type]}
+      </p>
+      <p className="text-[10px] tabular-nums text-slate-500">
+        {punkt.tidFra}–{punkt.tidTil}
+      </p>
+      <p className="text-xs font-medium text-slate-900">
+        {punktDisplayTitle(punkt)}
+      </p>
+    </li>
   );
 }
 
