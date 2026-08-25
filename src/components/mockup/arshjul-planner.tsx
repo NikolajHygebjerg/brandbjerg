@@ -530,6 +530,46 @@ export function ArshjulPlanner() {
         )}
       </div>
 
+      {/* Årsoversigt — øverst */}
+      <Card>
+        <CardTitle>Årsoversigt {activeYear}</CardTitle>
+        <CardDescription>
+          Samlet oversigt — rediger direkte i tabellen eller uge for uge nedenfor
+        </CardDescription>
+        <div className="mt-4 max-h-96 overflow-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-slate-600">
+              <tr>
+                <th className="px-3 py-2 font-medium">Uge</th>
+                <th className="px-3 py-2 font-medium">Start</th>
+                <th className="px-3 py-2 font-medium">Slut</th>
+                <th className="px-3 py-2 font-medium">Titel</th>
+                <th className="px-3 py-2 font-medium">Ansv.</th>
+                <th className="px-3 py-2 font-medium">Type</th>
+                <th className="px-3 py-2 font-medium">Budget</th>
+              </tr>
+            </thead>
+            <tbody>
+              {WEEKS.filter((w) =>
+                weekCourses.some((c) => c.weekNumber === w),
+              ).flatMap((week) =>
+                weekCourses
+                  .filter((c) => c.weekNumber === week)
+                  .map((c) => (
+                    <OverviewRow
+                      key={c.id}
+                      course={c}
+                      planningYear={activeYear}
+                      editable={isEditable}
+                      onUpdate={(patch) => updateCourse(c.id, patch)}
+                    />
+                  )),
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-1">
           <CardTitle>Vælg uge</CardTitle>
