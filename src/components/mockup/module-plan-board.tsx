@@ -101,6 +101,41 @@ function ModuleTile({
 }) {
   const timingSum = timingTotal(mod);
   const hasTiming = !mod.erMaltid && timingSum > 0;
+  const meal = mod.maltid;
+
+  if (mod.erMaltid) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full rounded-lg border-2 border-dashed px-3 py-2.5 text-left transition hover:shadow-sm ${
+          active
+            ? "border-amber-500 bg-amber-50 ring-2 ring-amber-200"
+            : "border-amber-300 bg-amber-50/90 hover:border-amber-400"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+          <span className="rounded bg-amber-200 px-1.5 py-0.5">
+            {meal?.forplejning || "Måltid"}
+          </span>
+        </div>
+        <p className="mt-1.5 text-[11px] font-semibold tabular-nums text-slate-600">
+          {mod.tidFra}–{mod.tidTil}
+        </p>
+        <p className="mt-1 text-sm font-medium leading-snug text-slate-900">
+          {meal?.specifikation || mod.overskrift || "Forplejning"}
+        </p>
+        {meal?.lokale && (
+          <p className="mt-1 text-xs text-slate-600">{meal.lokale}</p>
+        )}
+        {meal?.note && (
+          <p className="mt-1 line-clamp-2 text-[10px] italic text-slate-500">
+            {meal.note}
+          </p>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button

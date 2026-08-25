@@ -5,15 +5,15 @@ import { CourseDetailView } from "@/components/mockup/course-detail-view";
 import { getCourseDetailById } from "@/lib/course-list";
 import type { Course } from "@/lib/mock-data";
 import { getCourse } from "@/lib/mock-data";
+import { mergeCoursePlan } from "@/lib/course-plan-storage";
 
 export function CourseDetailLoader({ id }: { id: string }) {
   const [course, setCourse] = useState<Course | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    const found =
-      getCourse(id) ?? getCourseDetailById(id);
-    if (found) setCourse(found);
+    const found = getCourse(id) ?? getCourseDetailById(id);
+    if (found) setCourse(mergeCoursePlan(found));
     else setMissing(true);
   }, [id]);
 

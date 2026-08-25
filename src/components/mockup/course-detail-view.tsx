@@ -38,6 +38,7 @@ import {
   hojskolelaerere,
   kortKursusLedere,
 } from "@/lib/brandbjerg-staff";
+import { loadCoursePlan, saveCoursePlan } from "@/lib/course-plan-storage";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -55,6 +56,34 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   const hosts = course.hostIds.map((id) => getStaff(id)).filter(Boolean);
   const dayCount = countInclusiveDays(course.startDate, course.endDate);
   const templateForCourse = getTemplateForDayCount(dayCount);
+
+  useEffect(() => {
+    const stored = loadCoursePlan(initial.id);
+    if (stored?.days?.length) {
+      setCourse((prev) => ({
+        ...prev,
+        days: stored.days,
+        modulePlanMode: stored.modulePlanMode ?? prev.modulePlanMode,
+        moduleTemplateName:
+          stored.moduleTemplateName ?? prev.moduleTemplateName,
+      }));
+      setLastActiveDayId(stored.days[0]?.id ?? "");
+    }
+  }, [initial.id]);
+
+  useEffect(() => {
+    if (course.days.length === 0) return;
+    saveCoursePlan(course.id, {
+      days: course.days,
+      modulePlanMode: course.modulePlanMode,
+      moduleTemplateName: course.moduleTemplateName,
+    });
+  }, [
+    course.id,
+    course.days,
+    course.modulePlanMode,
+    course.moduleTemplateName,
+  ]);
 
   function updateCourse(patch: Partial<Course>) {
     setCourse((prev) => ({ ...prev, ...patch }));

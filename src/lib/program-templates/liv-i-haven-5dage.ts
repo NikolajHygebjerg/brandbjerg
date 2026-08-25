@@ -1,4 +1,9 @@
 import type { CourseModule, ModuleTiming } from "../mock-data";
+import { defaultMealDetails } from "../mock-data";
+import {
+  inferForplejningFromTitle,
+  inferSpecifikationFromTitle,
+} from "../kitchen-options";
 
 /** Modul-række fra Program_UBAK (Excel) — Uge 35 Liv i haven */
 export interface TemplateModuleRow {
@@ -421,10 +426,16 @@ export function templateRowToModule(
     tidTil: row.tidTil,
     interneNoter: "",
     onskerPedel: "",
-    onskerKoekken: row.erMaltid ? "Måltid — koordinér med køkken" : "",
+    onskerKoekken: row.erMaltid ? "" : "",
     timing: { ...row.timing },
     lon: row.lon,
     erMaltid: row.erMaltid ?? false,
+    maltid: row.erMaltid
+      ? defaultMealDetails({
+          forplejning: inferForplejningFromTitle(row.overskrift),
+          specifikation: inferSpecifikationFromTitle(row.overskrift),
+        })
+      : undefined,
     klar: false,
   };
 }

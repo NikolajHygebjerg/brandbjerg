@@ -13,6 +13,7 @@ import {
   Megaphone,
   Network,
   Users,
+  UtensilsCrossed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
@@ -23,6 +24,7 @@ const nav = [
   { href: "/planlaegning/arshjul", label: "Årshjul", icon: CalendarDays },
   { href: "/planlaegning/statusark", label: "Statusark", icon: ClipboardCheck },
   { href: "/planlaegning/kurser", label: "Kurser", icon: ClipboardList },
+  { href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
   { href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
   { href: "/tilmeldinger", label: "Tilmeldinger", icon: Users },
   { href: "/afvikling", label: "Afvikling", icon: BarChart3 },

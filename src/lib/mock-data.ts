@@ -35,6 +35,14 @@ export interface ModuleTiming {
 
 export type ModuleLon = "A" | "B" | "";
 
+export interface MealDetails {
+  forplejning: string;
+  specifikation: string;
+  lokale: string;
+  note: string;
+  sendesTilKoekken: boolean;
+}
+
 export interface CourseModule {
   id: string;
   source: "skabelon" | "liste" | "manuel";
@@ -52,6 +60,7 @@ export interface CourseModule {
   timing: ModuleTiming;
   lon: ModuleLon;
   erMaltid?: boolean;
+  maltid?: MealDetails;
   klar: boolean;
 }
 
@@ -164,6 +173,19 @@ export const initialWeekPlan: PlannedWeekCourse[] = [];
 
 export function emptyTiming(): ModuleTiming {
   return { ubak: 0, ft: 0, pts: 0, bh: 0 };
+}
+
+export function defaultMealDetails(
+  overrides?: Partial<MealDetails>,
+): MealDetails {
+  return {
+    forplejning: "Morgenmad",
+    specifikation: "Almindelig",
+    lokale: "L. spisesal",
+    note: "",
+    sendesTilKoekken: true,
+    ...overrides,
+  };
 }
 
 function sampleModules(
