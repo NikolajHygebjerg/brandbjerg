@@ -1,7 +1,4 @@
-import { notFound } from "next/navigation";
-import { CourseDetailView } from "@/components/mockup/course-detail-view";
-import { getStatusarkCourseAsDetail } from "@/lib/brandbjerg-status";
-import { getCourse } from "@/lib/mock-data";
+import { CourseDetailLoader } from "@/components/mockup/course-detail-loader";
 
 export default async function KursusDetailPage({
   params,
@@ -9,8 +6,5 @@ export default async function KursusDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const course = getCourse(id) ?? getStatusarkCourseAsDetail(id);
-  if (!course) notFound();
-
-  return <CourseDetailView course={course} />;
+  return <CourseDetailLoader id={id} />;
 }
