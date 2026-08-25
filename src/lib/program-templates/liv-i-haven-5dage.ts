@@ -403,11 +403,219 @@ export const programUbak5Dage: ProgramTemplate = {
   ],
 };
 
-export const programTemplates: ProgramTemplate[] = [programUbak5Dage];
+/** Weekendkursus — 2 dages skabelon */
+export const weekend2Dage: ProgramTemplate = {
+  id: "weekend-2d",
+  name: "Weekendkursus — 2 dage",
+  sheetName: "Program_weekend",
+  dayCount: 2,
+  sourceFile: "weekendkursus-2dage.csv",
+  weekdayLabels: ["Lørdag", "Søndag"],
+  days: [
+    [
+      {
+        tidFra: "09:00",
+        tidTil: "10:00",
+        overskrift: "Morgenmad",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "10:00",
+        tidTil: "12:30",
+        overskrift: "Introduktion og workshop",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 90, ft: 60, pts: 0, bh: 0 },
+        lon: "A",
+      },
+      {
+        tidFra: "12:30",
+        tidTil: "13:30",
+        overskrift: "Frokost",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "14:00",
+        tidTil: "17:00",
+        overskrift: "Praktisk forløb",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 120, ft: 60, pts: 0, bh: 0 },
+        lon: "A",
+      },
+      {
+        tidFra: "18:00",
+        tidTil: "19:00",
+        overskrift: "Aftensmad",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+    ],
+    [
+      {
+        tidFra: "08:30",
+        tidTil: "09:30",
+        overskrift: "Morgenmad",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "09:30",
+        tidTil: "12:00",
+        overskrift: "Foredrag og opsamling",
+        rolle: "Foredragsholder",
+        underviserType: "ekstern",
+        timing: { ubak: 60, ft: 90, pts: 0, bh: 0 },
+        lon: "A",
+      },
+      {
+        tidFra: "12:30",
+        tidTil: "13:00",
+        overskrift: "Farvel",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 30, pts: 0, bh: 0 },
+        lon: "A",
+      },
+    ],
+  ],
+};
 
-export function getTemplateForDayCount(days: number): ProgramTemplate | undefined {
-  return programTemplates.find((t) => t.dayCount === days);
-}
+/** Kort kursus — 3 dages skabelon */
+export const kort3Dage: ProgramTemplate = {
+  id: "kort-3d",
+  name: "Kort kursus — 3 dage",
+  sheetName: "Program_3d",
+  dayCount: 3,
+  sourceFile: "madkursus-3dage.csv",
+  weekdayLabels: ["Fredag", "Lørdag", "Søndag"],
+  days: [
+    [
+      {
+        tidFra: "16:00",
+        tidTil: "17:00",
+        overskrift: "Ankomst og kaffe",
+        rolle: "Vært",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 60, bh: 0 },
+        lon: "",
+      },
+      {
+        tidFra: "18:00",
+        tidTil: "19:00",
+        overskrift: "Aftensmad",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "19:30",
+        tidTil: "21:00",
+        overskrift: "Introduktion",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 45, ft: 45, pts: 0, bh: 0 },
+        lon: "A",
+      },
+    ],
+    [
+      {
+        tidFra: "08:00",
+        tidTil: "09:00",
+        overskrift: "Morgenmad",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "09:30",
+        tidTil: "12:00",
+        overskrift: "Workshop",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 90, ft: 60, pts: 0, bh: 0 },
+        lon: "A",
+      },
+      {
+        tidFra: "12:30",
+        tidTil: "13:30",
+        overskrift: "Frokost",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "14:00",
+        tidTil: "17:00",
+        overskrift: "Praktisk forløb",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 120, ft: 60, pts: 0, bh: 0 },
+        lon: "A",
+      },
+    ],
+    [
+      {
+        tidFra: "08:00",
+        tidTil: "09:00",
+        overskrift: "Morgenmad",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+      {
+        tidFra: "09:30",
+        tidTil: "11:30",
+        overskrift: "Afslutning og evaluering",
+        rolle: "Kursusleder",
+        underviserType: "intern",
+        timing: { ubak: 60, ft: 60, pts: 0, bh: 0 },
+        lon: "A",
+      },
+      {
+        tidFra: "12:00",
+        tidTil: "13:00",
+        overskrift: "Frokost og farvel",
+        rolle: "Køkken",
+        underviserType: "intern",
+        timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+        lon: "",
+        erMaltid: true,
+      },
+    ],
+  ],
+};
+
+export const defaultProgramTemplates: ProgramTemplate[] = [
+  programUbak5Dage,
+  weekend2Dage,
+  kort3Dage,
+];
+
+/** @deprecated Brug listTemplates() fra template-storage */
+export const programTemplates = defaultProgramTemplates;
 
 export function templateRowToModule(
   row: TemplateModuleRow,

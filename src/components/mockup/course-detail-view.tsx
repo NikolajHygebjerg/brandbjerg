@@ -32,9 +32,11 @@ import {
   moveModuleInPlan,
 } from "@/lib/module-plan-utils";
 import {
-  getTemplateForDayCount,
   programUbak5Dage,
 } from "@/lib/program-templates/liv-i-haven-5dage";
+import {
+  getTemplateForDayCount,
+} from "@/lib/template-storage";
 import {
   getStaff,
   hojskolelaerere,
@@ -588,8 +590,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                     </div>
                     <p className="mt-2 text-sm text-slate-600">
                       {templateForCourse
-                        ? `Indlæs ${templateForCourse.sheetName} fra ${templateForCourse.sourceFile} med UBAK, FT, PTS og Løn.`
-                        : `Ingen skabelon for ${dayCount} dage endnu (Program_UBAK findes for 5 dage).`}
+                        ? `Indlæs ${templateForCourse.name} med UBAK, FT, PTS og Løn.`
+                        : `Ingen skabelon for ${dayCount} dage — opret en under Skabeloner.`}
                     </p>
                   </button>
                 </div>
@@ -600,15 +602,36 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                       Aktiv skabelon: {course.moduleTemplateName}
                     </span>
                     {templateForCourse && (
-                      <Button
-                        variant="secondary"
-                        className="h-8 text-xs"
-                        onClick={reloadFromTemplate}
-                      >
-                        Genindlæs skabelon
-                      </Button>
+                      <>
+                        <Button
+                          variant="secondary"
+                          className="h-8 text-xs"
+                          onClick={reloadFromTemplate}
+                        >
+                          Genindlæs skabelon
+                        </Button>
+                        <Link
+                          href={`/skabeloner/${templateForCourse.id}`}
+                          className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Tilpas skabelon
+                        </Link>
+                      </>
                     )}
                   </div>
+                )}
+
+                {!course.moduleTemplateName && templateForCourse && (
+                  <p className="text-sm text-slate-500">
+                    Skabelonen kan tilpasses under{" "}
+                    <Link
+                      href="/skabeloner"
+                      className="font-medium text-emerald-700 hover:underline"
+                    >
+                      Skabeloner
+                    </Link>
+                    .
+                  </p>
                 )}
               </div>
             )}
