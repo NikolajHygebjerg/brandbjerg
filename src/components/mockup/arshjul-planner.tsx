@@ -132,10 +132,26 @@ export function ArshjulPlanner() {
     }));
   }
 
+  const targetYear = parseInt(newYearInput, 10);
+  const copySourcePlan =
+    plans
+      .filter((p) => !targetYear || p.year < targetYear)
+      .sort((a, b) => b.year - a.year)[0] ??
+    plans.sort((a, b) => b.year - a.year)[0];
+
+  function openNewYearDialog(presetYear?: number) {
+    const nextYear =
+      presetYear ?? Math.max(...plans.map((p) => p.year)) + 1;
+    setNewYearInput(String(nextYear));
+    setShowCopyDialog(true);
+  }
+
   function createNewYearFromCopy() {
     const toYear = parseInt(newYearInput, 10);
     if (!toYear || plans.some((p) => p.year === toYear)) return;
-    const source = previousPlan ?? plans.find((p) => p.year === 2026);
+    const source =
+      plans.filter((p) => p.year < toYear).sort((a, b) => b.year - a.year)[0] ??
+      plans.sort((a, b) => b.year - a.year)[0];
     if (!source) return;
 
     const copied = copyCoursesToYear(source.courses, source.year, toYear);
@@ -160,7 +176,7 @@ export function ArshjulPlanner() {
           Der findes ingen plan for {activeYear}. Kopier fra et tidligere år for
           at starte.
         </CardDescription>
-        <Button onClick={() => setShowCopyDialog(true)} className="mt-4">
+        <Button onClick={() => openNewYearDialog()} className="mt-4">
           <Copy className="h-4 w-4" />
           Opret {activeYear} fra sidste år
         </Button>
@@ -194,8 +210,7 @@ export function ArshjulPlanner() {
                     if (exists) {
                       setActiveYear(y);
                     } else {
-                      setNewYearInput(String(y));
-                      setShowCopyDialog(true);
+                      openNewYearDialog(y);
                     }
                   }}
                   className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
@@ -217,10 +232,9 @@ export function ArshjulPlanner() {
               );
             })}
             <Button
-              onClick={() => setShowCopyDialog(true)}
+              onClick={() => openNewYearDialog()}
               variant="secondary"
               className="h-8 text-xs"
-              disabled={isReadonly}
             >
               <Plus className="h-3.5 w-3.5" />
               Nyt år
@@ -234,9 +248,15 @@ export function ArshjulPlanner() {
           <CardTitle className="text-blue-900">Opret nyt årshjul</CardTitle>
           <CardDescription className="text-blue-800">
             Kopierer titler og ugestruktur fra{" "}
-            {previousPlan?.year ?? 2026}. Datoer tilpasses automatisk til det nye
+            {copySourcePlan?.year ?? 2026}. Datoer tilpasses automatisk til det nye
             år. Antal kursister foreslås ud fra historik (sidste 5 år — foregående
             år vægtes højest).
+            {copySourcePlan?.readonly && (
+              <span className="mt-1 block">
+                Kilden ({copySourcePlan.year}) er godkendt og skrivebeskyttet —
+                det nye år oprettes som redigerbart udkast.
+              </span>
+            )}
           </CardDescription>
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <div>
@@ -250,7 +270,7 @@ export function ArshjulPlanner() {
             </div>
             <Button onClick={createNewYearFromCopy}>
               <Copy className="h-4 w-4" />
-              Kopier fra {previousPlan?.year ?? 2026}
+              Kopier fra {copySourcePlan?.year ?? 2026}
             </Button>
             <Button
               onClick={() => setShowCopyDialog(false)}
