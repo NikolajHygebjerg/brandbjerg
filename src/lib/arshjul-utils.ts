@@ -1,4 +1,4 @@
-import type { BrandbjergPlannedCourse, CourseHistory } from "./brandbjerg-arshjul";
+import type { BrandbjergPlannedCourse, CourseHistory, AnnualPlan } from "./brandbjerg-arshjul";
 
 /** ISO-uge: mandag som ugestart */
 export function getWeekDates(
@@ -130,4 +130,34 @@ export function historySummary(
     if (history[y] != null) parts.push(`${y}: ${history[y]}`);
   }
   return parts.length > 0 ? parts.join(" · ") : "Ingen historik";
+}
+
+const STORAGE_KEY = "brandbjerg-arshjul-plans";
+
+export function loadPlansFromStorage(): AnnualPlan[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as AnnualPlan[];
+  } catch {
+    return null;
+  }
+}
+
+export function savePlansToStorage(plans: AnnualPlan[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+}
+
+/** Genberegn slutdato når start eller antal dage ændres */
+export function recalcEndDate(
+  startDate: string | null,
+  dayCount: number | null,
+): string | null {
+  if (!startDate || !dayCount || dayCount < 1) return startDate;
+  const start = new Date(startDate);
+  const end = new Date(start);
+  end.setDate(start.getDate() + dayCount - 1);
+  return end.toISOString().slice(0, 10);
 }
