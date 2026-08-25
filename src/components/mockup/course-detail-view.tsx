@@ -11,16 +11,19 @@ import {
   createEmptyModule,
   formatDate,
   formatDKK,
-  getTeacher,
   moduleDurationMinutes,
   moduleLibrary,
-  teachers,
   ubakTotal,
   type Course,
   type CourseChecklist,
   type CourseDay,
   type CourseModule,
 } from "@/lib/mock-data";
+import {
+  getStaff,
+  hojskolelaerere,
+  kortKursusLedere,
+} from "@/lib/brandbjerg-staff";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -35,8 +38,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   );
   const [mockAccountantView, setMockAccountantView] = useState(false);
 
-  const leader = getTeacher(course.courseLeaderId);
-  const hosts = course.hostIds.map((id) => getTeacher(id)).filter(Boolean);
+  const leader = getStaff(course.courseLeaderId);
+  const hosts = course.hostIds.map((id) => getStaff(id)).filter(Boolean);
   const selectedDay = course.days.find((d) => d.id === selectedDayId);
 
   function updateCourse(patch: Partial<Course>) {
@@ -186,37 +189,73 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   }
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.type === "intern" ? "intern" : "ekstern"})
-                    </option>
-                  ))}
+                  <optgroup label="Højskolelærere — korte kurser">
+                    {kortKursusLedere.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.initials})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Højskolelærere">
+                    {hojskolelaerere
+                      .filter((t) => t.group === "hojskolelaerer")
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                  </optgroup>
                 </select>
+                {leader && (
+                  <p className="mt-1 text-xs text-slate-400">{leader.subjects}</p>
+                )}
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">
                   Ekstra kursusværter
                 </label>
-                <div className="mt-2 space-y-1">
-                  {teachers
+                <div className="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Korte kurser
+                  </p>
+                  {kortKursusLedere
                     .filter((t) => t.id !== course.courseLeaderId)
                     .map((t) => (
-                      <label
+                      <HostCheckbox
                         key={t.id}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={course.hostIds.includes(t.id)}
-                          onChange={(e) => {
-                            const hostIds = e.target.checked
-                              ? [...course.hostIds, t.id]
-                              : course.hostIds.filter((id) => id !== t.id);
-                            updateCourse({ hostIds });
-                          }}
-                        />
-                        {t.name}
-                      </label>
+                        id={t.id}
+                        name={`${t.name} (${t.initials})`}
+                        checked={course.hostIds.includes(t.id)}
+                        onChange={(checked) => {
+                          const hostIds = checked
+                            ? [...course.hostIds, t.id]
+                            : course.hostIds.filter((id) => id !== t.id);
+                          updateCourse({ hostIds });
+                        }}
+                      />
+                    ))}
+                  <p className="pt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Højskolelærere
+                  </p>
+                  {hojskolelaerere
+                    .filter(
+                      (t) =>
+                        t.group === "hojskolelaerer" &&
+                        t.id !== course.courseLeaderId,
+                    )
+                    .map((t) => (
+                      <HostCheckbox
+                        key={t.id}
+                        id={t.id}
+                        name={t.name}
+                        checked={course.hostIds.includes(t.id)}
+                        onChange={(checked) => {
+                          const hostIds = checked
+                            ? [...course.hostIds, t.id]
+                            : course.hostIds.filter((id) => id !== t.id);
+                          updateCourse({ hostIds });
+                        }}
+                      />
                     ))}
                 </div>
               </div>
@@ -617,6 +656,30 @@ function ModuleCard({
         </div>
       )}
     </Card>
+  );
+}
+
+function HostCheckbox({
+  id,
+  name,
+  checked,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label htmlFor={id} className="flex items-center gap-2 text-sm">
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {name}
+    </label>
   );
 }
 

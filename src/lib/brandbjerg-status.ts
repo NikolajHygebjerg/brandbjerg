@@ -1,3 +1,5 @@
+import { brandbjerg2026Courses } from "./brandbjerg-arshjul";
+import { defaultLeaderForInitials, getStaffByInitials } from "./brandbjerg-staff";
 import type { Course, CourseStatus } from "./mock-data";
 import { defaultChecklist } from "./mock-data";
 import {
@@ -15,9 +17,21 @@ function deriveStatus(c: StatusarkCourse): CourseStatus {
   return "markedsfoeres";
 }
 
+function findResponsibleInitials(title: string, week: number): string {
+  const match = brandbjerg2026Courses.find(
+    (c) =>
+      c.weekNumber === week &&
+      c.title.toLowerCase().trim() === title.toLowerCase().trim(),
+  );
+  return match?.responsible || "";
+}
+
 export function statusarkToCourse(c: StatusarkCourse): Course {
   const enrolled = netEnrolled(c.totalEnrolled, c.paidCancellations);
   const capacity = (c.maxStudents ?? c.budgetStudents) || 20;
+  const staff = getStaffByInitials(
+    findResponsibleInitials(c.title, c.courseWeekNumber),
+  );
 
   return {
     id: c.id,
@@ -30,11 +44,13 @@ export function statusarkToCourse(c: StatusarkCourse): Course {
     enrolled,
     paid: Math.max(0, enrolled - (c.paidCancellations || 0)),
     status: deriveStatus(c),
-    instructor: "—",
+    instructor: staff?.name ?? "—",
     location: "Brandbjerg Højskole",
     department: "Planlægning",
     weekNumber: c.courseWeekNumber,
-    courseLeaderId: "lar-01",
+    courseLeaderId: staff
+      ? staff.id
+      : defaultLeaderForInitials("AG"),
     hostIds: [],
     budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,

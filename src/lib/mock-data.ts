@@ -135,16 +135,11 @@ export interface Activity {
   time: string;
 }
 
-export const teachers: Teacher[] = [
-  { id: "lar-01", name: "Lise Møller", type: "intern" },
-  { id: "lar-02", name: "Thomas Berg", type: "intern" },
-  { id: "lar-03", name: "Anna Krogh", type: "intern" },
-  { id: "lar-04", name: "Mikkel Sørensen", type: "intern" },
-  { id: "lar-05", name: "Sofie Lind", type: "intern" },
-  { id: "lar-06", name: "Helle Vang", type: "intern" },
-  { id: "lar-07", name: "Klaus Hartmann", type: "ekstern" },
-  { id: "lar-08", name: "Eva Søndergaard", type: "ekstern" },
-];
+export {
+  teachers,
+  brandbjergStaff,
+  getStaff as getTeacher,
+} from "./brandbjerg-staff";
 
 export const moduleLibrary = [
   { id: "mod-lib-1", title: "Velkomst og introduktion", duration: 90 },
@@ -286,8 +281,8 @@ export const courses: Course[] = [
     location: "Atelier Øst",
     department: "Planlægning",
     weekNumber: 11,
-    courseLeaderId: "lar-01",
-    hostIds: ["lar-05"],
+    courseLeaderId: "bb-ml",
+    hostIds: ["bb-ncb"],
     budget: 28_000,
     marketingBudget: 4_500,
     planStatus: "godkendt",
@@ -330,8 +325,8 @@ export const courses: Course[] = [
     location: "Køkkenlaboratoriet",
     department: "Planlægning",
     weekNumber: 15,
-    courseLeaderId: "lar-02",
-    hostIds: ["lar-03"],
+    courseLeaderId: "bb-kkn",
+    hostIds: ["bb-jm"],
     budget: 45_000,
     marketingBudget: 6_000,
     planStatus: "godkendt",
@@ -358,7 +353,7 @@ export const courses: Course[] = [
     location: "Skovhytten",
     department: "Kommunikation",
     weekNumber: 18,
-    courseLeaderId: "lar-03",
+    courseLeaderId: "bb-nn",
     hostIds: [],
     budget: 38_000,
     marketingBudget: 8_000,
@@ -385,8 +380,8 @@ export const courses: Course[] = [
     location: "Medieværksted",
     department: "Planlægning",
     weekNumber: 23,
-    courseLeaderId: "lar-04",
-    hostIds: ["lar-07"],
+    courseLeaderId: "bb-nd",
+    hostIds: ["bb-cbm"],
     budget: 22_000,
     marketingBudget: 3_500,
     planStatus: "afventer_godkendelse",
@@ -411,7 +406,7 @@ export const courses: Course[] = [
     location: "Keramikværksted",
     department: "Planlægning",
     weekNumber: 28,
-    courseLeaderId: "lar-05",
+    courseLeaderId: "bb-cj",
     hostIds: [],
     budget: 52_000,
     marketingBudget: 5_000,
@@ -434,7 +429,7 @@ export const courses: Course[] = [
     location: "Biblioteket",
     department: "Afvikling",
     weekNumber: 4,
-    courseLeaderId: "lar-06",
+    courseLeaderId: "bb-jm",
     hostIds: [],
     budget: 15_000,
     marketingBudget: 2_000,
@@ -479,10 +474,6 @@ export const activities: Activity[] = [
 
 export function getCourse(id: string) {
   return courses.find((c) => c.id === id);
-}
-
-export function getTeacher(id: string) {
-  return teachers.find((t) => t.id === id);
 }
 
 export function weekLabel(weekNumber: number) {

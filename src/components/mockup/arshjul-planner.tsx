@@ -35,6 +35,7 @@ import {
   type BrandbjergPlannedCourse,
 } from "@/lib/brandbjerg-arshjul";
 import { planStatusLabels, type PlanStatus } from "@/lib/mock-data";
+import { brandbjergStaff } from "@/lib/brandbjerg-staff";
 
 const WEEKS = Array.from({ length: 52 }, (_, i) => i + 1);
 const BASE_YEARS = [2026, 2025, 2024, 2023, 2022, 2021];
@@ -658,6 +659,13 @@ export function ArshjulPlanner() {
           </div>
         </Card>
       </div>
+      <datalist id="brandbjerg-staff-initials">
+        {brandbjergStaff.map((s) => (
+          <option key={s.id} value={s.initials}>
+            {s.name}
+          </option>
+        ))}
+      </datalist>
     </div>
   );
 }
@@ -787,9 +795,10 @@ function CourseRow({
           <span className="text-xs font-medium text-slate-500">Ansvarlig</span>
           <input
             type="text"
+            list="brandbjerg-staff-initials"
             value={course.responsible}
             onChange={(e) => onUpdate({ responsible: e.target.value })}
-            placeholder="fx CZ, MLL, AG"
+            placeholder="fx CZ, MLL, AG, KALC"
             className={`mt-0.5 block w-full ${inputClass()}`}
           />
         </label>

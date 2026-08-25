@@ -19,6 +19,7 @@ import {
   loadActiveYearFromStorage,
   loadPlansFromStorage,
 } from "./arshjul-utils";
+import { defaultLeaderForInitials, getStaffByInitials } from "./brandbjerg-staff";
 import { netEnrolled } from "./statusark-utils";
 
 export interface CourseListEntry {
@@ -163,6 +164,7 @@ export function plannedCourseToDetail(
   planStatus: AnnualPlan["planStatus"],
 ): Course {
   const capacity = (c.maxStudents ?? c.budgetStudents) || 20;
+  const staff = getStaffByInitials(c.responsible);
   return {
     id: c.id,
     title: c.title,
@@ -174,11 +176,13 @@ export function plannedCourseToDetail(
     enrolled: 0,
     paid: 0,
     status: planStatus === "godkendt" ? "godkendt" : "udkast",
-    instructor: c.responsible || "—",
+    instructor: staff?.name ?? (c.responsible || "—"),
     location: "Brandbjerg Højskole",
     department: "Planlægning",
     weekNumber: c.weekNumber,
-    courseLeaderId: "lar-01",
+    courseLeaderId: staff
+      ? staff.id
+      : defaultLeaderForInitials(c.responsible || "AG"),
     hostIds: [],
     budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,
