@@ -1,6 +1,7 @@
 import type {
   CourseKommunikationState,
   EnrollmentBenchmark,
+  KommunikationExperienceNotes,
   MarketingEffectivenessGoals,
   MarketingEffort,
   MarketingEffortType,
@@ -321,4 +322,32 @@ function seedHistoricalCourse(
     counts[id] = count;
   }
   localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(counts));
+}
+
+const EXPERIENCE_NOTES_KEY = "brandbjerg-kommunikation-experience-notes";
+
+export const defaultExperienceNotesText =
+  "August- og septemberkurser skal pushes i forsommeren — vent ikke til efter sommerferien. 2–3 uger før kursusstart er for sent til ny markedsføring. Novemberkurser giver først mening at reklamere for fra juni–oktober.";
+
+export function loadExperienceNotes(): KommunikationExperienceNotes {
+  if (typeof window === "undefined") {
+    return { notes: defaultExperienceNotesText, updatedAt: "" };
+  }
+  const parsed = safeParse<KommunikationExperienceNotes>(
+    localStorage.getItem(EXPERIENCE_NOTES_KEY),
+  );
+  if (parsed?.notes) return parsed;
+  return { notes: defaultExperienceNotesText, updatedAt: "" };
+}
+
+export function saveExperienceNotes(notes: string): KommunikationExperienceNotes {
+  const next: KommunikationExperienceNotes = {
+    notes,
+    updatedAt: new Date().toISOString(),
+  };
+  if (typeof window !== "undefined") {
+    localStorage.setItem(EXPERIENCE_NOTES_KEY, JSON.stringify(next));
+    emit();
+  }
+  return next;
 }

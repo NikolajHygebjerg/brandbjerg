@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Megaphone } from "lucide-react";
+import { Megaphone, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { KommunikationSubnav } from "@/components/mockup/kommunikation-subnav";
+import { WeeklyEffortSuggestionsPanel } from "@/components/mockup/weekly-effort-suggestions-panel";
 import {
   getAvailableCourseYears,
   getCoursesForYear,
@@ -29,6 +31,7 @@ export function KommunikationList() {
   const [activeYear, setActiveYear] = useState(statusarkYear);
   const [years, setYears] = useState<number[]>([statusarkYear]);
   const [tick, setTick] = useState(0);
+  const [showWeeklySuggestions, setShowWeeklySuggestions] = useState(false);
 
   useEffect(() => {
     setYears(getAvailableCourseYears());
@@ -101,6 +104,32 @@ export function KommunikationList() {
       </div>
 
       <KommunikationSubnav />
+
+      <div className="rounded-xl border-2 border-purple-300 bg-gradient-to-r from-purple-600 to-purple-800 p-5 shadow-lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-white">
+            <p className="text-lg font-bold">Hvad skal I fokusere på denne uge?</p>
+            <p className="mt-1 text-sm text-purple-100">
+              Appen sammenligner tilmeldinger med «burde være», budget og
+              erfaringer om timing — og foreslår hvor indsats giver mest mening.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setShowWeeklySuggestions(true)}
+            className="shrink-0 border-0 bg-white px-5 py-3 text-base font-bold text-purple-800 shadow-md hover:bg-purple-50"
+          >
+            <Sparkles className="h-5 w-5" />
+            Forslag til indsats denne uge
+          </Button>
+        </div>
+      </div>
+
+      <WeeklyEffortSuggestionsPanel
+        year={activeYear}
+        open={showWeeklySuggestions}
+        onClose={() => setShowWeeklySuggestions(false)}
+      />
 
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

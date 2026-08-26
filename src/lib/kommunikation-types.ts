@@ -141,3 +141,46 @@ export interface HistoricalLearningAnalysis {
   avgPeakMonthsBefore: number | null;
   arshjulHistory: Record<number, number>;
 }
+
+export type MarketingTimingPhase =
+  | "too_late"
+  | "too_early"
+  | "optimal"
+  | "late_window"
+  | "early_ok"
+  | "past";
+
+export interface WeeklyEffortSuggestion {
+  courseId: string;
+  title: string;
+  weekNumber: number;
+  startDate: string;
+  enrolled: number;
+  expected: number;
+  budget: number;
+  gap: number;
+  pace: BenchmarkPaceStatus;
+  monthsBeforeStart: number;
+  weeksBeforeStart: number;
+  timingPhase: MarketingTimingPhase;
+  timingReason: string;
+  priorityScore: number;
+  suggestedChannel: string | null;
+  channelReason: string | null;
+  historicalHint: string | null;
+  effortCount: number;
+}
+
+export interface WeeklyEffortSuggestionsResult {
+  generatedAt: string;
+  suggestions: WeeklyEffortSuggestion[];
+  skippedTooEarly: Array<{ courseId: string; title: string; reason: string }>;
+  skippedTooLate: Array<{ courseId: string; title: string; reason: string }>;
+  summaryLines: string[];
+  experienceNotesUsed: boolean;
+}
+
+export interface KommunikationExperienceNotes {
+  notes: string;
+  updatedAt: string;
+}
