@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { MarketingEffortDialog } from "@/components/mockup/marketing-effort-dialog";
 import { MarketingTimeline } from "@/components/mockup/marketing-timeline";
+import { MarketingAnalysisPanel } from "@/components/mockup/marketing-analysis-panel";
 import { EnrollmentTimelinePanel } from "@/components/mockup/enrollment-timeline";
 import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, type Course } from "@/lib/mock-data";
 import type { StatusarkCourse } from "@/lib/brandbjerg-statusark";
 import {
   addMarketingEffort,
+  ensureDemoMarketingData,
   KOMMUNIKATION_UPDATED_EVENT,
   loadKommunikationState,
   loadRegistrationQuestionsForCourse,
@@ -21,6 +23,7 @@ import {
 import type { EnrollmentBenchmark } from "@/lib/kommunikation-types";
 import {
   benchmarkPaceStatus,
+  buildCourseMarketingAnalysis,
   canSuggestFromHistory,
   expectedEnrollmentToday,
   getBenchmarksForCourse,
@@ -43,6 +46,10 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
   }, [courseId]);
 
   useEffect(() => {
+    ensureDemoMarketingData(courseId);
+  }, [courseId]);
+
+  useEffect(() => {
     function refresh() {
       setTick((t) => t + 1);
     }
@@ -54,6 +61,11 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
     () => (course ? resolveKommunikationContext(courseId, course) : null),
     [course, courseId, tick],
   );
+
+  const analysis = useMemo(() => {
+    if (!course) return null;
+    return buildCourseMarketingAnalysis(courseId, course);
+  }, [course, courseId, tick]);
 
   if (missing) {
     return (
@@ -222,6 +234,8 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
           </ul>
         </Card>
       )}
+
+      {analysis && <MarketingAnalysisPanel analysis={analysis} />}
 
       {showEffortDialog && (
         <MarketingEffortDialog

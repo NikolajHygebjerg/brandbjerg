@@ -55,7 +55,6 @@ import {
 } from "@/lib/course-plan-storage";
 import type { BudgetManualLines, CourseBudgetInput } from "@/lib/budget/budget-types";
 import {
-  allKitchenModulesReady,
   buildKitchenPlanSummary,
 } from "@/lib/kitchen-utils";
 import { canSendKitchenPlan, validateKitchenPlan } from "@/lib/kitchen-plan-rules";

@@ -1,6 +1,7 @@
 import type {
   CourseKommunikationState,
   EnrollmentBenchmark,
+  MarketingEffectivenessGoals,
   MarketingEffort,
   MarketingEffortType,
   RegistrationAttributionQuestion,
@@ -9,7 +10,16 @@ import { marketingEffortTypeLabels } from "./kommunikation-types";
 
 const STATE_KEY = "brandbjerg-kommunikation-state";
 const QUESTIONS_KEY = "brandbjerg-registration-attribution";
+const GOALS_KEY = "brandbjerg-marketing-goals";
+const ATTRIBUTION_KEY = "brandbjerg-marketing-attribution";
 export const KOMMUNIKATION_UPDATED_EVENT = "brandbjerg-kommunikation-updated";
+
+export const defaultMarketingGoals: MarketingEffectivenessGoals = {
+  goodCostPerEnrollment: 2500,
+  maxCostPerEnrollment: 5000,
+  minEnrollmentsPerEffort: 1,
+  followUpDays: 7,
+};
 
 function emit() {
   if (typeof window !== "undefined") {
@@ -153,4 +163,82 @@ export function loadAllRegistrationQuestions(): RegistrationAttributionQuestion[
 export function loadAllMarketingEfforts(): MarketingEffort[] {
   const all = loadAllStates();
   return Object.values(all).flatMap((s) => s.efforts);
+}
+
+export function loadMarketingGoals(): MarketingEffectivenessGoals {
+  if (typeof window === "undefined") return defaultMarketingGoals;
+  return (
+    safeParse<MarketingEffectivenessGoals>(localStorage.getItem(GOALS_KEY)) ??
+    defaultMarketingGoals
+  );
+}
+
+export function saveMarketingGoals(
+  goals: MarketingEffectivenessGoals,
+): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+  emit();
+}
+
+export function loadAttributionCounts(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  return (
+    safeParse<Record<string, number>>(localStorage.getItem(ATTRIBUTION_KEY)) ??
+    {}
+  );
+}
+
+export function setAttributionCount(effortId: string, count: number): void {
+  if (typeof window === "undefined") return;
+  const all = loadAttributionCounts();
+  all[effortId] = count;
+  localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(all));
+  emit();
+}
+
+export function getAttributionCountForEffort(effortId: string): number {
+  return loadAttributionCounts()[effortId] ?? 0;
+}
+
+/** Demo-data til Liv i haven — kun hvis kurset endnu ingen indsatser har */
+export function ensureDemoMarketingData(courseId: string): void {
+  if (typeof window === "undefined") return;
+  if (courseId !== "sa26-49") return;
+
+  const existing = loadKommunikationState(courseId);
+  if (existing && existing.efforts.length > 0) return;
+
+  const avis: MarketingEffort = {
+    id: "mkt-demo-avis",
+    courseId,
+    type: "avis",
+    startDate: "2026-05-14",
+    endDate: "2026-05-14",
+    price: 5000,
+    createdAt: new Date().toISOString(),
+  };
+  const facebook: MarketingEffort = {
+    id: "mkt-demo-facebook",
+    courseId,
+    type: "facebook",
+    startDate: "2026-07-24",
+    endDate: "2026-08-01",
+    price: 5000,
+    createdAt: new Date().toISOString(),
+  };
+
+  saveKommunikationState(courseId, {
+    benchmarks: existing?.benchmarks ?? [],
+    benchmarksFromHistory: existing?.benchmarksFromHistory ?? false,
+    efforts: [avis, facebook],
+  });
+
+  addRegistrationQuestionForEffort(courseId, avis);
+  addRegistrationQuestionForEffort(courseId, facebook);
+
+  const attribution = loadAttributionCounts();
+  attribution[avis.id] = 1;
+  attribution[facebook.id] = 0;
+  localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
 }

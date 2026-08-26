@@ -55,3 +55,32 @@ export interface MarketingTypeSummary {
   totalEnrollments: number;
   avgCostPerEnrollment: number | null;
 }
+
+/** Mål for vurdering af markedsføringseffekt — kan tilrettes under Kommunikation → Mål */
+export interface MarketingEffectivenessGoals {
+  /** Kr. pr. tilmelding — grøn zone */
+  goodCostPerEnrollment: number;
+  /** Kr. pr. tilmelding — orange zone; over = rød */
+  maxCostPerEnrollment: number;
+  /** Minimum tilmeldinger i opfølgningsperioden for at indsatsen anses effektiv */
+  minEnrollmentsPerEffort: number;
+  /** Dage efter kampagneslut hvor tilmeldinger måles */
+  followUpDays: number;
+}
+
+export type MarketingEffortRating = "good" | "acceptable" | "poor" | "none";
+
+export interface EffortAnalysisDetail extends EffortAnalyticsRow {
+  enrollmentsInFollowUp: number;
+  attributedCount: number;
+  costPerEnrollmentFollowUp: number | null;
+  rating: MarketingEffortRating;
+  narrative: string;
+  goalComparison: string;
+}
+
+export interface CourseMarketingAnalysis {
+  efforts: EffortAnalysisDetail[];
+  overallConclusion: string;
+  goals: MarketingEffectivenessGoals;
+}

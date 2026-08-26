@@ -6,14 +6,22 @@ import {
 } from "./brandbjerg-statusark";
 import type {
   BenchmarkPaceStatus,
+  CourseMarketingAnalysis,
+  EffortAnalysisDetail,
   EffortAnalyticsRow,
   EnrollmentBenchmark,
+  MarketingEffectivenessGoals,
   MarketingEffort,
+  MarketingEffortRating,
   MarketingEffortType,
   MarketingTypeSummary,
 } from "./kommunikation-types";
 import { marketingEffortTypeLabels } from "./kommunikation-types";
-import { loadKommunikationState } from "./kommunikation-storage";
+import {
+  getAttributionCountForEffort,
+  loadKommunikationState,
+  loadMarketingGoals,
+} from "./kommunikation-storage";
 import type { Course } from "./mock-data";
 import { enrollmentWeeksWithActivity, netEnrolled } from "./statusark-utils";
 
@@ -229,65 +237,25 @@ export function analyzeEffort(
   };
 }
 
-export function buildMarketingAnalytics(
-  courseFilter?: string,
-): {
-  efforts: EffortAnalyticsRow[];
-  byType: MarketingTypeSummary[];
-  conclusions: string[];
-} {
-  const efforts: EffortAnalyticsRow[] = [];
-
-  for (const course of statusarkCourses) {
-    if (courseFilter && course.id !== courseFilter) continue;
-    const state = loadKommunikationState(course.id);
-    if (!state) continue;
-    for (const effort of state.efforts) {
-      efforts.push(analyzeEffort(effort, course));
-    }
-  }
-
-  const byTypeMap = new Map<MarketingEffortType, MarketingTypeSummary>();
-
-  for (const row of efforts) {
-    const type = row.effort.type;
-    const existing = byTypeMap.get(type) ?? {
-      type,
-      label: marketingEffortTypeLabels[type],
-      effortCount: 0,
-      totalSpend: 0,
-      totalEnrollments: 0,
-      avgCostPerEnrollment: null,
-    };
-    existing.effortCount += 1;
-    existing.totalSpend += row.effort.price;
-    existing.totalEnrollments += row.enrollmentsDuring;
-    byTypeMap.set(type, existing);
-  }
-
-  const byType = Array.from(byTypeMap.values()).map((s) => ({
-    ...s,
-    avgCostPerEnrollment:
-      s.totalEnrollments > 0
-        ? Math.round(s.totalSpend / s.totalEnrollments)
-        : null,
-  }));
-
-  const conclusions = buildConclusions(byType, efforts);
-
-  return { efforts, byType, conclusions };
-}
-
 function buildConclusions(
   byType: MarketingTypeSummary[],
-  efforts: EffortAnalyticsRow[],
+  efforts: EffortAnalysisDetail[],
+  goals: MarketingEffectivenessGoals,
 ): string[] {
-  const lines: string[] = [];
   if (efforts.length === 0) {
-    lines.push(
+    return [
       "Ingen markedsføringsindsatser registreret endnu — opret indsatser på enkeltkurser for at starte analysen.",
+    ];
+  }
+
+  const lines = efforts.map((e) => e.narrative);
+
+  const good = efforts.filter((e) => e.rating === "good");
+  const poor = efforts.filter((e) => e.rating === "poor");
+  if (good.length > 0 || poor.length > 0) {
+    lines.push(
+      `Sammenlignet med jeres mål (≤ ${goals.goodCostPerEnrollment.toLocaleString("da-DK")} kr/tilmelding = god, ≤ ${goals.maxCostPerEnrollment.toLocaleString("da-DK")} kr = acceptabel): ${good.length} indsats${good.length !== 1 ? "er" : ""} opfylder målene, ${poor.length} ligger under.`,
     );
-    return lines;
   }
 
   const ranked = [...byType]
@@ -297,27 +265,10 @@ function buildConclusions(
         (a.avgCostPerEnrollment ?? Infinity) -
         (b.avgCostPerEnrollment ?? Infinity),
     );
-
-  if (ranked.length > 0) {
+  if (ranked.length > 1) {
     const best = ranked[0];
     lines.push(
-      `${best.label} har lavest omkostning pr. tilmelding (${best.avgCostPerEnrollment?.toLocaleString("da-DK")} kr.) baseret på ${best.effortCount} indsats${best.effortCount !== 1 ? "er" : ""}.`,
-    );
-  }
-
-  const topEffort = [...efforts].sort(
-    (a, b) => b.enrollmentsDuring - a.enrollmentsDuring,
-  )[0];
-  if (topEffort && topEffort.enrollmentsDuring > 0) {
-    lines.push(
-      `Mest effektive enkeltindsats: ${marketingEffortTypeLabels[topEffort.effort.type]} på «${topEffort.courseTitle}» med ${topEffort.enrollmentsDuring} tilmeldinger i perioden.`,
-    );
-  }
-
-  const zeroReturn = efforts.filter((e) => e.enrollmentsDuring === 0);
-  if (zeroReturn.length > 0) {
-    lines.push(
-      `${zeroReturn.length} indsats${zeroReturn.length !== 1 ? "er" : ""} uden målte tilmeldinger i kampagnperioden — overvej timing eller kanal.`,
+      `${best.label} har samlet set lavest omkostning pr. tilmelding (${best.avgCostPerEnrollment?.toLocaleString("da-DK")} kr.) på tværs af ${best.effortCount} indsats${best.effortCount !== 1 ? "er" : ""}.`,
     );
   }
 
@@ -402,4 +353,258 @@ export function todayTimelinePercent(courseStartDate: string): number | null {
   const start = timelineStartDate(courseStartDate).getTime();
   if (Date.now() < start) return 0;
   return dateToTimelinePercent(new Date().toISOString().slice(0, 10), courseStartDate);
+}
+
+function addDays(isoDate: string, days: number): string {
+  const d = new Date(isoDate);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatShortDate(iso: string): string {
+  return new Intl.DateTimeFormat("da-DK", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(iso));
+}
+
+function formatDateRange(start: string, end: string): string {
+  if (start === end) return formatShortDate(start);
+  return `${formatShortDate(start)}–${formatShortDate(end)}`;
+}
+
+function attributionSourceLabel(type: MarketingEffortType): string {
+  if (type === "facebook") return "Facebook";
+  if (type === "avis") return "avisen";
+  return "SoMe";
+}
+
+export function enrollmentsInFollowUpPeriod(
+  weeks: WeeklyEnrollment[],
+  campaignEndDate: string,
+  followUpDays: number,
+): number {
+  const start = addDays(campaignEndDate, 1);
+  const end = addDays(campaignEndDate, followUpDays);
+  return enrollmentsBetweenDates(weeks, start, end);
+}
+
+export function rateEffortAgainstGoals(
+  enrollmentsInFollowUp: number,
+  costPerEnrollment: number | null,
+  goals: MarketingEffectivenessGoals,
+): MarketingEffortRating {
+  if (enrollmentsInFollowUp < goals.minEnrollmentsPerEffort) return "poor";
+  if (costPerEnrollment == null) return "none";
+  if (costPerEnrollment <= goals.goodCostPerEnrollment) return "good";
+  if (costPerEnrollment <= goals.maxCostPerEnrollment) return "acceptable";
+  return "poor";
+}
+
+export function buildGoalComparisonText(
+  rating: MarketingEffortRating,
+  costPerEnrollment: number | null,
+  goals: MarketingEffectivenessGoals,
+): string {
+  if (rating === "poor" && costPerEnrollment == null) {
+    return `Mål: mindst ${goals.minEnrollmentsPerEffort} tilmelding${goals.minEnrollmentsPerEffort !== 1 ? "er" : ""} inden for ${goals.followUpDays} dage efter kampagnen — ikke opfyldt.`;
+  }
+  if (costPerEnrollment == null) return "";
+  if (rating === "good") {
+    return `Under målet på ${goals.goodCostPerEnrollment.toLocaleString("da-DK")} kr. pr. tilmelding — god effekt.`;
+  }
+  if (rating === "acceptable") {
+    return `Mellem ${goals.goodCostPerEnrollment.toLocaleString("da-DK")} og ${goals.maxCostPerEnrollment.toLocaleString("da-DK")} kr. pr. tilmelding — acceptabel effekt.`;
+  }
+  return `Over målet på ${goals.maxCostPerEnrollment.toLocaleString("da-DK")} kr. pr. tilmelding — svag effekt.`;
+}
+
+export function buildEffortNarrative(
+  row: EffortAnalyticsRow,
+  enrollmentsInFollowUp: number,
+  attributedCount: number,
+  goals: MarketingEffectivenessGoals,
+): { narrative: string; goalComparison: string; rating: MarketingEffortRating } {
+  const label = marketingEffortTypeLabels[row.effort.type];
+  const period = formatDateRange(row.effort.startDate, row.effort.endDate);
+  const price = row.effort.price.toLocaleString("da-DK");
+  const costPerEnrollment =
+    enrollmentsInFollowUp > 0
+      ? Math.round(row.effort.price / enrollmentsInFollowUp)
+      : null;
+  const rating = rateEffortAgainstGoals(
+    enrollmentsInFollowUp,
+    costPerEnrollment,
+    goals,
+  );
+  const source = attributionSourceLabel(row.effort.type);
+
+  let narrative: string;
+  if (enrollmentsInFollowUp === 0) {
+    narrative = `${label} ${period} til ${price} kr gav ingen tilmeldinger i de ${goals.followUpDays} dage efter. Det kostede ${price} kr uden målbart resultat.`;
+  } else {
+    const costLow = Math.round(row.effort.price / enrollmentsInFollowUp);
+    const costHigh =
+      attributedCount > 0
+        ? Math.round(row.effort.price / attributedCount)
+        : costLow;
+    const costPhrase =
+      attributedCount > 0 && attributedCount < enrollmentsInFollowUp
+        ? `${costLow.toLocaleString("da-DK")}–${costHigh.toLocaleString("da-DK")}`
+        : costLow.toLocaleString("da-DK");
+
+    narrative = `${label} ${period} til ${price} kr resulterede i ${enrollmentsInFollowUp} tilmeldt${enrollmentsInFollowUp !== 1 ? "e" : ""} i de ${goals.followUpDays} dage efter.`;
+    if (attributedCount > 0) {
+      narrative += ` ${attributedCount} har registreret at de så os i ${source}.`;
+    }
+    narrative += ` Det kostede altså ${costPhrase} kr pr. kursist for disse.`;
+  }
+
+  return {
+    narrative,
+    goalComparison: buildGoalComparisonText(rating, costPerEnrollment, goals),
+    rating,
+  };
+}
+
+export function analyzeEffortDetail(
+  effort: MarketingEffort,
+  course: StatusarkCourse,
+  goals?: MarketingEffectivenessGoals,
+): EffortAnalysisDetail {
+  const g = goals ?? loadMarketingGoals();
+  const base = analyzeEffort(effort, course);
+  const enrollmentsInFollowUp = enrollmentsInFollowUpPeriod(
+    course.enrollmentByWeek,
+    effort.endDate,
+    g.followUpDays,
+  );
+  const attributedCount = getAttributionCountForEffort(effort.id);
+  const { narrative, goalComparison, rating } = buildEffortNarrative(
+    base,
+    enrollmentsInFollowUp,
+    attributedCount,
+    g,
+  );
+  const costPerEnrollmentFollowUp =
+    enrollmentsInFollowUp > 0
+      ? Math.round(effort.price / enrollmentsInFollowUp)
+      : null;
+
+  return {
+    ...base,
+    enrollmentsInFollowUp,
+    attributedCount,
+    costPerEnrollmentFollowUp,
+    rating,
+    narrative,
+    goalComparison,
+  };
+}
+
+export function buildCourseMarketingAnalysis(
+  courseId: string,
+  courseMeta?: Pick<Course, "title" | "weekNumber" | "startDate">,
+  goals?: MarketingEffectivenessGoals,
+): CourseMarketingAnalysis | null {
+  const g = goals ?? loadMarketingGoals();
+  const course =
+    findStatusarkCourse(courseId, courseMeta) ?? getStatusarkCourse(courseId);
+  if (!course) return null;
+
+  const state = loadKommunikationState(courseId);
+  const efforts = (state?.efforts ?? []).map((e) =>
+    analyzeEffortDetail(e, course, g),
+  );
+
+  let overallConclusion: string;
+  if (efforts.length === 0) {
+    overallConclusion =
+      "Ingen markedsføringsindsatser registreret — opret indsatser for at starte analysen.";
+  } else {
+    const good = efforts.filter((e) => e.rating === "good");
+    const poor = efforts.filter((e) => e.rating === "poor");
+    const parts: string[] = [];
+    if (good.length > 0) {
+      parts.push(
+        `${good.length} indsats${good.length !== 1 ? "er" : ""} vurderes som effektive (≤ ${g.goodCostPerEnrollment.toLocaleString("da-DK")} kr/tilmelding).`,
+      );
+    }
+    if (poor.length > 0) {
+      parts.push(
+        `${poor.length} indsats${poor.length !== 1 ? "er" : ""} ligger under målene — overvej anden kanal, timing eller budget.`,
+      );
+    }
+    const best = [...efforts]
+      .filter((e) => e.enrollmentsInFollowUp > 0)
+      .sort(
+        (a, b) =>
+          (a.costPerEnrollmentFollowUp ?? Infinity) -
+          (b.costPerEnrollmentFollowUp ?? Infinity),
+      )[0];
+    if (best) {
+      parts.push(
+        `Bedste indsats: ${marketingEffortTypeLabels[best.effort.type]} (${best.costPerEnrollmentFollowUp?.toLocaleString("da-DK")} kr/tilmelding).`,
+      );
+    } else if (efforts.every((e) => e.enrollmentsInFollowUp === 0)) {
+      parts.push(
+        `Ingen tilmeldinger i opfølgningsperioden (${g.followUpDays} dage efter kampagner) — markedsføringen har endnu ikke målbart resultat.`,
+      );
+    }
+    overallConclusion = parts.join(" ");
+  }
+
+  return { efforts, overallConclusion, goals: g };
+}
+
+export function buildMarketingAnalytics(
+  courseFilter?: string,
+  goals?: MarketingEffectivenessGoals,
+): {
+  efforts: EffortAnalysisDetail[];
+  byType: MarketingTypeSummary[];
+  conclusions: string[];
+  goals: MarketingEffectivenessGoals;
+} {
+  const g = goals ?? loadMarketingGoals();
+  const efforts: EffortAnalysisDetail[] = [];
+
+  for (const course of statusarkCourses) {
+    if (courseFilter && course.id !== courseFilter) continue;
+    const state = loadKommunikationState(course.id);
+    if (!state) continue;
+    for (const effort of state.efforts) {
+      efforts.push(analyzeEffortDetail(effort, course, g));
+    }
+  }
+
+  const byTypeMap = new Map<MarketingEffortType, MarketingTypeSummary>();
+
+  for (const row of efforts) {
+    const type = row.effort.type;
+    const existing = byTypeMap.get(type) ?? {
+      type,
+      label: marketingEffortTypeLabels[type],
+      effortCount: 0,
+      totalSpend: 0,
+      totalEnrollments: 0,
+      avgCostPerEnrollment: null,
+    };
+    existing.effortCount += 1;
+    existing.totalSpend += row.effort.price;
+    existing.totalEnrollments += row.enrollmentsInFollowUp;
+    byTypeMap.set(type, existing);
+  }
+
+  const byType = Array.from(byTypeMap.values()).map((s) => ({
+    ...s,
+    avgCostPerEnrollment:
+      s.totalEnrollments > 0
+        ? Math.round(s.totalSpend / s.totalEnrollments)
+        : null,
+  }));
+
+  const conclusions = buildConclusions(byType, efforts, g);
+
+  return { efforts, byType, conclusions, goals: g };
 }

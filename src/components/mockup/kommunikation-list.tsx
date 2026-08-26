@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Megaphone } from "lucide-react";
+import { BarChart3, Megaphone, Target } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   getAvailableCourseYears,
@@ -99,13 +99,22 @@ export function KommunikationList() {
             Tilmeldinger, benchmark og markedsføringsindsatser
           </p>
         </div>
-        <Link
-          href="/kommunikation/analyse"
-          className="inline-flex items-center gap-2 rounded-lg bg-purple-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-800"
-        >
-          <BarChart3 className="h-4 w-4" />
-          Samlet analyse
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/kommunikation/analyse"
+            className="inline-flex items-center gap-2 rounded-lg bg-purple-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-800"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Samlet analyse
+          </Link>
+          <Link
+            href="/kommunikation/maal"
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2.5 text-sm font-medium text-purple-800 hover:bg-purple-50"
+          >
+            <Target className="h-4 w-4" />
+            Mål
+          </Link>
+        </div>
       </div>
 
       <Card>
