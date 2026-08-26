@@ -153,6 +153,8 @@ export function participantCity(p: KontorParticipant): string {
   return last.replace(/^\d{4}\s*/, "").trim() || "—";
 }
 
+const BRANDBJERG_MAIL_FROM = "bh@brandbjerg.dk";
+
 export function buildMailtoLink(
   emails: string[],
   subject?: string,
@@ -162,13 +164,11 @@ export function buildMailtoLink(
   const params = new URLSearchParams();
   if (subject) params.set("subject", subject);
   if (body) params.set("body", body);
-  const qs = params.toString();
-  if (unique.length === 1) {
-    return `mailto:${unique[0]}${qs ? `?${qs}` : ""}`;
+  if (unique.length > 0) {
+    params.set("bcc", unique.join(";"));
   }
-  const [first, ...rest] = unique;
-  params.set("bcc", rest.join(";"));
-  return `mailto:${first}?${params.toString()}`;
+  const qs = params.toString();
+  return `mailto:${BRANDBJERG_MAIL_FROM}${qs ? `?${qs}` : ""}`;
 }
 
 export function courseLeaderDisplayName(course: Course): string {

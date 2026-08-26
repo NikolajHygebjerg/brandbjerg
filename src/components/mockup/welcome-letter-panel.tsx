@@ -104,8 +104,8 @@ export function WelcomeLetterPanel({
         {!checklist.welcomeLetterSent && participants.length > 0 && (
           <span className="text-xs text-slate-500">
             <Mail className="mr-1 inline h-3.5 w-3.5" />
-            Sendes til {participants.length} deltager
-            {participants.length !== 1 ? "e" : ""}
+            Til bh@brandbjerg.dk — {participants.length} deltager
+            {participants.length !== 1 ? "e" : ""} i BCC
           </span>
         )}
       </div>
