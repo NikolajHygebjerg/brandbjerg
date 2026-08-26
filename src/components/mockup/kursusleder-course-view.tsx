@@ -15,11 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { KursuslederPrintAreas } from "@/components/mockup/kursusleder-print-areas";
 import { triggerKursuslederPrint } from "@/components/mockup/kursusleder-print-trigger";
+import { WelcomeLetterPanel } from "@/components/mockup/welcome-letter-panel";
 import { useAuth } from "@/context/auth-context";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { buildChecklistSummary } from "@/lib/checklist-summary";
 import { getCourseDetailById } from "@/lib/course-list";
-import { mergeCoursePlan } from "@/lib/course-plan-storage";
+import {
+  createPlanSnapshot,
+  loadCoursePlan,
+  mergeCoursePlan,
+  saveCoursePlan,
+} from "@/lib/course-plan-storage";
 import {
   getBudgetAntal,
   getRealiseretAntal,
@@ -27,7 +33,7 @@ import {
 import { ensureParticipantsForCourse } from "@/lib/kontor-participants";
 import { KONTOR_UPDATED_EVENT } from "@/lib/kontor-storage";
 import type { KontorParticipant } from "@/lib/kontor-types";
-import { formatDate, type Course } from "@/lib/mock-data";
+import { formatDate, type Course, type CourseChecklist } from "@/lib/mock-data";
 import { netEnrolled } from "@/lib/statusark-utils";
 import {
   buildMailtoLink,
@@ -139,6 +145,22 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
       course!.title,
       `Kære kursist\n\nVedr. kurset "${course!.title}".\n\n`,
     );
+  }
+
+  function updateChecklist(patch: Partial<CourseChecklist>) {
+    setCourse((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        checklist: { ...prev.checklist, ...patch },
+      };
+      const stored = loadCoursePlan(courseId);
+      saveCoursePlan(
+        courseId,
+        createPlanSnapshot(next, stored?.programStatus ?? "kladde"),
+      );
+      return next;
+    });
   }
 
   return (
@@ -261,6 +283,13 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
           </ul>
         </Card>
       )}
+
+      <WelcomeLetterPanel
+        course={course}
+        participants={participants}
+        onUpdateChecklist={updateChecklist}
+        onParticipantsUpdated={() => setTick((t) => t + 1)}
+      />
 
       {showParticipants && (
         <Card className="overflow-hidden p-0">
