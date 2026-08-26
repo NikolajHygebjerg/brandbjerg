@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
@@ -72,66 +72,14 @@ export default async function KatalogDetailPage({
                 ? "Kurset er fuldt — du kan skrive dig på ventelisten"
                 : `${spotsLeft} pladser tilbage`}
             </CardDescription>
-
-            <form className="mt-4 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-stone-600">
-                  Fulde navn
-                </label>
-                <input
-                  type="text"
-                  placeholder="Fx Anna Jensen"
-                  className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-stone-600">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  placeholder="anna@example.dk"
-                  className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-stone-600">
-                  Telefon
-                </label>
-                <input
-                  type="tel"
-                  placeholder="+45 12 34 56 78"
-                  className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
-                  readOnly
-                />
-              </div>
-
-              <label className="flex items-start gap-2 text-xs text-stone-600">
-                <input type="checkbox" className="mt-0.5" readOnly checked />
-                Jeg accepterer behandling af mine oplysninger (GDPR)
-              </label>
-
-              <Button className="w-full pointer-events-none">
-                {isFull ? "Tilmeld venteliste" : `Betal ${formatDKK(course.price)}`}
-              </Button>
-            </form>
-
-            <div className="mt-4 space-y-2 border-t border-stone-100 pt-4 text-xs text-stone-500">
-              <p className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                Bekræftelsesmail sendes automatisk
-              </p>
-              <p className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                Sikker betaling via betalingsgateway
-              </p>
-              <p className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                Ingen CPR krævet
-              </p>
-            </div>
+            <p className="mt-3 text-sm text-stone-600">
+              Tilmeldingsblanket med kontaktoplysninger, indkvartering,
+              sengetøj, kosthensyn m.m. — som på brandbjerg.dk (uden CPR).
+            </p>
+            <Button href={`/tilmelding/${id}`} className="mt-4 w-full gap-2">
+              {isFull ? "Tilmeld venteliste" : "Gå til tilmelding"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </Card>
         </div>
       </div>

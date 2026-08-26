@@ -958,7 +958,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           <Button href="/tilmeldinger" className="mt-4" variant="secondary">
             Se alle tilmeldinger
           </Button>
-          <Button href={`/katalog/${course.id}`} className="mt-4 ml-2" variant="outline">
+          <Button href={`/tilmelding/${course.id}`} className="mt-4 ml-2" variant="outline">
             Offentlig tilmeldingsside
           </Button>
         </Card>

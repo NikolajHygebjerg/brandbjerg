@@ -7,7 +7,7 @@ export default async function TilmeldingPage({
 }) {
   const { id } = await params;
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="px-4 py-10">
       <CourseRegistrationForm
         courseId={id}
         backHref={`/kontor/${id}`}

@@ -11,40 +11,73 @@ import {
   assignRoomsForCourse,
 } from "./kontor-room-assignment";
 
+import type { RegistrationFormData } from "./enrollment-form-types";
+import { buildRegistrationSummary } from "./enrollment-form-types";
+import {
+  ENKELTVAERELSE_TILLÆG,
+  SENGETØJ_TILLÆG,
+} from "./enrollment-form-options";
+
 export function registerNewParticipant(
   courseId: string,
-  data: {
-    name: string;
-    email: string;
-    phone: string;
-    roomType: "ingen" | "enkelt" | "dobbelt";
-  },
+  data: RegistrationFormData,
+  basePrice: number,
 ): { ok: boolean; error?: string; participant?: KontorParticipant } {
-  const check = canRegister(courseId, data.roomType);
+  const roomType = data.accommodation;
+  const check = canRegister(courseId, roomType);
   if (!check.ok) return { ok: false, error: check.reason };
 
+  if (data.email.trim().toLowerCase() !== data.emailConfirm.trim().toLowerCase()) {
+    return { ok: false, error: "E-mail og validering matcher ikke." };
+  }
+
   const participants = loadParticipantsForCourse(courseId);
+  const amount =
+    basePrice +
+    (roomType === "enkelt" ? ENKELTVAERELSE_TILLÆG : 0) +
+    (data.bedding === "ja" ? SENGETØJ_TILLÆG : 0);
+
+  const fullAddress = [
+    data.address.trim(),
+    `${data.postalCode.trim()} ${data.city.trim()}`.trim(),
+    data.country.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const extra = buildRegistrationSummary(data);
+
   const participant: KontorParticipant = {
     id: `kp-${courseId}-${Date.now()}`,
     courseId,
-    name: data.name.trim(),
+    name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
     email: data.email.trim(),
     phone: data.phone.trim(),
-    address: "",
+    address: fullAddress,
     registeredAt: new Date().toISOString().slice(0, 10),
     status: "reserveret",
-    amount: 5995,
+    amount,
     roomNumber: null,
     roomMateId: null,
-    roomType: data.roomType,
+    roomType,
     preferences:
-      data.roomType === "enkelt" ? [{ type: "enevaerelse" }] : [],
-    specialConsiderations: "",
+      roomType === "enkelt"
+        ? [{ type: "enevaerelse" }]
+        : data.roomNeighbor.trim()
+          ? [{ type: "sammen_med", note: data.roomNeighbor.trim() }]
+          : [],
+    specialConsiderations: [
+      data.dietaryNeeds !== "Vælg" ? data.dietaryNeeds : "",
+      data.otherConsiderations.trim(),
+      extra,
+    ]
+      .filter(Boolean)
+      .join(" · "),
   };
 
   let next = [...participants, participant];
   const sa = getStatusarkCourse(courseId);
-  if (sa?.startDate && data.roomType !== "ingen") {
+  if (sa?.startDate) {
     next = assignRoomsForCourse(
       courseId,
       sa.courseWeekNumber,
