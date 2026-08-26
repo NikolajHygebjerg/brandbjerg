@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   CalendarDays,
-  LayoutDashboard,
+  ClipboardCheck,
   Network,
   Shield,
   Store,
@@ -20,11 +20,11 @@ const entryPoints = [
     highlight: true,
   },
   {
-    href: "/dashboard",
-    title: "Admin-dashboard",
+    href: "/planlaegning/statusark",
+    title: "Årsoversigt",
     description:
-      "Intern platform med årshjul, kurser, tilmeldinger, kommunikation og økonomi.",
-    icon: LayoutDashboard,
+      "Intern platform med årsoversigt, årshjul, kurser, tilmeldinger, kommunikation og økonomi.",
+    icon: ClipboardCheck,
   },
   {
     href: "/katalog",

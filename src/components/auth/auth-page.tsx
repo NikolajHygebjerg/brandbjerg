@@ -31,7 +31,7 @@ export function AuthPage() {
   useEffect(() => {
     if (!hydrated || !user) return;
     router.replace(
-      canAccessStaffPages(user.role) ? "/dashboard" : "/ingen-adgang",
+      canAccessStaffPages(user.role) ? "/planlaegning/statusark" : "/ingen-adgang",
     );
   }, [hydrated, user, router]);
 
@@ -69,7 +69,7 @@ export function AuthPage() {
     }
 
     router.push(
-      canAccessStaffPages(result.user.role) ? "/dashboard" : "/ingen-adgang",
+      canAccessStaffPages(result.user.role) ? "/planlaegning/statusark" : "/ingen-adgang",
     );
   }
 

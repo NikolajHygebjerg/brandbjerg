@@ -3,36 +3,67 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Briefcase,
   Building2,
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
   GraduationCap,
   Home,
-  LayoutDashboard,
   LayoutTemplate,
   Megaphone,
   Network,
   Sparkles,
   UtensilsCrossed,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
 import { useCourseDetailSession } from "@/context/course-detail-session";
 import { UserMenu } from "@/components/auth/user-menu";
 
-const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/planlaegning/arshjul", label: "Årshjul", icon: CalendarDays },
-  { href: "/planlaegning/statusark", label: "Statusark", icon: ClipboardCheck },
-  { href: "/planlaegning/kurser", label: "Kurser", icon: ClipboardList },
-  { href: "/kursusleder", label: "Kursusleder", icon: GraduationCap },
-  { href: "/skabeloner", label: "Skabeloner", icon: LayoutTemplate },
-  { href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
-  { href: "/pedel", label: "Pedel og rengøring", icon: Sparkles },
-  { href: "/kontor", label: "Kontor", icon: Building2 },
-  { href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
+type NavLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type NavEntry =
+  | ({ type: "link" } & NavLink)
+  | {
+      type: "group";
+      label: string;
+      icon: LucideIcon;
+      children: NavLink[];
+    };
+
+const nav: NavEntry[] = [
+  {
+    type: "link",
+    href: "/planlaegning/statusark",
+    label: "Årsoversigt",
+    icon: ClipboardCheck,
+  },
+  {
+    type: "group",
+    label: "KK afdelingen",
+    icon: Briefcase,
+    children: [
+      { href: "/planlaegning/arshjul", label: "Årshjul", icon: CalendarDays },
+      { href: "/planlaegning/kurser", label: "Kurser", icon: ClipboardList },
+      { href: "/skabeloner", label: "Skabeloner", icon: LayoutTemplate },
+    ],
+  },
+  { type: "link", href: "/kursusleder", label: "Kursusleder", icon: GraduationCap },
+  { type: "link", href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
+  { type: "link", href: "/pedel", label: "Pedel og rengøring", icon: Sparkles },
+  { type: "link", href: "/kontor", label: "Kontor", icon: Building2 },
+  { type: "link", href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
 ];
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,23 +88,64 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         <nav className="space-y-1 p-3">
           {nav.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
+            if (item.type === "link") {
+              const active = isActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-emerald-50 text-emerald-900"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            }
+
+            const groupActive = item.children.some((child) =>
+              isActive(pathname, child.href),
+            );
+            const GroupIcon = item.icon;
+
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-emerald-50 text-emerald-900"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
+              <div key={item.label} className="pt-1">
+                <div
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold",
+                    groupActive ? "text-emerald-900" : "text-slate-700",
+                  )}
+                >
+                  <GroupIcon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </div>
+                <div className="ml-3 space-y-0.5 border-l border-slate-200 pl-3">
+                  {item.children.map((child) => {
+                    const active = isActive(pathname, child.href);
+                    const Icon = child.icon;
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "bg-emerald-50 text-emerald-900"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {child.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>

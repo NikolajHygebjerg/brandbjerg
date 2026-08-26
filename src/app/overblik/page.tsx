@@ -68,7 +68,7 @@ export default function OverblikPage() {
             <Button href="/" variant="ghost">
               Forside
             </Button>
-            <Button href="/dashboard">
+            <Button href="/planlaegning/statusark">
               Se admin
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -259,7 +259,7 @@ export default function OverblikPage() {
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button href="/dashboard" className="bg-emerald-600 hover:bg-emerald-500">
+              <Button href="/planlaegning/statusark" className="bg-emerald-600 hover:bg-emerald-500">
                 <Building2 className="h-4 w-4" />
                 Admin
               </Button>

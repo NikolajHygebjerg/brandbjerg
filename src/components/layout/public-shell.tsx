@@ -19,7 +19,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button href="/dashboard" variant="outline" className="hidden sm:inline-flex">
+            <Button href="/planlaegning/statusark" variant="outline" className="hidden sm:inline-flex">
               Admin
             </Button>
             <UserMenu />

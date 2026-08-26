@@ -9,7 +9,7 @@ export function OverblikShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-slate-200 bg-white px-4 py-3 lg:px-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <Link
-            href="/dashboard"
+            href="/planlaegning/statusark"
             className="text-sm font-semibold text-slate-900 hover:text-emerald-800"
           >
             Kursusplatform

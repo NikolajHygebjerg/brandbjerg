@@ -22,9 +22,9 @@ export default function StatusarkPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-slate-500">Modul 1 → Statusark</p>
+          <p className="text-sm text-slate-500">KK afdelingen</p>
           <h1 className="text-2xl font-bold text-slate-900">
-            Statusark {statusarkYear}
+            Årsoversigt {statusarkYear}
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-500">
             Live tilmeldinger fra databasen — aggregeret pr. kalenderuge som i
@@ -39,7 +39,7 @@ export default function StatusarkPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardTitle className="text-2xl">{statusarkCourses.length}</CardTitle>
-          <CardDescription>Kurser i statusark</CardDescription>
+          <CardDescription>Kurser i årsoversigt</CardDescription>
         </Card>
         <Card>
           <CardTitle className="text-2xl">{totalEnrolled}</CardTitle>
@@ -65,7 +65,7 @@ export default function StatusarkPage() {
               Tilmeldinger i databasen — ikke i regnearket
             </CardTitle>
             <CardDescription className="text-violet-800">
-              Hver tilmelding gemmes med dato og kalenderuge. Statusarket
+              Hver tilmelding gemmes med dato og kalenderuge. Årsoversigten
               aggregerer ugentlige tal automatisk (som kolonnerne uge 34/2025 →
               uge 52). Den rå historik bevares permanent, så I senere kan bygge
               KMR-værktøjer der sammenligner tilmeldingstoppe med
@@ -89,7 +89,7 @@ export default function StatusarkPage() {
           <CardDescription className="text-blue-800">
             Nye tilmeldinger skriver direkte til databasen med{" "}
             <code className="rounded bg-blue-100 px-1">registeredAt</code> og
-            valgfri kampagnekilde. Statusarket opdateres automatisk.
+            valgfri kampagnekilde. Årsoversigten opdateres automatisk.
           </CardDescription>
           <Button href="/katalog" className="mt-3" variant="secondary">
             Se offentligt katalog
