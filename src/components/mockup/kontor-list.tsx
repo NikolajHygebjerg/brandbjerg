@@ -5,11 +5,21 @@ import Link from "next/link";
 import { Building2, BedDouble, AlertTriangle } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
+  CourseListDataCell,
+  CourseListDatesCell,
+  CourseListEmptyRow,
+  CourseListHeaderCell,
+  CourseListRow,
+  CourseListTable,
+  CourseListThead,
+  CourseListTitleCell,
+  CourseListWeekCell,
+} from "@/components/mockup/course-list-table";
+import {
   getAvailableCourseYears,
   getCoursesForYear,
   getDefaultCourseYear,
 } from "@/lib/course-list";
-import { formatDate, weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import {
@@ -137,70 +147,55 @@ export function KontorList() {
             {courses.length} kurser i {activeYear}
           </p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3">Uge</th>
-                <th className="px-4 py-3">Kursus</th>
-                <th className="px-4 py-3">Datoer</th>
-                <th className="px-4 py-3">Kursister</th>
-                <th className="px-4 py-3">Værelser</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {courses.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-slate-100 hover:bg-slate-50"
-                >
-                  <td className="px-4 py-3 font-medium text-slate-700">
-                    {weekLabel(c.weekNumber)}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {c.title}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {c.startDate && c.endDate
-                      ? `${formatDate(c.startDate)} – ${formatDate(c.endDate)}`
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        c.enrolled > 0
-                          ? "font-semibold text-slate-900"
-                          : "text-slate-500"
-                      }
-                    >
-                      {c.enrolled > 0 ? c.enrolled : c.budgetStudents || "—"}
+        <CourseListTable minWidth="680px">
+          <CourseListThead
+            trailingHeaders={
+              <>
+                <CourseListHeaderCell>Datoer</CourseListHeaderCell>
+                <CourseListHeaderCell>Kursister</CourseListHeaderCell>
+                <CourseListHeaderCell>Værelser</CourseListHeaderCell>
+              </>
+            }
+          />
+          <tbody>
+            {courses.map((c) => (
+              <CourseListRow key={c.id}>
+                <CourseListWeekCell weekNumber={c.weekNumber} />
+                <CourseListTitleCell
+                  title={c.title}
+                  href={`/kontor/${c.id}`}
+                  accent="violet"
+                />
+                <CourseListDatesCell
+                  startDate={c.startDate}
+                  endDate={c.endDate}
+                />
+                <CourseListDataCell>
+                  <span
+                    className={
+                      c.enrolled > 0
+                        ? "font-semibold text-slate-900"
+                        : "text-slate-500"
+                    }
+                  >
+                    {c.enrolled > 0 ? c.enrolled : c.budgetStudents || "—"}
+                  </span>
+                </CourseListDataCell>
+                <td className="px-4 py-3 text-slate-600">
+                  {c.roomsAssigned > 0 ? (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
+                      {c.roomsAssigned} tildelt
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {c.roomsAssigned > 0 ? (
-                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
-                        {c.roomsAssigned} tildelt
-                      </span>
-                    ) : c.roomsNeeded != null ? (
-                      `${c.roomsNeeded} dobbelt`
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/kontor/${c.id}`}
-                      className="text-sm font-medium text-violet-700 hover:underline"
-                    >
-                      Administration →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  ) : c.roomsNeeded != null ? (
+                    `${c.roomsNeeded} dobbelt`
+                  ) : (
+                    "—"
+                  )}
+                </td>
+              </CourseListRow>
+            ))}
+          </tbody>
+        </CourseListTable>
       </Card>
     </div>
   );

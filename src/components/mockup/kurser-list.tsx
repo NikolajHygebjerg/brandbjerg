@@ -7,12 +7,22 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { QuestionCountBadge } from "@/components/mockup/module-questions";
 import { StatusBadge } from "@/components/mockup/status-badge";
 import {
+  CourseListDataCell,
+  CourseListDatesCell,
+  CourseListEmptyRow,
+  CourseListHeaderCell,
+  CourseListRow,
+  CourseListTable,
+  CourseListThead,
+  CourseListTitleCell,
+  CourseListWeekCell,
+} from "@/components/mockup/course-list-table";
+import {
   getAvailableCourseYears,
   getCoursesForYear,
   getDefaultCourseYear,
   type CourseListEntry,
 } from "@/lib/course-list";
-import { formatDate, weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import {
   countUnansweredQuestions,
@@ -93,44 +103,37 @@ export function KurserList() {
             {courses.length} kurser i {activeYear}
           </p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Kursus</th>
-                <th className="px-4 py-3 font-medium">Uge</th>
-                <th className="px-4 py-3 font-medium">Dato</th>
-                <th className="px-4 py-3 font-medium">Ansvarlig</th>
-                <th className="px-4 py-3 font-medium">Budget</th>
-                <th className="px-4 py-3 font-medium">Tilmeldte</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {courses.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-slate-500"
-                  >
-                    Ingen kurser for {activeYear}. Opret et årshjul under{" "}
-                    <Link
-                      href="/planlaegning/arshjul"
-                      className="font-medium text-emerald-700 hover:underline"
-                    >
-                      årshjul
-                    </Link>
-                    .
-                  </td>
-                </tr>
-              ) : (
-                courses.map((course) => (
-                  <CourseRow key={course.id} course={course} />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <CourseListTable>
+          <CourseListThead
+            trailingHeaders={
+              <>
+                <CourseListHeaderCell>Dato</CourseListHeaderCell>
+                <CourseListHeaderCell>Ansvarlig</CourseListHeaderCell>
+                <CourseListHeaderCell>Budget</CourseListHeaderCell>
+                <CourseListHeaderCell>Tilmeldte</CourseListHeaderCell>
+                <CourseListHeaderCell>Status</CourseListHeaderCell>
+              </>
+            }
+          />
+          <tbody>
+            {courses.length === 0 ? (
+              <CourseListEmptyRow colSpan={7}>
+                Ingen kurser for {activeYear}. Opret et årshjul under{" "}
+                <Link
+                  href="/planlaegning/arshjul"
+                  className="font-medium text-emerald-700 hover:underline"
+                >
+                  årshjul
+                </Link>
+                .
+              </CourseListEmptyRow>
+            ) : (
+              courses.map((course) => (
+                <CourseRow key={course.id} course={course} />
+              ))
+            )}
+          </tbody>
+        </CourseListTable>
       </Card>
     </div>
   );
@@ -144,25 +147,18 @@ function CourseRow({ course }: { course: CourseListEntry }) {
   const openQuestions = countUnansweredQuestions(course.id);
 
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50">
-      <td className="px-4 py-3">
-        <Link
-          href={`/planlaegning/kurser/${course.id}`}
-          className="inline-flex items-center gap-2 font-medium text-emerald-800 hover:underline"
-        >
-          {course.title}
-          <QuestionCountBadge count={openQuestions} />
-        </Link>
-        <p className="text-xs text-slate-500">{course.type}</p>
-      </td>
-      <td className="px-4 py-3 text-slate-600">
-        {weekLabel(course.weekNumber)}
-      </td>
-      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-        {course.startDate ? formatDate(course.startDate) : "—"}
-      </td>
-      <td className="px-4 py-3 text-slate-600">{course.responsible}</td>
-      <td className="px-4 py-3">{course.budgetStudents}</td>
+    <CourseListRow>
+      <CourseListWeekCell weekNumber={course.weekNumber} />
+      <CourseListTitleCell
+        title={course.title}
+        href={`/planlaegning/kurser/${course.id}`}
+        accent="emerald"
+        subtitle={course.type}
+        trailing={<QuestionCountBadge count={openQuestions} />}
+      />
+      <CourseListDatesCell startDate={course.startDate} />
+      <CourseListDataCell>{course.responsible}</CourseListDataCell>
+      <CourseListDataCell>{course.budgetStudents}</CourseListDataCell>
       <td className="px-4 py-3">
         {course.enrolled > 0 ? (
           <div className="flex items-center gap-2">
@@ -183,6 +179,6 @@ function CourseRow({ course }: { course: CourseListEntry }) {
       <td className="px-4 py-3">
         <StatusBadge status={course.status} />
       </td>
-    </tr>
+    </CourseListRow>
   );
 }

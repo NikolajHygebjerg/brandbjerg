@@ -1,17 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { UtensilsCrossed } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { QuestionCountBadge } from "@/components/mockup/module-questions";
+import {
+  CourseListDataCell,
+  CourseListDatesCell,
+  CourseListEmptyRow,
+  CourseListHeaderCell,
+  CourseListRow,
+  CourseListTable,
+  CourseListThead,
+  CourseListTitleCell,
+  CourseListWeekCell,
+} from "@/components/mockup/course-list-table";
 import {
   getAvailableCourseYears,
   getCourseDetailById,
   getCoursesForYear,
   getDefaultCourseYear,
 } from "@/lib/course-list";
-import { formatDate, weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { countKitchenMeals } from "@/lib/kitchen-utils";
 import { isKitchenPlanSent, KITCHEN_UPDATED_EVENT } from "@/lib/kitchen-storage";
@@ -125,88 +134,66 @@ export function KitchenList() {
             i {activeYear}
           </p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3">Uge</th>
-                <th className="px-4 py-3">Kursus</th>
-                <th className="px-4 py-3">Datoer</th>
-                <th className="px-4 py-3">Deltagere</th>
-                <th className="px-4 py-3">Måltider</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {courses.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-slate-500"
-                  >
-                    Ingen køkkenplaner modtaget endnu. Kursuslederen godkender
-                    måltidsmoduler i modulplanen — derefter sendes planen
-                    automatisk hertil.
-                  </td>
-                </tr>
-              ) : (
-                courses.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-700">
-                      {weekLabel(c.weekNumber)}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      <span className="inline-flex items-center gap-2">
-                        {c.title}
-                        <QuestionCountBadge count={c.openQuestions} />
+        <CourseListTable minWidth="640px">
+          <CourseListThead
+            trailingHeaders={
+              <>
+                <CourseListHeaderCell>Datoer</CourseListHeaderCell>
+                <CourseListHeaderCell>Deltagere</CourseListHeaderCell>
+                <CourseListHeaderCell>Måltider</CourseListHeaderCell>
+                <CourseListHeaderCell>Status</CourseListHeaderCell>
+              </>
+            }
+          />
+          <tbody>
+            {courses.length === 0 ? (
+              <CourseListEmptyRow colSpan={6}>
+                Ingen køkkenplaner modtaget endnu. Kursuslederen godkender
+                måltidsmoduler i modulplanen — derefter sendes planen
+                automatisk hertil.
+              </CourseListEmptyRow>
+            ) : (
+              courses.map((c) => (
+                <CourseListRow key={c.id}>
+                  <CourseListWeekCell weekNumber={c.weekNumber} />
+                  <CourseListTitleCell
+                    title={c.title}
+                    href={`/koekken/${c.id}`}
+                    accent="amber"
+                    trailing={<QuestionCountBadge count={c.openQuestions} />}
+                  />
+                  <CourseListDatesCell
+                    startDate={c.startDate}
+                    endDate={c.endDate}
+                  />
+                  <CourseListDataCell>
+                    {c.enrolled > 0 ? c.enrolled : c.budgetStudents}
+                  </CourseListDataCell>
+                  <td className="px-4 py-3">
+                    {c.sent ? (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                        {c.mealCount} måltider
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {c.startDate && c.endDate
-                        ? `${formatDate(c.startDate)} – ${formatDate(c.endDate)}`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {c.enrolled > 0 ? c.enrolled : c.budgetStudents}
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.sent ? (
-                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                          {c.mealCount} måltider
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.sent ? (
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                          Modtaget
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                          Afventer godkendelse
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/koekken/${c.id}`}
-                        className="text-sm font-medium text-amber-700 hover:underline"
-                      >
-                        Se forplejning →
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.sent ? (
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                        Modtaget
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                        Afventer godkendelse
+                      </span>
+                    )}
+                  </td>
+                </CourseListRow>
+              ))
+            )}
+          </tbody>
+        </CourseListTable>
       </Card>
     </div>
   );

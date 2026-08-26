@@ -6,10 +6,18 @@ import { BarChart3, Target } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { KommunikationSubnav } from "@/components/mockup/kommunikation-subnav";
 import {
+  CourseListDataCell,
+  CourseListHeaderCell,
+  CourseListRow,
+  CourseListTable,
+  CourseListThead,
+  CourseListTitleCell,
+  CourseListWeekCell,
+} from "@/components/mockup/course-list-table";
+import {
   getAvailableCourseYears,
   getDefaultCourseYear,
 } from "@/lib/course-list";
-import { weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { KOMMUNIKATION_UPDATED_EVENT } from "@/lib/kommunikation-storage";
 import {
@@ -191,47 +199,44 @@ export function KommunikationAnalytics() {
             Sammenligning af tilmeldte vs. benchmark i dag
           </CardDescription>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3">Uge</th>
-                <th className="px-4 py-3">Kursus</th>
-                <th className="px-4 py-3">Tilmeldte</th>
-                <th className="px-4 py-3">Burde være</th>
-                <th className="px-4 py-3">Budget</th>
-                <th className="px-4 py-3">Indsatser</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analysis.courses.map((c) => (
-                <tr key={c.courseId} className="border-b border-slate-100">
-                  <td className="px-4 py-3">{weekLabel(c.weekNumber)}</td>
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    <Link
-                      href={`/kommunikation/${c.courseId}`}
-                      className="hover:text-purple-700 hover:underline"
-                    >
-                      {c.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-semibold">{c.enrolled}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex min-w-[2rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${paceStatusClasses[c.pace]}`}
-                    >
-                      {c.expected}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{c.budget}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {c.effortCount > 0 ? c.effortCount : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CourseListTable minWidth="720px">
+          <CourseListThead
+            trailingHeaders={
+              <>
+                <CourseListHeaderCell>Tilmeldte</CourseListHeaderCell>
+                <CourseListHeaderCell>Burde være</CourseListHeaderCell>
+                <CourseListHeaderCell>Budget</CourseListHeaderCell>
+                <CourseListHeaderCell>Indsatser</CourseListHeaderCell>
+              </>
+            }
+          />
+          <tbody>
+            {analysis.courses.map((c) => (
+              <CourseListRow key={c.courseId}>
+                <CourseListWeekCell weekNumber={c.weekNumber} />
+                <CourseListTitleCell
+                  title={c.title}
+                  href={`/kommunikation/${c.courseId}`}
+                  accent="purple"
+                />
+                <CourseListDataCell className="font-semibold text-slate-900">
+                  {c.enrolled}
+                </CourseListDataCell>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex min-w-[2rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${paceStatusClasses[c.pace]}`}
+                  >
+                    {c.expected}
+                  </span>
+                </td>
+                <CourseListDataCell>{c.budget}</CourseListDataCell>
+                <CourseListDataCell>
+                  {c.effortCount > 0 ? c.effortCount : "—"}
+                </CourseListDataCell>
+              </CourseListRow>
+            ))}
+          </tbody>
+        </CourseListTable>
       </Card>
 
       <Card className="overflow-hidden p-0">

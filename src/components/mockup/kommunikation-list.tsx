@@ -1,19 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { Megaphone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { KommunikationSubnav } from "@/components/mockup/kommunikation-subnav";
 import { WeeklyEffortSuggestionsPanel } from "@/components/mockup/weekly-effort-suggestions-panel";
 import {
+  CourseListDataCell,
+  CourseListDatesCell,
+  CourseListHeaderCell,
+  CourseListRow,
+  CourseListTable,
+  CourseListThead,
+  CourseListTitleCell,
+  CourseListWeekCell,
+} from "@/components/mockup/course-list-table";
+import {
   getAvailableCourseYears,
   getCoursesForYear,
   getDefaultCourseYear,
 } from "@/lib/course-list";
 import { getCourseDetailById } from "@/lib/course-list";
-import { formatDate, weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import {
   KOMMUNIKATION_UPDATED_EVENT,
@@ -182,64 +190,49 @@ export function KommunikationList() {
       </Card>
 
       <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3">Uge</th>
-                <th className="px-4 py-3">Kursus</th>
-                <th className="px-4 py-3">Datoer</th>
-                <th className="px-4 py-3">Tilmeldte</th>
-                <th className="px-4 py-3">Burde være</th>
-                <th className="px-4 py-3">Budget</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {courses.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-slate-100 hover:bg-slate-50"
-                >
-                  <td className="px-4 py-3 font-medium text-slate-700">
-                    {weekLabel(c.weekNumber)}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {c.title}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {c.startDate && c.endDate
-                      ? `${formatDate(c.startDate)} – ${formatDate(c.endDate)}`
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-slate-900">
-                    {c.enrolled}
-                  </td>
-                  <td className="px-4 py-3">
-                    {c.expected != null && c.pace ? (
-                      <span
-                        className={`inline-flex min-w-[2rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${paceStatusClasses[c.pace]}`}
-                      >
-                        {c.expected}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{c.budget || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/kommunikation/${c.id}`}
-                      className="text-sm font-medium text-purple-700 hover:underline"
+        <CourseListTable minWidth="720px">
+          <CourseListThead
+            trailingHeaders={
+              <>
+                <CourseListHeaderCell>Datoer</CourseListHeaderCell>
+                <CourseListHeaderCell>Tilmeldte</CourseListHeaderCell>
+                <CourseListHeaderCell>Burde være</CourseListHeaderCell>
+                <CourseListHeaderCell>Budget</CourseListHeaderCell>
+              </>
+            }
+          />
+          <tbody>
+            {courses.map((c) => (
+              <CourseListRow key={c.id}>
+                <CourseListWeekCell weekNumber={c.weekNumber} />
+                <CourseListTitleCell
+                  title={c.title}
+                  href={`/kommunikation/${c.id}`}
+                  accent="purple"
+                />
+                <CourseListDatesCell
+                  startDate={c.startDate}
+                  endDate={c.endDate}
+                />
+                <CourseListDataCell className="font-semibold text-slate-900">
+                  {c.enrolled}
+                </CourseListDataCell>
+                <td className="px-4 py-3">
+                  {c.expected != null && c.pace ? (
+                    <span
+                      className={`inline-flex min-w-[2rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${paceStatusClasses[c.pace]}`}
                     >
-                      Markedsføring →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      {c.expected}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <CourseListDataCell>{c.budget || "—"}</CourseListDataCell>
+              </CourseListRow>
+            ))}
+          </tbody>
+        </CourseListTable>
       </Card>
     </div>
   );
