@@ -1,4 +1,9 @@
-import type { Course, CourseChecklist, CourseDay } from "./mock-data";
+import type {
+  Course,
+  CourseChecklist,
+  CourseDay,
+  LokaleSpecifikation,
+} from "./mock-data";
 import type { BudgetManualLines, CourseBudgetInput } from "./budget/budget-types";
 import { defaultBudgetManualLines } from "./budget/budget-calculator";
 
@@ -12,6 +17,8 @@ export interface StoredCoursePlan {
   programStatus: ProgramSaveStatus;
   budgetManual?: BudgetManualLines;
   budgetInput?: Partial<CourseBudgetInput>;
+  courseLokaleSpec?: LokaleSpecifikation;
+  pedelGenerelleNoter?: string;
   updatedAt: string;
 }
 
@@ -35,6 +42,8 @@ export function loadCoursePlan(courseId: string): StoredCoursePlan | null {
       programStatus: parsed.programStatus ?? "kladde",
       budgetManual: parsed.budgetManual,
       budgetInput: parsed.budgetInput,
+      courseLokaleSpec: parsed.courseLokaleSpec,
+      pedelGenerelleNoter: parsed.pedelGenerelleNoter,
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
     };
   } catch {
@@ -44,7 +53,12 @@ export function loadCoursePlan(courseId: string): StoredCoursePlan | null {
 
 export type PlanSnapshotInput = Pick<
   Course,
-  "days" | "modulePlanMode" | "moduleTemplateName" | "checklist"
+  | "days"
+  | "modulePlanMode"
+  | "moduleTemplateName"
+  | "checklist"
+  | "courseLokaleSpec"
+  | "pedelGenerelleNoter"
 > & {
   budgetManual?: BudgetManualLines;
   budgetInput?: Partial<CourseBudgetInput>;
@@ -64,6 +78,8 @@ export function createPlanSnapshot(
       : course.checklist,
     budgetManual: course.budgetManual,
     budgetInput: course.budgetInput,
+    courseLokaleSpec: course.courseLokaleSpec,
+    pedelGenerelleNoter: course.pedelGenerelleNoter,
     programStatus,
   };
 }
@@ -92,6 +108,8 @@ export function mergeCoursePlan(course: Course): Course {
     modulePlanMode: stored.modulePlanMode ?? course.modulePlanMode,
     moduleTemplateName: stored.moduleTemplateName ?? course.moduleTemplateName,
     checklist: stored.checklist ?? course.checklist,
+    courseLokaleSpec: stored.courseLokaleSpec ?? course.courseLokaleSpec,
+    pedelGenerelleNoter: stored.pedelGenerelleNoter ?? course.pedelGenerelleNoter,
   };
 }
 

@@ -63,6 +63,7 @@ import {
   sendKitchenPlan,
 } from "@/lib/kitchen-storage";
 import { KitchenPlanWarnings } from "@/components/mockup/kitchen-plan-warnings";
+import { CourseLokaleSpecPanel } from "@/components/mockup/course-lokale-spec-panel";
 import {
   getBudgetAntal,
   getRealiseretAntal,
@@ -104,6 +105,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         modulePlanMode: stored.modulePlanMode ?? prev.modulePlanMode,
         moduleTemplateName: stored.moduleTemplateName ?? prev.moduleTemplateName,
         checklist: stored.checklist ?? prev.checklist,
+        courseLokaleSpec: stored.courseLokaleSpec ?? prev.courseLokaleSpec,
+        pedelGenerelleNoter: stored.pedelGenerelleNoter ?? prev.pedelGenerelleNoter,
       }));
       if (stored.days.length > 0) {
         setLastActiveDayId(stored.days[0]?.id ?? "");
@@ -177,6 +180,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     course.modulePlanMode,
     course.moduleTemplateName,
     course.checklist,
+    course.courseLokaleSpec,
+    course.pedelGenerelleNoter,
     budgetManual,
     budgetInputOverrides,
     persistPlan,
@@ -605,6 +610,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
               setBudgetInputOverrides((prev) => ({ ...prev, ...patch }))
             }
           />
+
+          <CourseLokaleSpecPanel course={course} onUpdate={updateCourse} />
         </div>
       )}
 
@@ -828,6 +835,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                 <ModuleEditDialog
                   open
                   courseId={course.id}
+                  courseDefaults={course}
                   module={editingModuleData}
                   dayLabel={editingDay.label}
                   onClose={() => setEditingModule(null)}

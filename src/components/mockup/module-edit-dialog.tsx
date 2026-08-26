@@ -5,7 +5,6 @@ import { CheckCircle2, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   defaultMealDetails,
-  defaultLokaleSpec,
   isHeldagsturModule,
   moduleDurationMinutes,
   timingTotal,
@@ -21,16 +20,19 @@ import {
   lokaler,
   specifikationer,
 } from "@/lib/kitchen-options";
+import { LokaleSpecForm } from "@/components/mockup/lokale-spec-form";
 import {
-  bordopstillinger,
-  ugedage,
-} from "@/lib/lokale-spec-options";
+  hasCourseLokaleSpecConfigured,
+  resolveModuleLokaleSpec,
+} from "@/lib/lokale-spec-utils";
+import type { Course } from "@/lib/mock-data";
 import { ModuleQuestionsReplyPanel } from "@/components/mockup/module-questions";
 
 type ModuleEditDialogProps = {
   module: CourseModule;
   dayLabel: string;
   courseId?: string;
+  courseDefaults?: Pick<Course, "courseLokaleSpec">;
   open: boolean;
   onClose: () => void;
   onChange: (patch: Partial<CourseModule>) => void;
@@ -41,6 +43,7 @@ export function ModuleEditDialog({
   module: mod,
   dayLabel,
   courseId,
+  courseDefaults,
   open,
   onClose,
   onChange,
@@ -177,6 +180,7 @@ export function ModuleEditDialog({
               mod={mod}
               duration={duration}
               timingSum={timingSum}
+              courseDefaults={courseDefaults}
               onChange={onChange}
             />
           )}
@@ -382,17 +386,30 @@ function RegularForm({
   mod,
   duration,
   timingSum,
+  courseDefaults,
   onChange,
 }: {
   mod: CourseModule;
   duration: number;
   timingSum: number;
+  courseDefaults?: Pick<Course, "courseLokaleSpec">;
   onChange: (patch: Partial<CourseModule>) => void;
 }) {
-  const spec = mod.lokaleSpec ?? defaultLokaleSpec();
+  const courseCtx = courseDefaults ?? {};
+  const spec = resolveModuleLokaleSpec(courseCtx, mod);
+  const inheritsCourseDefault =
+    !mod.lokaleSpecManuallySet &&
+    hasCourseLokaleSpecConfigured(courseCtx.courseLokaleSpec);
 
   function updateSpec(patch: Partial<LokaleSpecifikation>) {
-    onChange({ lokaleSpec: { ...spec, ...patch } });
+    onChange({
+      lokaleSpecManuallySet: true,
+      lokaleSpec: { ...spec, ...patch },
+    });
+  }
+
+  function resetToCourseDefault() {
+    onChange({ lokaleSpecManuallySet: false, lokaleSpec: undefined });
   }
 
   return (
@@ -476,143 +493,33 @@ function RegularForm({
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <p className="text-sm font-semibold text-slate-800">
-          Lokalespecifikation
-        </p>
-        <p className="text-xs text-slate-500">
-          Som i Pedel-arket i praktisk seddel
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <FieldSelect
-            label="Lokaler"
-            value={spec.lokale}
-            onChange={(v) => updateSpec({ lokale: v })}
-            options={[
-              { value: "", label: "Vælg lokale…" },
-              ...lokaler.map((l) => ({ value: l, label: l })),
-            ]}
-          />
-          <FieldInput
-            label="Antal personer"
-            type="number"
-            value={String(spec.antalPersoner || "")}
-            onChange={(v) => updateSpec({ antalPersoner: Number(v) || 0 })}
-          />
-          <FieldSelect
-            label="Bordopstilling"
-            value={spec.bordopstilling}
-            onChange={(v) => updateSpec({ bordopstilling: v })}
-            options={bordopstillinger.map((b) => ({ value: b, label: b }))}
-          />
-          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input
-              type="checkbox"
-              checked={spec.skalBrugesFlereDage}
-              onChange={(e) =>
-                updateSpec({ skalBrugesFlereDage: e.target.checked })
-              }
-            />
-            Skal bruges flere dage
-          </label>
-
-          {spec.skalBrugesFlereDage && (
-            <>
-              <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-                <p className="text-xs font-semibold text-blue-900">Klar fra</p>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <FieldSelect
-                    label="Ugedag"
-                    value={spec.klarFraUgedag}
-                    onChange={(v) => updateSpec({ klarFraUgedag: v })}
-                    options={[
-                      { value: "", label: "Vælg ugedag…" },
-                      ...ugedage.map((u) => ({ value: u, label: u })),
-                    ]}
-                  />
-                  <FieldInput
-                    label="Kl."
-                    value={spec.klarFraKl}
-                    onChange={(v) => updateSpec({ klarFraKl: v })}
-                    placeholder="11:00"
-                  />
-                </div>
-              </div>
-              <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-                <p className="text-xs font-semibold text-blue-900">
-                  Ledig fra
-                </p>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <FieldSelect
-                    label="Ugedag"
-                    value={spec.ledigFraUgedag}
-                    onChange={(v) => updateSpec({ ledigFraUgedag: v })}
-                    options={[
-                      { value: "", label: "Vælg ugedag…" },
-                      ...ugedage.map((u) => ({ value: u, label: u })),
-                    ]}
-                  />
-                  <FieldInput
-                    label="Kl."
-                    value={spec.ledigFraKl}
-                    onChange={(v) => updateSpec({ ledigFraKl: v })}
-                    placeholder="13:30"
-                  />
-                </div>
-              </div>
-            </>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">
+              Lokalespecifikation
+            </p>
+            <p className="text-xs text-slate-500">
+              Som i Pedel-arket i praktisk seddel
+            </p>
+          </div>
+          {inheritsCourseDefault && (
+            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+              Arver kursus-standard
+            </span>
           )}
-
-          <div className="sm:col-span-2 grid gap-2 sm:grid-cols-2">
-            <CheckboxField
-              label="Dug"
-              checked={spec.dug}
-              onChange={(v) => updateSpec({ dug: v })}
-            />
-            <CheckboxField
-              label="Levende lys"
-              checked={spec.levendeLys}
-              onChange={(v) => updateSpec({ levendeLys: v })}
-            />
-            <CheckboxField
-              label="Blomster"
-              checked={spec.blomster}
-              onChange={(v) => updateSpec({ blomster: v })}
-            />
-            <CheckboxField
-              label="Stor whiteboard"
-              checked={spec.storWhiteboard}
-              onChange={(v) => updateSpec({ storWhiteboard: v })}
-            />
-            <CheckboxField
-              label="Flipover/whiteboard"
-              checked={spec.flipoverWhiteboard}
-              onChange={(v) => updateSpec({ flipoverWhiteboard: v })}
-            />
-            <CheckboxField
-              label="Projektor"
-              checked={spec.projektor}
-              onChange={(v) => updateSpec({ projektor: v })}
-            />
-            <CheckboxField
-              label="Mobil lærred + projektor"
-              checked={spec.mobilLaerredProjektor}
-              onChange={(v) => updateSpec({ mobilLaerredProjektor: v })}
-            />
-            <CheckboxField
-              label="Mobil lydanlæg"
-              checked={spec.mobilLydanlaeg}
-              onChange={(v) => updateSpec({ mobilLydanlaeg: v })}
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <FieldTextarea
-              label="Noter"
-              value={spec.noter}
-              onChange={(v) => updateSpec({ noter: v })}
-              rows={3}
-            />
-          </div>
+          {mod.lokaleSpecManuallySet &&
+            hasCourseLokaleSpecConfigured(courseCtx.courseLokaleSpec) && (
+              <button
+                type="button"
+                onClick={resetToCourseDefault}
+                className="text-xs font-medium text-blue-700 hover:underline"
+              >
+                Nulstil til kursus-standard
+              </button>
+            )}
+        </div>
+        <div className="mt-4">
+          <LokaleSpecForm spec={spec} onChange={updateSpec} />
         </div>
       </div>
 
@@ -647,27 +554,6 @@ function RegularForm({
         </div>
       </div>
     </div>
-  );
-}
-
-function CheckboxField({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {label}
-    </label>
   );
 }
 

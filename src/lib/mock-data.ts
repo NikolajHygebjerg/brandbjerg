@@ -87,6 +87,8 @@ export interface CourseModule {
   erHeldagstur?: boolean;
   heldagstur?: HeldagsturPlan;
   lokaleSpec?: LokaleSpecifikation;
+  /** Modul har egen lokalespec — ellers arves kursus-standard */
+  lokaleSpecManuallySet?: boolean;
   klar: boolean;
 }
 
@@ -145,6 +147,10 @@ export interface Course {
   modulePlanMode?: "skabelon" | "bunden";
   moduleTemplateName?: string;
   checklist: CourseChecklist;
+  /** Standard lokalespec for alle ikke-køkken-moduler i programmet */
+  courseLokaleSpec?: LokaleSpecifikation;
+  /** Generelle noter til pedel/rengøring for hele kurset */
+  pedelGenerelleNoter?: string;
 }
 
 export interface Enrollment {

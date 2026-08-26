@@ -1,6 +1,7 @@
 import type { Course, LokaleSpecifikation } from "./mock-data";
 import { defaultLokaleSpec } from "./mock-data";
 import { mergeCoursePlan } from "./course-plan-storage";
+import { resolveModuleLokaleSpec } from "./lokale-spec-utils";
 import { ugedage } from "./lokale-spec-options";
 
 export interface PedelLokaleRow {
@@ -118,7 +119,7 @@ export function getPedelRowsFromCourse(course: Course): PedelLokaleRow[] {
   for (const day of merged.days) {
     for (const mod of day.modules) {
       if (mod.erMaltid) continue;
-      const spec = mod.lokaleSpec ?? defaultLokaleSpec();
+      const spec = resolveModuleLokaleSpec(merged, mod);
       if (!hasLokaleInfo(spec) && !mod.overskrift.trim()) continue;
       rows.push({
         moduleId: mod.id,

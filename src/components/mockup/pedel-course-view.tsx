@@ -68,14 +68,25 @@ export function PedelCourseView({ courseId }: { courseId: string }) {
         </div>
       </div>
 
+      {course.pedelGenerelleNoter?.trim() && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardTitle className="text-base text-blue-900">
+            Generelle noter til pedel/rengøring
+          </CardTitle>
+          <CardDescription className="mt-2 whitespace-pre-wrap text-blue-950">
+            {course.pedelGenerelleNoter}
+          </CardDescription>
+        </Card>
+      )}
+
       {dayRooms.length === 0 ? (
         <Card className="border-blue-200 bg-blue-50">
           <CardTitle className="text-base text-blue-900">
             Ingen lokaler planlagt endnu
           </CardTitle>
           <CardDescription className="text-blue-800">
-            Kursuslederen skal vælge lokale og udfylde lokalespecifikation under
-            Modulplan.
+            Kursuslederen skal vælge lokale under Oversigt & økonomi eller
+            udfylde lokalespecifikation på enkeltmoduler i Modulplan.
           </CardDescription>
         </Card>
       ) : (
