@@ -1,6 +1,6 @@
 import type { CourseModule, ModuleTiming } from "../mock-data";
 import { defaultMealDetails, defaultLokaleSpec } from "../mock-data";
-import { defaultHeldagsturPlan } from "../heldagstur-utils";
+import { defaultTemplateHeldagsturPlan } from "../heldagstur-utils";
 import {
   inferForplejningFromTitle,
   inferSpecifikationFromTitle,
@@ -700,7 +700,7 @@ export function templateRowToModule(
     erHeldagstur: row.erHeldagstur ?? row.overskrift.toLowerCase() === "heldagstur",
     heldagstur:
       row.erHeldagstur || row.overskrift.toLowerCase() === "heldagstur"
-        ? defaultHeldagsturPlan()
+        ? defaultTemplateHeldagsturPlan()
         : undefined,
     klar: false,
   };

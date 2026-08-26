@@ -82,6 +82,20 @@ export function defaultHeldagsturPlan(): HeldagsturPlan {
   return { punkter: [] };
 }
 
+/** Skabelon-default: madpakker som frokost under heldagstur */
+export function defaultTemplateHeldagsturPlan(): HeldagsturPlan {
+  const maltid = createHeldagsturPunkt("maltid");
+  maltid.tidFra = "12:00";
+  maltid.tidTil = "13:00";
+  maltid.maltid = defaultMealDetails({
+    forplejning: "Madpakker",
+    specifikation: "Almindelig",
+    lokale: "",
+    note: "Frokost undervejs (heldagstur)",
+  });
+  return { punkter: [maltid] };
+}
+
 export function punktDisplayTitle(punkt: HeldagsturPunkt): string {
   if (punkt.type === "bus") return "Bus";
   if (punkt.type === "besoeg") {
