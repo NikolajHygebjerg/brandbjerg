@@ -1,0 +1,97 @@
+export type RoomWeekStatusType = "ledigt" | "optaget" | "andet" | "lukket";
+
+export interface RoomWeekCell {
+  status: RoomWeekStatusType;
+  note?: string;
+  courseId?: string;
+}
+
+export type RoomPreferenceType =
+  | "taet_spisesal"
+  | "sammen_med"
+  | "nede_jorden"
+  | "enevaerelse"
+  | "handicap";
+
+export interface RoomPreference {
+  type: RoomPreferenceType;
+  note?: string;
+  togetherWithParticipantId?: string;
+}
+
+export interface KontorParticipantChecks {
+  modtagetBekræftelse: boolean;
+  modtagetFaktura: boolean;
+  betalt: boolean;
+  modtagetVelkomstbrev: boolean;
+  vaerelsePlaceret: boolean;
+  saerligeHensyn: boolean;
+}
+
+export interface KontorParticipant {
+  id: string;
+  courseId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  registeredAt: string;
+  status: "reserveret" | "betalt" | "venteliste" | "aflyst";
+  amount: number;
+  roomNumber: string | null;
+  roomMateId: string | null;
+  preferences: RoomPreference[];
+  specialConsiderations: string;
+  confirmationSentAt?: string;
+  invoiceSentAt?: string;
+  welcomeLetterSentAt?: string;
+  paidAt?: string;
+}
+
+export interface KontorAlert {
+  id: string;
+  type: "relocation_failed" | "relocation_success" | "info";
+  message: string;
+  participantId?: string;
+  roomNumber?: string;
+  courseId?: string;
+  createdAt: string;
+  read: boolean;
+}
+
+export function deriveParticipantChecks(
+  p: KontorParticipant,
+): KontorParticipantChecks {
+  return {
+    modtagetBekræftelse: Boolean(p.confirmationSentAt),
+    modtagetFaktura: Boolean(p.invoiceSentAt),
+    betalt: p.status === "betalt" || Boolean(p.paidAt),
+    modtagetVelkomstbrev: Boolean(p.welcomeLetterSentAt),
+    vaerelsePlaceret: Boolean(p.roomNumber),
+    saerligeHensyn: Boolean(p.specialConsiderations.trim()),
+  };
+}
+
+export const checkLabels: Record<keyof KontorParticipantChecks, string> = {
+  modtagetBekræftelse: "Modtaget bekræftelse",
+  modtagetFaktura: "Modtaget faktura",
+  betalt: "Betalt",
+  modtagetVelkomstbrev: "Modtaget velkomstbrev",
+  vaerelsePlaceret: "Værelse",
+  saerligeHensyn: "Særlige hensyn",
+};
+
+export const roomStatusLabels: Record<RoomWeekStatusType, string> = {
+  ledigt: "Ledigt",
+  optaget: "Optaget",
+  andet: "Andet",
+  lukket: "Lukket",
+};
+
+export const preferenceLabels: Record<RoomPreferenceType, string> = {
+  taet_spisesal: "Tæt på spisesalen",
+  sammen_med: "Sammen med kursist",
+  nede_jorden: "Nede ved jorden",
+  enevaerelse: "Eneværelse",
+  handicap: "Handicap / gangbesvær",
+};

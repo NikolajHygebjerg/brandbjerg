@@ -43,7 +43,10 @@ npm run dev
 | `/tilmeldinger` | Tilmeldinger og betalingsstatus |
 | `/afvikling` | Afvikling og deltagerlister |
 | `/oekonomi` | Økonomi og KOMiT-synk (mock) |
-| `/katalog` | Offentligt kursuskatalog |
+| `/pedel` | Pedel og rengøring — lokalespecifikationer |
+| `/kontor` | Kontor — kursusliste, tilmeldte, værelsesplacering |
+| `/kontor/vaerelser` | Værelsesoversigt (108 dobbeltværelser, uge-for-uge) |
+| `/kontor/[id]` | Kursusadministration for kontorpersonale |
 | `/katalog/[id]` | Tilmeldingsside (mock) |
 
 ## Præsentationstips

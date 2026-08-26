@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Building2,
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
@@ -29,6 +30,7 @@ const nav = [
   { href: "/skabeloner", label: "Skabeloner", icon: LayoutTemplate },
   { href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
   { href: "/pedel", label: "Pedel og rengøring", icon: Sparkles },
+  { href: "/kontor", label: "Kontor", icon: Building2 },
   { href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
   { href: "/tilmeldinger", label: "Tilmeldinger", icon: Users },
   { href: "/afvikling", label: "Afvikling", icon: BarChart3 },
