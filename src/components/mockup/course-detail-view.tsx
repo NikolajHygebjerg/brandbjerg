@@ -54,6 +54,14 @@ import {
   type ProgramSaveStatus,
 } from "@/lib/course-plan-storage";
 import type { BudgetManualLines, CourseBudgetInput } from "@/lib/budget/budget-types";
+import {
+  allKitchenModulesReady,
+  buildKitchenPlanSummary,
+} from "@/lib/kitchen-utils";
+import {
+  revokeKitchenPlan,
+  sendKitchenPlan,
+} from "@/lib/kitchen-storage";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -199,6 +207,28 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
       checklist: { ...prev.checklist, ...patch },
     }));
   }
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+
+    const kitchenReady = allKitchenModulesReady(course);
+    const alreadySent = course.checklist.kitchenPlanSent;
+
+    if (kitchenReady && !alreadySent) {
+      const summary = buildKitchenPlanSummary(course);
+      sendKitchenPlan(course);
+      updateChecklist({
+        kitchenPlanSent: true,
+        kitchenPlan: summary,
+      });
+      return;
+    }
+
+    if (!kitchenReady && alreadySent) {
+      revokeKitchenPlan(course.id);
+      updateChecklist({ kitchenPlanSent: false });
+    }
+  }, [course.days, course.checklist.kitchenPlanSent, course.id]);
 
   function markProgramDone() {
     handleProgramFinished();

@@ -9,6 +9,7 @@ import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, type Course } from "@/lib/mock-data";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import { getMealRowsFromCourse } from "@/lib/kitchen-utils";
+import { loadKitchenSent } from "@/lib/kitchen-storage";
 
 export function KitchenCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -36,7 +37,8 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
     );
   }
 
-  const meals = getMealRowsFromCourse(course);
+  const sent = loadKitchenSent(courseId);
+  const meals = sent?.meals ?? getMealRowsFromCourse(course);
 
   const byDay = meals.reduce(
     (acc, row) => {
@@ -66,10 +68,27 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
         </div>
         <p className="mt-1 text-sm text-slate-500">
           {formatDate(course.startDate)} – {formatDate(course.endDate)}
+          {sent && (
+            <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+              Modtaget {formatDate(sent.sentAt.slice(0, 10))}
+            </span>
+          )}
         </p>
       </div>
 
-      {meals.length === 0 ? (
+      {!sent && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardTitle className="text-base text-amber-900">
+            Afventer godkendelse fra kursusleder
+          </CardTitle>
+          <CardDescription className="text-amber-800">
+            Køkkenplanen vises her, når alle måltidsmoduler er godkendt i
+            modulplanen.
+          </CardDescription>
+        </Card>
+      )}
+
+      {sent && meals.length === 0 ? (
         <Card className="border-amber-200 bg-amber-50">
           <CardTitle className="text-base text-amber-900">
             Ingen måltider planlagt endnu
@@ -79,7 +98,7 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
             vælge forplejning, specifikation og lokale.
           </CardDescription>
         </Card>
-      ) : (
+      ) : sent ? (
         Object.values(byDay).map((day) => (
           <Card key={day.date} className="overflow-hidden p-0">
             <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
@@ -150,7 +169,7 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
             </div>
           </Card>
         ))
-      )}
+      ) : null}
     </div>
   );
 }

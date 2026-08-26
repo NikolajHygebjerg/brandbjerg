@@ -14,6 +14,8 @@ import {
 import { formatDate, weekLabel } from "@/lib/mock-data";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { countKitchenMeals } from "@/lib/kitchen-utils";
+import { isKitchenPlanSent, KITCHEN_UPDATED_EVENT } from "@/lib/kitchen-storage";
+import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import {
   countUnansweredQuestions,
   QUESTIONS_UPDATED_EVENT,
@@ -25,6 +27,7 @@ export function KitchenList() {
   const [years, setYears] = useState<number[]>([statusarkYear]);
 
   const [questionTick, setQuestionTick] = useState(0);
+  const [kitchenTick, setKitchenTick] = useState(0);
 
   useEffect(() => {
     setYears(getAvailableCourseYears());
@@ -40,23 +43,33 @@ export function KitchenList() {
     return () => window.removeEventListener(QUESTIONS_UPDATED_EVENT, onUpdate);
   }, []);
 
+  useEffect(() => {
+    function onKitchenUpdate() {
+      setKitchenTick((t) => t + 1);
+    }
+    window.addEventListener(KITCHEN_UPDATED_EVENT, onKitchenUpdate);
+    return () => window.removeEventListener(KITCHEN_UPDATED_EVENT, onKitchenUpdate);
+  }, []);
+
   const courses = useMemo(() => {
     if (!hydrated) return [];
     return getCoursesForYear(activeYear)
       .map((entry) => {
         const detail = getCourseDetailById(entry.id);
-        const mealCount = detail ? countKitchenMeals(detail) : 0;
+        const merged = detail ? mergeCoursePlan(detail) : null;
+        const mealCount = merged ? countKitchenMeals(merged) : 0;
+        const sent = isKitchenPlanSent(entry.id);
         const openQuestions = countUnansweredQuestions(entry.id, "koekken");
-        return { ...entry, mealCount, openQuestions };
+        return { ...entry, mealCount, sent, openQuestions };
       })
-      .filter((c) => c.mealCount > 0 || activeYear === statusarkYear)
+      .filter((c) => c.sent || (c.mealCount > 0 && activeYear === statusarkYear))
       .sort(
         (a, b) =>
           a.weekNumber - b.weekNumber ||
           a.title.localeCompare(b.title, "da"),
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, activeYear, questionTick]);
+  }, [hydrated, activeYear, questionTick, kitchenTick]);
 
   if (!hydrated) {
     return (
@@ -108,7 +121,7 @@ export function KitchenList() {
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-medium text-amber-900">
-            {courses.filter((c) => c.mealCount > 0).length} kurser med måltider
+            {courses.filter((c) => c.sent).length} kurser modtaget fra kursusledere
             i {activeYear}
           </p>
         </div>
@@ -121,6 +134,7 @@ export function KitchenList() {
                 <th className="px-4 py-3">Datoer</th>
                 <th className="px-4 py-3">Deltagere</th>
                 <th className="px-4 py-3">Måltider</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -128,11 +142,12 @@ export function KitchenList() {
               {courses.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-slate-500"
                   >
-                    Ingen kurser fundet. Planlæg måltider under Modulplan på
-                    kursussiderne.
+                    Ingen køkkenplaner modtaget endnu. Kursuslederen godkender
+                    måltidsmoduler i modulplanen — derefter sendes planen
+                    automatisk hertil.
                   </td>
                 </tr>
               ) : (
@@ -159,13 +174,22 @@ export function KitchenList() {
                       {c.enrolled > 0 ? c.enrolled : c.budgetStudents}
                     </td>
                     <td className="px-4 py-3">
-                      {c.mealCount > 0 ? (
+                      {c.sent ? (
                         <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                           {c.mealCount} måltider
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">
-                          Ingen endnu
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.sent ? (
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                          Modtaget
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                          Afventer godkendelse
                         </span>
                       )}
                     </td>

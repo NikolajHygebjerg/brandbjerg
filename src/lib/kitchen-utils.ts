@@ -1,6 +1,16 @@
 import type { Course, CourseModule } from "./mock-data";
 import { mergeCoursePlan } from "./course-plan-storage";
 import { isHeldagsturModule } from "./mock-data";
+import type { HeldagsturPunkt } from "./heldagstur-utils";
+import { formatDate } from "./mock-data";
+
+export interface KitchenModuleRef {
+  id: string;
+  dayLabel: string;
+  title: string;
+  klar: boolean;
+  kind: "maltid" | "heldagstur-maltid";
+}
 
 export interface KitchenMealRow {
   moduleId: string;
@@ -82,4 +92,70 @@ export function countKitchenMeals(course: Course): number {
 
 export function isMealModule(mod: CourseModule): boolean {
   return Boolean(mod.erMaltid && mod.maltid);
+}
+
+function heldagsturMealTitle(punkt: HeldagsturPunkt): string {
+  return punkt.maltid?.forplejning || "Madpakker";
+}
+
+/** Alle køkkenmoduler: måltidsmoduler + måltidspunkter på heldagsture */
+export function getKitchenModuleRefs(course: Course): KitchenModuleRef[] {
+  const merged = mergeCoursePlan(course);
+  const refs: KitchenModuleRef[] = [];
+
+  for (const day of merged.days) {
+    for (const mod of day.modules) {
+      if (mod.erMaltid && mod.maltid) {
+        refs.push({
+          id: mod.id,
+          dayLabel: day.label,
+          title: mod.maltid.forplejning || mod.overskrift || "Måltid",
+          klar: mod.klar,
+          kind: "maltid",
+        });
+      }
+
+      if (isHeldagsturModule(mod) && mod.heldagstur) {
+        for (const punkt of mod.heldagstur.punkter) {
+          if (punkt.type !== "maltid" || !punkt.maltid) continue;
+          refs.push({
+            id: `${mod.id}-${punkt.id}`,
+            dayLabel: day.label,
+            title: heldagsturMealTitle(punkt),
+            klar: punkt.klar,
+            kind: "heldagstur-maltid",
+          });
+        }
+      }
+    }
+  }
+
+  return refs;
+}
+
+export function getUnreadyKitchenModules(course: Course): KitchenModuleRef[] {
+  return getKitchenModuleRefs(course).filter((m) => !m.klar);
+}
+
+export function allKitchenModulesReady(course: Course): boolean {
+  const refs = getKitchenModuleRefs(course);
+  return refs.length > 0 && refs.every((m) => m.klar);
+}
+
+export function buildKitchenPlanSummary(course: Course): string {
+  const rows = getMealRowsFromCourse(course);
+  if (rows.length === 0) return "";
+
+  const byDay = new Map<string, string[]>();
+  for (const row of rows) {
+    const key = `${row.dayLabel} · ${formatDate(row.dayDate)}`;
+    const line = `${row.forplejning} ${row.tidFra}–${row.tidTil} (${row.antalPersoner} pers.) — ${row.specifikation}${row.lokale ? ` · ${row.lokale}` : ""}`;
+    const list = byDay.get(key) ?? [];
+    list.push(line);
+    byDay.set(key, list);
+  }
+
+  return Array.from(byDay.entries())
+    .map(([day, lines]) => `${day}\n${lines.map((l) => `  · ${l}`).join("\n")}`)
+    .join("\n\n");
 }

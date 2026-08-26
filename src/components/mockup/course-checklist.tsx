@@ -25,6 +25,12 @@ import {
   type Course,
   type CourseChecklist,
 } from "@/lib/mock-data";
+import {
+  allKitchenModulesReady,
+  getKitchenModuleRefs,
+  getUnreadyKitchenModules,
+} from "@/lib/kitchen-utils";
+import { loadKitchenSent } from "@/lib/kitchen-storage";
 
 type ChecklistProps = {
   course: Course;
@@ -50,6 +56,13 @@ export function CourseChecklistPanel({
   const allModules = useMemo(() => getAllModules(course), [course]);
   const unreadyModules = useMemo(() => getUnreadyModules(course), [course]);
   const incompleteModules = useMemo(() => getIncompleteModules(course), [course]);
+  const kitchenModules = useMemo(() => getKitchenModuleRefs(course), [course]);
+  const unreadyKitchenModules = useMemo(
+    () => getUnreadyKitchenModules(course),
+    [course],
+  );
+  const kitchenReady = useMemo(() => allKitchenModulesReady(course), [course]);
+  const kitchenSent = loadKitchenSent(course.id);
 
   const allModulesReady =
     allModules.length > 0 && unreadyModules.length === 0;
@@ -109,8 +122,14 @@ export function CourseChecklistPanel({
       id: "kitchen",
       label: "Køkkenplan udfyldt",
       done: checklist.kitchenPlanSent,
-      hint: "Måltider, kaffepauser, madpakker m.m.",
+      hint:
+        kitchenModules.length === 0
+          ? "Ingen måltidsmoduler i programmet endnu"
+          : checklist.kitchenPlanSent
+            ? `Sendt til køkken · ${kitchenModules.length} måltider godkendt`
+            : `${kitchenModules.length - unreadyKitchenModules.length}/${kitchenModules.length} køkkenmoduler godkendt`,
       icon: Utensils,
+      hasDetail: unreadyKitchenModules.length > 0,
     },
     {
       id: "pedel",
@@ -293,6 +312,10 @@ export function CourseChecklistPanel({
                     onMarkProgramDone={onMarkProgramDone}
                     onGoToModulplan={onGoToModulplan}
                     incompleteModules={incompleteModules}
+                    kitchenModules={kitchenModules}
+                    unreadyKitchenModules={unreadyKitchenModules}
+                    kitchenReady={kitchenReady}
+                    kitchenSent={kitchenSent}
                     compact={isSidebar}
                   />
                 </div>
@@ -325,6 +348,10 @@ function ChecklistAction({
   onMarkProgramDone,
   onGoToModulplan,
   incompleteModules,
+  kitchenModules,
+  unreadyKitchenModules,
+  kitchenReady,
+  kitchenSent,
   compact = false,
 }: {
   itemId: string;
@@ -336,6 +363,10 @@ function ChecklistAction({
   onMarkProgramDone: () => void;
   onGoToModulplan: () => void;
   incompleteModules: ReturnType<typeof getIncompleteModules>;
+  kitchenModules: ReturnType<typeof getKitchenModuleRefs>;
+  unreadyKitchenModules: ReturnType<typeof getUnreadyKitchenModules>;
+  kitchenReady: boolean;
+  kitchenSent: ReturnType<typeof loadKitchenSent>;
   compact?: boolean;
 }) {
   const buttonClass = compact ? "h-7 text-[11px]" : "h-8 text-xs";
@@ -467,24 +498,52 @@ function ChecklistAction({
     case "kitchen":
       return (
         <div className="space-y-2">
-          <label className="text-xs font-medium text-slate-500">
-            Køkkenplan — måltider, kaffepauser, madpakker m.m.
-          </label>
-          <textarea
-            value={checklist.kitchenPlan}
-            onChange={(e) => onUpdateChecklist({ kitchenPlan: e.target.value })}
-            rows={4}
-            placeholder="Fx: Fredag frokost 12:30 — vegetar. Lørdag morgenmad 8:00..."
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-          <Button
-            onClick={() => onUpdateChecklist({ kitchenPlanSent: true })}
-            disabled={!checklist.kitchenPlan.trim() || checklist.kitchenPlanSent}
-            className={buttonClass}
-          >
-            <Send className="h-3.5 w-3.5" />
-            {checklist.kitchenPlanSent ? "Sendt til køkken" : "Send til køkken"}
-          </Button>
+          {kitchenModules.length === 0 ? (
+            <p className="text-xs text-slate-600">
+              Tilføj måltidsmoduler i modulplanen (Morgenmad, Frokost, Aftensmad
+              m.m.) og markér dem som klar med flueben.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-slate-600">
+                Når alle køkkenmoduler er godkendt med flueben i modulplanen,
+                sendes planen automatisk til køkkenet.
+              </p>
+              {unreadyKitchenModules.length > 0 ? (
+                <ul className="space-y-1 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  <li className="font-medium">Mangler godkendelse:</li>
+                  {unreadyKitchenModules.map((m) => (
+                    <li key={m.id}>
+                      · {m.dayLabel}: {m.title}
+                    </li>
+                  ))}
+                </ul>
+              ) : kitchenReady ? (
+                <p className="text-xs text-emerald-700">
+                  Alle {kitchenModules.length} køkkenmoduler er godkendt.
+                </p>
+              ) : null}
+              {checklist.kitchenPlanSent && (
+                <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/50 px-3 py-2">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-800">
+                    <Send className="h-3.5 w-3.5" />
+                    Sendt til køkken
+                    {kitchenSent?.sentAt
+                      ? ` · ${formatDate(kitchenSent.sentAt.slice(0, 10))}`
+                      : ""}
+                  </p>
+                  {checklist.kitchenPlan && (
+                    <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap text-[11px] text-slate-700">
+                      {checklist.kitchenPlan}
+                    </pre>
+                  )}
+                </div>
+              )}
+              <Button onClick={onGoToModulplan} variant="secondary" className={buttonClass}>
+                Gå til modulplan
+              </Button>
+            </>
+          )}
         </div>
       );
 
