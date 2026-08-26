@@ -76,6 +76,32 @@ function requirementMet(req: MealRequirement, present: Set<string>): boolean {
   return needed.some((t) => present.has(t));
 }
 
+function isFredag(day: CourseDay): boolean {
+  return day.label.trim().toLowerCase().startsWith("fredag");
+}
+
+/** Aften kl. 20:30 — standard på alle dage med aftensmad, undtagen fredag */
+function finalizeDayRequirements(
+  day: CourseDay,
+  requirements: MealRequirement[],
+): MealRequirement[] {
+  if (isFredag(day)) return requirements;
+  const hasAftensmad = requirements.some((r) => {
+    const types = Array.isArray(r.types) ? r.types : [r.types];
+    return types.includes("Aftensmad");
+  });
+  if (!hasAftensmad) return requirements;
+  const alreadyRequiresAften = requirements.some((r) => {
+    const types = Array.isArray(r.types) ? r.types : [r.types];
+    return types.includes("Aften");
+  });
+  if (alreadyRequiresAften) return requirements;
+  return [
+    ...requirements,
+    { types: "Aften", label: "Aften (20:30, Lille spisesal)" },
+  ];
+}
+
 function fullDayRequirements(isLastDay: boolean): MealRequirement[] {
   return [
     { types: "Morgenmad", label: "Morgenmad" },
@@ -109,14 +135,14 @@ function getDayRequirements(
   const isFirstDay = dayIndex === 0;
 
   if (dayHasHeldagstur(day)) {
-    return heldagsturDayRequirements();
+    return finalizeDayRequirements(day, heldagsturDayRequirements());
   }
 
   switch (profile) {
     case "standard_5d":
     case "generic":
       if (totalDays >= 4) {
-        return fullDayRequirements(isLastDay);
+        return finalizeDayRequirements(day, fullDayRequirements(isLastDay));
       }
       if (totalDays === 1) {
         return [
@@ -124,16 +150,16 @@ function getDayRequirements(
           { types: "Frokost", label: "Frokost" },
         ];
       }
-      return fullDayRequirements(isLastDay);
+      return finalizeDayRequirements(day, fullDayRequirements(isLastDay));
 
     case "weekend_2d":
       if (isFirstDay) {
-        return [
+        return finalizeDayRequirements(day, [
           { types: "Morgenmad", label: "Morgenmad" },
           { types: "Formiddag", label: "Formiddag (mellemmåltid)" },
           { types: "Frokost", label: "Frokost" },
           { types: "Aftensmad", label: "Aftensmad" },
-        ];
+        ]);
       }
       return [
         { types: "Morgenmad", label: "Morgenmad" },
@@ -147,10 +173,10 @@ function getDayRequirements(
           { types: "Frokost", label: "Frokost" },
         ];
       }
-      return fullDayRequirements(false);
+      return finalizeDayRequirements(day, fullDayRequirements(false));
 
     default:
-      return fullDayRequirements(isLastDay);
+      return finalizeDayRequirements(day, fullDayRequirements(isLastDay));
   }
 }
 

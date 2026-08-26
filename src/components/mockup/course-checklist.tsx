@@ -515,10 +515,11 @@ function ChecklistAction({
           ) : (
             <>
               <p className="text-xs text-slate-600">
-                Et normalt kursus skal have Morgenmad, Frokost, Aftensmad og
-                mellemmåltider (Formiddag + Eftermiddag) på hver fuld dag.
-                Heldagstur-dage undtages. Planen sendes automatisk til køkkenet
-                når alle krævede måltider er tilføjet og godkendt.
+                Et normalt kursus skal have Morgenmad, Frokost, Aftensmad, Aften
+                (20:30 — undtagen fredag) og mellemmåltider (Formiddag +
+                Eftermiddag) på hver fuld dag. Heldagstur-dage undtages.
+                Planen sendes automatisk til køkkenet når alle krævede måltider
+                er tilføjet og godkendt.
               </p>
               {!kitchenValidation.ok && (
                 <KitchenPlanWarnings validation={kitchenValidation} compact />
