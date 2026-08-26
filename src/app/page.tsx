@@ -61,12 +61,12 @@ export default function HomePage() {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button href="/overblik" className="bg-white text-emerald-900 hover:bg-emerald-50">
-            Start præsentation
+          <Button href="/login" className="bg-white text-emerald-900 hover:bg-emerald-50">
+            Log ind
             <ArrowRight className="h-4 w-4" />
           </Button>
-          <Button href="/dashboard" variant="outline" className="border-white/30 text-white hover:bg-white/10">
-            Gå til admin
+          <Button href="/overblik" variant="outline" className="border-white/30 text-white hover:bg-white/10">
+            Ledelsesoverblik
           </Button>
         </div>
 

@@ -1,14 +1,14 @@
-import { PublicShell } from "@/components/layout/public-shell";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { OverblikShell } from "@/components/layout/overblik-shell";
 
-export default function PublicLayout({
+export default function OverblikLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <AuthGuard staffOnly>
-      <PublicShell>{children}</PublicShell>
+      <OverblikShell>{children}</OverblikShell>
     </AuthGuard>
   );
 }

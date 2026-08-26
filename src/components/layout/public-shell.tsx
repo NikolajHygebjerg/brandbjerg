@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/auth/user-menu";
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
@@ -16,18 +19,16 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button href="/overblik" variant="ghost" className="hidden sm:inline-flex">
-              Ledelsesoverblik
-            </Button>
-            <Button href="/dashboard" variant="outline">
+            <Button href="/dashboard" variant="outline" className="hidden sm:inline-flex">
               Admin
             </Button>
+            <UserMenu />
           </div>
         </div>
       </header>
       <main>{children}</main>
       <footer className="border-t border-stone-200 bg-white py-8 text-center text-sm text-stone-500">
-        Mockup af offentlig tilmelding · GDPR-venlig (ingen CPR i demo)
+        Offentlig tilmelding · GDPR-venlig (ingen CPR i demo)
       </footer>
     </div>
   );

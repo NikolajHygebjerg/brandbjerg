@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/layout/admin-shell";
 import { CourseDetailSessionProvider } from "@/context/course-detail-session";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function AdminLayout({
   children,
@@ -7,8 +8,10 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <CourseDetailSessionProvider>
-      <AdminShell>{children}</AdminShell>
-    </CourseDetailSessionProvider>
+    <AuthGuard staffOnly>
+      <CourseDetailSessionProvider>
+        <AdminShell>{children}</AdminShell>
+      </CourseDetailSessionProvider>
+    </AuthGuard>
   );
 }

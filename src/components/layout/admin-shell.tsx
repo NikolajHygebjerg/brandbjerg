@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
 import { useCourseDetailSession } from "@/context/course-detail-session";
+import { UserMenu } from "@/components/auth/user-menu";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -47,7 +48,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <p className="text-sm font-semibold text-slate-900">
                 Kursusplatform
               </p>
-              <p className="text-xs text-slate-500">Admin mockup</p>
+              <p className="text-xs text-slate-500">Brandbjerg</p>
             </div>
           </Link>
         </div>
@@ -131,12 +132,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <span className="hidden rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 sm:inline">
-                Mockup — ikke produktion
-              </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-800">
-                LH
-              </div>
+              <UserMenu />
             </div>
           </div>
         </header>
