@@ -552,6 +552,23 @@ function RegularForm({
             onChange={(v) => onChange({ timing: { ...mod.timing, bh: v } })}
           />
         </div>
+
+        {mod.timing.ubak > 0 && (
+          <div className="mt-4 border-t border-slate-200 pt-4">
+            <FieldTextarea
+              label="Beskrivelse af undervisningens almene karakter"
+              value={mod.ubakBeskrivelse ?? ""}
+              onChange={(v) => onChange({ ubakBeskrivelse: v })}
+              rows={4}
+              placeholder="Beskriv modulets almene karakter — som i UBAK_beskriv-arket i praktisk seddel"
+            />
+            {!mod.ubakBeskrivelse?.trim() && (
+              <p className="mt-1 text-xs text-amber-700">
+                Udfyld beskrivelse når modulet har UBAK-minutter
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

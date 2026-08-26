@@ -28,7 +28,9 @@ import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { netEnrolled } from "@/lib/statusark-utils";
 import { roomWeekKey } from "@/lib/room-utils";
 import { KontorLimitsPanel } from "@/components/mockup/kontor-limits-panel";
+import { UbakBeskrivelsePanel } from "@/components/mockup/ubak-beskrivelse-panel";
 import { defaultLimitsForCourse } from "@/lib/kontor-limits-utils";
+import { mergeCoursePlan } from "@/lib/course-plan-storage";
 
 export function KontorCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -46,7 +48,7 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
       setMissing(true);
       return;
     }
-    setCourse(found);
+    setCourse(mergeCoursePlan(found));
     setParticipants(ensureParticipantsForCourse(courseId));
   }, [courseId, tick]);
 
@@ -318,6 +320,8 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
           </Link>
         </Card>
       </div>
+
+      <UbakBeskrivelsePanel course={course} courseWeek={courseWeek} />
 
       {selected && (
         <ParticipantDetailDialog

@@ -89,6 +89,8 @@ export interface CourseModule {
   lokaleSpec?: LokaleSpecifikation;
   /** Modul har egen lokalespec — ellers arves kursus-standard */
   lokaleSpecManuallySet?: boolean;
+  /** Beskrivelse af undervisningens almene karakter (UBAK-ark) */
+  ubakBeskrivelse?: string;
   klar: boolean;
 }
 
@@ -151,6 +153,8 @@ export interface Course {
   courseLokaleSpec?: LokaleSpecifikation;
   /** Generelle noter til pedel/rengøring for hele kurset */
   pedelGenerelleNoter?: string;
+  /** Kursets hovedsigte — UBAK_beskriv arket */
+  kursetsHovedsigte?: string;
 }
 
 export interface Enrollment {

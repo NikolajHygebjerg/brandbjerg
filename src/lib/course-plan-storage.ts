@@ -19,6 +19,7 @@ export interface StoredCoursePlan {
   budgetInput?: Partial<CourseBudgetInput>;
   courseLokaleSpec?: LokaleSpecifikation;
   pedelGenerelleNoter?: string;
+  kursetsHovedsigte?: string;
   updatedAt: string;
 }
 
@@ -44,6 +45,7 @@ export function loadCoursePlan(courseId: string): StoredCoursePlan | null {
       budgetInput: parsed.budgetInput,
       courseLokaleSpec: parsed.courseLokaleSpec,
       pedelGenerelleNoter: parsed.pedelGenerelleNoter,
+      kursetsHovedsigte: parsed.kursetsHovedsigte,
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
     };
   } catch {
@@ -59,6 +61,7 @@ export type PlanSnapshotInput = Pick<
   | "checklist"
   | "courseLokaleSpec"
   | "pedelGenerelleNoter"
+  | "kursetsHovedsigte"
 > & {
   budgetManual?: BudgetManualLines;
   budgetInput?: Partial<CourseBudgetInput>;
@@ -80,6 +83,7 @@ export function createPlanSnapshot(
     budgetInput: course.budgetInput,
     courseLokaleSpec: course.courseLokaleSpec,
     pedelGenerelleNoter: course.pedelGenerelleNoter,
+    kursetsHovedsigte: course.kursetsHovedsigte,
     programStatus,
   };
 }
@@ -110,6 +114,7 @@ export function mergeCoursePlan(course: Course): Course {
     checklist: stored.checklist ?? course.checklist,
     courseLokaleSpec: stored.courseLokaleSpec ?? course.courseLokaleSpec,
     pedelGenerelleNoter: stored.pedelGenerelleNoter ?? course.pedelGenerelleNoter,
+    kursetsHovedsigte: stored.kursetsHovedsigte ?? course.kursetsHovedsigte,
   };
 }
 

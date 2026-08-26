@@ -17,3 +17,21 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #ubak-print-area,
+  #ubak-print-area * {
+    visibility: visible;
+  }
+
+  #ubak-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

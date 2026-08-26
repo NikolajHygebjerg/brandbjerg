@@ -107,6 +107,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         checklist: stored.checklist ?? prev.checklist,
         courseLokaleSpec: stored.courseLokaleSpec ?? prev.courseLokaleSpec,
         pedelGenerelleNoter: stored.pedelGenerelleNoter ?? prev.pedelGenerelleNoter,
+        kursetsHovedsigte: stored.kursetsHovedsigte ?? prev.kursetsHovedsigte,
       }));
       if (stored.days.length > 0) {
         setLastActiveDayId(stored.days[0]?.id ?? "");
@@ -182,6 +183,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     course.checklist,
     course.courseLokaleSpec,
     course.pedelGenerelleNoter,
+    course.kursetsHovedsigte,
     budgetManual,
     budgetInputOverrides,
     persistPlan,
@@ -612,6 +614,21 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           />
 
           <CourseLokaleSpecPanel course={course} onUpdate={updateCourse} />
+
+          <Card className="lg:col-span-2">
+            <CardTitle>Kursets hovedsigte (UBAK)</CardTitle>
+            <CardDescription className="mt-1">
+              Beskriv kursets hovedsigte og forhold det til skolens værdigrundlag
+              — vises på UBAK_beskriv-arket under Kontor.
+            </CardDescription>
+            <textarea
+              value={course.kursetsHovedsigte ?? ""}
+              onChange={(e) => updateCourse({ kursetsHovedsigte: e.target.value })}
+              rows={4}
+              placeholder="Her skal kursets hovedsigte beskrives og forholdes til skolens værdigrundlag…"
+              className="mt-4 w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-slate-800"
+            />
+          </Card>
         </div>
       )}
 

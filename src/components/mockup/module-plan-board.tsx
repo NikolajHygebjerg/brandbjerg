@@ -15,6 +15,7 @@ import {
   type CourseDay,
   type CourseModule,
 } from "@/lib/mock-data";
+import { moduleUnderviserLabel } from "@/lib/module-display-utils";
 
 type EditingModule = {
   dayId: string;
@@ -499,8 +500,10 @@ function ModuleTile({
           {mod.overskrift || "Nyt modul"}
         </p>
 
-        {mod.rolle && (
-          <p className="mt-1 text-xs text-slate-600">{mod.rolle}</p>
+        {moduleUnderviserLabel(mod) && (
+          <p className="mt-1 text-xs text-slate-600">
+            {moduleUnderviserLabel(mod)}
+          </p>
         )}
         {mod.lokaleSpec?.lokale && (
           <p className="mt-1 text-xs text-slate-500">{mod.lokaleSpec.lokale}</p>
