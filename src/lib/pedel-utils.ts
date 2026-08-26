@@ -1,6 +1,7 @@
 import type { Course, LokaleSpecifikation } from "./mock-data";
 import { defaultLokaleSpec } from "./mock-data";
 import { mergeCoursePlan } from "./course-plan-storage";
+import { ugedage } from "./lokale-spec-options";
 
 export interface PedelLokaleRow {
   moduleId: string;
@@ -30,6 +31,86 @@ function hasLokaleInfo(spec: LokaleSpecifikation): boolean {
   );
 }
 
+function weekdayIndex(label: string): number {
+  return ugedage.findIndex(
+    (u) => u.toLowerCase() === label.trim().toLowerCase(),
+  );
+}
+
+/** Om en kursusdag (label) ligger i intervallet klarFra → ledigFra */
+function isDayInWeekdayRange(
+  dayLabel: string,
+  fromDay: string,
+  toDay: string,
+): boolean {
+  const dayIdx = weekdayIndex(dayLabel);
+  if (dayIdx < 0) return true;
+
+  const fromIdx = weekdayIndex(fromDay);
+  const toIdx = weekdayIndex(toDay);
+
+  if (fromIdx < 0 && toIdx < 0) return true;
+  if (fromIdx >= 0 && toIdx >= 0) return dayIdx >= fromIdx && dayIdx <= toIdx;
+  if (fromIdx >= 0) return dayIdx >= fromIdx;
+  if (toIdx >= 0) return dayIdx <= toIdx;
+  return true;
+}
+
+function expandMultiDayPedelRows(
+  course: Course,
+  rows: PedelLokaleRow[],
+): PedelLokaleRow[] {
+  const merged = mergeCoursePlan(course);
+  const expanded: PedelLokaleRow[] = [];
+  const seen = new Set<string>();
+
+  function push(row: PedelLokaleRow) {
+    const key = `${row.dayDate}|${row.moduleId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    expanded.push(row);
+  }
+
+  for (const row of rows) {
+    if (!row.spec.skalBrugesFlereDage || !row.spec.lokale.trim()) {
+      push(row);
+      continue;
+    }
+
+    const fromDay = row.spec.klarFraUgedag;
+    const toDay = row.spec.ledigFraUgedag;
+
+    for (const day of merged.days) {
+      if (!isDayInWeekdayRange(day.label, fromDay, toDay)) continue;
+
+      const isFirst =
+        fromDay &&
+        day.label.trim().toLowerCase() === fromDay.trim().toLowerCase();
+      const isLast =
+        toDay &&
+        day.label.trim().toLowerCase() === toDay.trim().toLowerCase();
+
+      push({
+        ...row,
+        dayLabel: day.label,
+        dayDate: day.date,
+        tidFra:
+          isFirst && row.spec.klarFraKl
+            ? row.spec.klarFraKl
+            : row.spec.klarFraKl || row.tidFra,
+        tidTil:
+          isLast && row.spec.ledigFraKl
+            ? row.spec.ledigFraKl
+            : isLast
+              ? row.tidTil
+              : row.spec.ledigFraKl || "22:00",
+      });
+    }
+  }
+
+  return expanded;
+}
+
 export function getPedelRowsFromCourse(course: Course): PedelLokaleRow[] {
   const merged = mergeCoursePlan(course);
   const rows: PedelLokaleRow[] = [];
@@ -51,7 +132,7 @@ export function getPedelRowsFromCourse(course: Course): PedelLokaleRow[] {
     }
   }
 
-  return rows.sort(
+  return expandMultiDayPedelRows(course, rows).sort(
     (a, b) =>
       a.dayDate.localeCompare(b.dayDate) || a.tidFra.localeCompare(b.tidFra),
   );
