@@ -8,6 +8,8 @@ Interaktiv mockup af en custom kursusplatform til højskole. Bygget til præsent
 
 **Fast domæne (når sat op i Vercel):** https://brandbjerg-kurser.vercel.app
 
+Deploy sker automatisk via Vercel Git-integration når `main` pushes til GitHub. GitHub Actions bygger ved hver push (valgfri CLI-deploy med secrets — se [DEPLOY.md](./DEPLOY.md)).
+
 ### Commit og deploy efter rettelser
 
 ```bash

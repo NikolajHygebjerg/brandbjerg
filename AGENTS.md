@@ -12,7 +12,7 @@ Det committer, pusher til Cursor-origin og GitHub (`main`), og deployer til Verc
 
 Push til GitHub udløser automatisk produktions-deploy via Vercel Git-integration. Hvis Vercel CLI fejler i Cloud Agent-miljøet, er GitHub-push nok.
 
-Valgfrit: tilføj `VERCEL_TOKEN`, `VERCEL_ORG_ID` og `VERCEL_PROJECT_ID` som GitHub-secrets for deploy via Actions (`.github/workflows/vercel-deploy.yml`).
+GitHub Actions (`.github/workflows/vercel-deploy.yml`) bygger altid ved push til `main`. Valgfrit: tilføj `VERCEL_TOKEN`, `VERCEL_ORG_ID` og `VERCEL_PROJECT_ID` som GitHub-secrets for ekstra CLI-deploy fra Actions — uden secrets springes deploy over (Vercel Git-integration deployer stadig). Brug aldrig `secrets.*` direkte i `if:` — se [DEPLOY.md](./DEPLOY.md).
 
 ## Live URL
 

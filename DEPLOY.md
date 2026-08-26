@@ -21,15 +21,34 @@ Dette script:
 
 Cloud Agent kører dette **automatisk efter hver kodeændring** (se `.cursor/rules/ship-after-changes.mdc`).
 
-### GitHub Actions (valgfrit)
+### Deploy-strategi (kort)
 
-Workflow `.github/workflows/vercel-deploy.yml` bygger og deployer ved push til `main`, hvis disse secrets er sat i GitHub:
+| Metode | Hvornår | Kræver |
+|--------|---------|--------|
+| **Vercel Git-integration** | Automatisk ved push til `main` på GitHub | Vercel-projekt koblet til repo (allerede sat op) |
+| **`npm run ship`** | Efter lokale/agent-ændringer | Commit + push til `github`/`origin` |
+| **GitHub Actions** | Ved push til `main` | Valgfrit — se nedenfor |
+
+Primær produktions-deploy sker via **Vercel Git-integration**. `npm run ship` pusher til GitHub og udløser den. GitHub Actions kører altid `npm ci` + `npm run build` som CI; CLI-deploy derfra er kun ekstra, hvis secrets er sat.
+
+### GitHub Actions
+
+Workflow `.github/workflows/vercel-deploy.yml` kører ved push til `main`:
+
+1. **Bygger altid** (`npm ci`, `npm run build`) — verificerer at koden kompilerer.
+2. **Deployer kun via CLI**, hvis disse secrets er sat under repo → Settings → Secrets and variables → Actions:
 
 | Secret | Værdi |
 |--------|-------|
 | `VERCEL_TOKEN` | Vercel → Settings → Tokens |
 | `VERCEL_ORG_ID` | `team_gY7y55YQgvGEYLjfaiWYXX6G` |
 | `VERCEL_PROJECT_ID` | `prj_vFCcBxdFsNYFJYadQ3gkBMPlFUBA` |
+
+Uden secrets er workflow'et stadig grønt efter build — deploy sker via Vercel Git-integration.
+
+#### Hvad betyder "No jobs were run"?
+
+GitHub viser det, når workflow-filen er **ugyldig**, så ingen jobs kan starte (0 sekunder, rød markering). Tidligere version brugte `secrets` direkte i et `if:`-udtryk, hvilket GitHub Actions ikke tillader — det gav præcis den fejl. Rettelsen bruger i stedet job-`env` og tjekker `env.VERCEL_TOKEN` i step-`if`.
 
 ## Manuel deploy
 
