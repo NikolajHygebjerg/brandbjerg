@@ -43,6 +43,8 @@ export interface KontorParticipant {
   roomType: "enkelt" | "dobbelt" | "ingen";
   preferences: RoomPreference[];
   specialConsiderations: string;
+  /** moduleId → workshopOptionId */
+  workshopChoices?: Record<string, string>;
   confirmationSentAt?: string;
   invoiceSentAt?: string;
   welcomeLetterSentAt?: string;
@@ -57,11 +59,13 @@ export interface CourseEnrollmentLimits {
 
 export interface KontorAlert {
   id: string;
-  type: "relocation_failed" | "relocation_success" | "info";
+  type: "relocation_failed" | "relocation_success" | "info" | "workshop_closed";
   message: string;
   participantId?: string;
   roomNumber?: string;
   courseId?: string;
+  workshopModuleId?: string;
+  workshopOptionId?: string;
   createdAt: string;
   read: boolean;
 }

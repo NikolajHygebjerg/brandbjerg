@@ -11,11 +11,13 @@ import {
 import {
   formatDate,
   isHeldagsturModule,
+  isWorkshopModule,
   timingTotal,
   type CourseDay,
   type CourseModule,
 } from "@/lib/mock-data";
 import { moduleUnderviserLabel } from "@/lib/module-display-utils";
+import { visibleWorkshopOptions } from "@/lib/workshop-utils";
 
 type EditingModule = {
   dayId: string;
@@ -347,6 +349,55 @@ function ModuleTile({
     : isDragging
       ? "opacity-40"
       : "";
+
+  if (isWorkshopModule(mod)) {
+    const options = visibleWorkshopOptions(mod);
+    return (
+      <div
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        className={`group flex gap-1 ${dragRing}`}
+      >
+        <DragHandle onDragStart={handleDragStart} onDragEnd={onDragEnd} />
+        <div className="relative min-w-0 flex-1">
+          <ReadyCheckbox
+            checked={mod.klar}
+            onChange={onToggleReady}
+            className="absolute right-2 top-2 z-10"
+          />
+          {courseId && (
+            <div className="absolute right-8 top-2 z-10">
+              <ModuleQuestionAlert courseId={courseId} moduleId={mod.id} />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onClick}
+            className={`w-full rounded-lg border-2 border-dashed px-3 py-2.5 pr-12 text-left transition hover:shadow-sm ${
+              active
+                ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200"
+                : mod.klar
+                  ? "border-emerald-300 bg-emerald-50/80"
+                  : "border-violet-300 bg-violet-50/90 hover:border-violet-400"
+            }`}
+          >
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-violet-800">
+              <span className="rounded bg-violet-200 px-1.5 py-0.5">Workshops</span>
+            </div>
+            <p className="mt-1.5 text-[11px] font-semibold tabular-nums text-slate-600">
+              {mod.tidFra}–{mod.tidTil}
+            </p>
+            <p className="mt-1 text-sm font-medium text-slate-900">
+              {mod.overskrift || "Workshops"}
+            </p>
+            <p className="mt-1 text-xs text-violet-800">
+              {options.length} valg ved tilmelding
+            </p>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isHeldagsturModule(mod)) {
     const punkter = mod.heldagstur?.punkter ?? [];

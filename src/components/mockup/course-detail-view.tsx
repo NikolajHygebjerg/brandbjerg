@@ -316,6 +316,28 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   function addModuleFromLibrary(dayId: string, libId: string) {
     const lib = moduleLibrary.find((m) => m.id === libId);
     if (!lib) return;
+
+    if (libId === "mod-lib-workshops") {
+      const mod: CourseModule = {
+        ...createEmptyModule(),
+        source: "liste",
+        overskrift: "Workshops",
+        broedtekst: "",
+        erWorkshops: true,
+        workshops: [],
+        tidFra: "13:00",
+        tidTil: "15:00",
+        rolle: "Kursusleder",
+      };
+      updateDay(dayId, (day) => ({
+        ...day,
+        modules: [...day.modules, mod],
+      }));
+      setLastActiveDayId(dayId);
+      setEditingModule({ dayId, moduleId: mod.id });
+      return;
+    }
+
     const mod: CourseModule = {
       ...createEmptyModule(),
       source: "liste",

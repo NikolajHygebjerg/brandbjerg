@@ -21,6 +21,7 @@ export type RegistrationFormData = {
   photoConsent: "ja" | "nej";
   acceptDataTerms: boolean;
   acceptNewsletter: boolean;
+  workshopChoices: Record<string, string>;
 };
 
 export function buildRegistrationSummary(data: RegistrationFormData): string {

@@ -6,6 +6,7 @@ import { CheckCircle2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { getCourseDetailById } from "@/lib/course-list";
+import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import { formatDate, formatDKK, type Course } from "@/lib/mock-data";
 import {
   accommodationOptions,
@@ -19,7 +20,16 @@ import {
 import type { RegistrationFormData } from "@/lib/enrollment-form-types";
 import { getEnrollmentAvailability } from "@/lib/kontor-limits-utils";
 import { registerNewParticipant } from "@/lib/kontor-registration";
-import { KONTOR_UPDATED_EVENT } from "@/lib/kontor-storage";
+import {
+  KONTOR_UPDATED_EVENT,
+  loadParticipantsForCourse,
+} from "@/lib/kontor-storage";
+import {
+  countWorkshopEnrollments,
+  getRegistrationWorkshopModules,
+  isWorkshopOptionFull,
+  visibleWorkshopOptions,
+} from "@/lib/workshop-utils";
 
 type CourseRegistrationFormProps = {
   courseId: string;
@@ -50,6 +60,7 @@ const initialForm: RegistrationFormData = {
   photoConsent: "nej",
   acceptDataTerms: false,
   acceptNewsletter: false,
+  workshopChoices: {},
 };
 
 export function CourseRegistrationForm({
@@ -63,13 +74,19 @@ export function CourseRegistrationForm({
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [participants, setParticipants] = useState(() =>
+    loadParticipantsForCourse(courseId),
+  );
+
   useEffect(() => {
-    setCourse(getCourseDetailById(courseId) ?? null);
+    const found = getCourseDetailById(courseId);
+    setCourse(found ? mergeCoursePlan(found) : null);
   }, [courseId]);
 
   useEffect(() => {
     function refresh() {
       setAvail(getEnrollmentAvailability(courseId));
+      setParticipants(loadParticipantsForCourse(courseId));
     }
     refresh();
     window.addEventListener(KONTOR_UPDATED_EVENT, refresh);
@@ -81,6 +98,18 @@ export function CourseRegistrationForm({
       setForm((f) => ({ ...f, accommodation: "dobbelt" }));
     }
   }, [avail.enkelt.open, form.accommodation]);
+
+  const workshopModules = useMemo(
+    () => (course ? getRegistrationWorkshopModules(course) : []),
+    [course],
+  );
+
+  function setWorkshopChoice(moduleId: string, optionId: string) {
+    setForm((prev) => ({
+      ...prev,
+      workshopChoices: { ...prev.workshopChoices, [moduleId]: optionId },
+    }));
+  }
 
   const courseClosed = !avail.kursist.open;
 
@@ -383,6 +412,93 @@ export function CourseRegistrationForm({
               hint="Fx gangbesvær, nedsat syn, nedsat hørelse"
             />
           </FormSection>
+
+          {workshopModules.length > 0 && (
+            <FormSection title="Vælg workshop">
+              <p className="text-sm text-stone-600">
+                Vælg én workshop pr. blok nedenfor. Fuldt bookede workshops kan
+                ikke vælges.
+              </p>
+              {workshopModules.map((mod) => (
+                <div
+                  key={mod.id}
+                  className="rounded-lg border border-violet-200 bg-violet-50/40 p-4"
+                >
+                  <p className="font-semibold text-violet-950">
+                    {mod.overskrift || "Workshops"}
+                  </p>
+                  {mod.broedtekst.trim() && (
+                    <p className="mt-1 text-sm text-violet-900/80">
+                      {mod.broedtekst}
+                    </p>
+                  )}
+                  <fieldset
+                    className="mt-3 space-y-2"
+                    disabled={courseClosed}
+                  >
+                    {visibleWorkshopOptions(mod).map((option) => {
+                      const enrolled = countWorkshopEnrollments(
+                        participants,
+                        mod.id,
+                        option.id,
+                      );
+                      const full = isWorkshopOptionFull(
+                        participants,
+                        mod.id,
+                        option,
+                      );
+                      return (
+                        <label
+                          key={option.id}
+                          className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm ${
+                            full
+                              ? "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400"
+                              : form.workshopChoices[mod.id] === option.id
+                                ? "border-violet-400 bg-white"
+                                : "border-violet-200 bg-white/80"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`workshop-${mod.id}`}
+                            value={option.id}
+                            checked={form.workshopChoices[mod.id] === option.id}
+                            disabled={full || courseClosed}
+                            onChange={() =>
+                              setWorkshopChoice(mod.id, option.id)
+                            }
+                            className="mt-1"
+                            required
+                          />
+                          <span>
+                            <span className="font-medium text-slate-900">
+                              {option.overskrift}
+                              {full && " (fuldt)"}
+                            </span>
+                            {option.underviser.trim() && (
+                              <span className="mt-0.5 block text-xs text-slate-600">
+                                {option.underviser}
+                              </span>
+                            )}
+                            {option.broedtekst.trim() && (
+                              <span className="mt-1 block text-xs text-slate-500">
+                                {option.broedtekst}
+                              </span>
+                            )}
+                            <span className="mt-1 block text-xs text-violet-800">
+                              {full
+                                ? "Lukket"
+                                : `${enrolled}/${option.maxDeltagere} pladser optaget`}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </fieldset>
+                </div>
+              ))}
+            </FormSection>
+          )}
 
           <FormSection title="Fotografering og optagelser">
             <p className="text-sm text-stone-600">

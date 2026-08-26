@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   defaultMealDetails,
   isHeldagsturModule,
+  isWorkshopModule,
   moduleDurationMinutes,
   timingTotal,
   type CourseModule,
@@ -14,6 +15,8 @@ import {
   type ModuleLon,
 } from "@/lib/mock-data";
 import { HeldagsturPlanEditor, defaultHeldagsturPlan } from "@/components/mockup/heldagstur-plan-editor";
+import { WorkshopPlanEditor } from "@/components/mockup/workshop-plan-editor";
+import { createWorkshopOption } from "@/lib/workshop-types";
 import type { HeldagsturPlan } from "@/lib/heldagstur-utils";
 import {
   forplejningTyper,
@@ -51,6 +54,7 @@ export function ModuleEditDialog({
 }: ModuleEditDialogProps) {
   const isMeal = Boolean(mod.erMaltid);
   const isHeldagstur = isHeldagsturModule(mod);
+  const isWorkshops = isWorkshopModule(mod);
   const meal = mod.maltid ?? defaultMealDetails();
   const heldagstur = mod.heldagstur ?? defaultHeldagsturPlan();
   const duration = moduleDurationMinutes(mod);
@@ -107,7 +111,13 @@ export function ModuleEditDialog({
         aria-modal="true"
         aria-labelledby="module-dialog-title"
         className={`relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${
-          isMeal ? "ring-2 ring-amber-200" : isHeldagstur ? "ring-2 ring-blue-200" : ""
+          isMeal
+            ? "ring-2 ring-amber-200"
+            : isHeldagstur
+              ? "ring-2 ring-blue-200"
+              : isWorkshops
+                ? "ring-2 ring-violet-200"
+                : ""
         }`}
       >
         <div
@@ -116,7 +126,9 @@ export function ModuleEditDialog({
               ? "border-amber-200 bg-amber-50"
               : isHeldagstur
                 ? "border-blue-200 bg-blue-50"
-                : "border-slate-200 bg-white"
+                : isWorkshops
+                  ? "border-violet-200 bg-violet-50"
+                  : "border-slate-200 bg-white"
           }`}
         >
           <div>
@@ -130,7 +142,13 @@ export function ModuleEditDialog({
               }`}
             >
               {dayLabel} · {mod.tidFra}–{mod.tidTil}
-              {isMeal ? " · Måltid" : isHeldagstur ? " · Heldagstur" : ""}
+              {isMeal
+                ? " · Måltid"
+                : isHeldagstur
+                  ? " · Heldagstur"
+                  : isWorkshops
+                    ? " · Workshops"
+                    : ""}
             </p>
             <h2
               id="module-dialog-title"
@@ -140,7 +158,9 @@ export function ModuleEditDialog({
                 ? meal.forplejning || mod.overskrift || "Måltid"
                 : isHeldagstur
                   ? mod.overskrift || "Heldagstur"
-                  : mod.overskrift || "Rediger modul"}
+                  : isWorkshops
+                    ? mod.overskrift || "Workshops"
+                    : mod.overskrift || "Rediger modul"}
             </h2>
           </div>
           <button
@@ -175,6 +195,8 @@ export function ModuleEditDialog({
               heldagstur={heldagstur}
               onChange={onChange}
             />
+          ) : isWorkshops ? (
+            <WorkshopsModuleForm mod={mod} onChange={onChange} />
           ) : (
             <RegularForm
               mod={mod}
@@ -313,6 +335,77 @@ function MealForm({
           </button>
         </label>
       </div>
+    </div>
+  );
+}
+
+function WorkshopsModuleForm({
+  mod,
+  onChange,
+}: {
+  mod: CourseModule;
+  onChange: (patch: Partial<CourseModule>) => void;
+}) {
+  const options = mod.workshops ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900">
+        Kursister vælger én workshop ved tilmelding. Lukker automatisk ved
+        maks antal.
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FieldInput
+          label="Overskrift"
+          value={mod.overskrift}
+          onChange={(v) => onChange({ overskrift: v, erWorkshops: true })}
+        />
+        <FieldInput
+          label="Tid fra"
+          value={mod.tidFra}
+          onChange={(v) => onChange({ tidFra: v })}
+        />
+        <FieldInput
+          label="Tid til"
+          value={mod.tidTil}
+          onChange={(v) => onChange({ tidTil: v })}
+        />
+        <div className="sm:col-span-2">
+          <FieldTextarea
+            label="Brødtekst"
+            value={mod.broedtekst}
+            onChange={(v) => onChange({ broedtekst: v })}
+            rows={3}
+          />
+        </div>
+      </div>
+      <WorkshopPlanEditor
+        options={options}
+        onChange={(workshops) => onChange({ workshops, erWorkshops: true })}
+      />
+      {options.length === 0 && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() =>
+            onChange({
+              workshops: [createWorkshopOption()],
+              erWorkshops: true,
+            })
+          }
+        >
+          Opret første workshop
+        </Button>
+      )}
+      <button
+        type="button"
+        onClick={() =>
+          onChange({ erWorkshops: false, workshops: undefined })
+        }
+        className="text-sm text-slate-500 underline hover:text-slate-700"
+      >
+        Konverter til almindeligt modul
+      </button>
     </div>
   );
 }

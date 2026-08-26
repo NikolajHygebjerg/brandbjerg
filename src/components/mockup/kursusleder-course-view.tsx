@@ -16,6 +16,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { KursuslederPrintAreas } from "@/components/mockup/kursusleder-print-areas";
 import { triggerKursuslederPrint } from "@/components/mockup/kursusleder-print-trigger";
 import { WelcomeLetterPanel } from "@/components/mockup/welcome-letter-panel";
+import { WorkshopsOverviewPanel } from "@/components/mockup/workshops-overview-panel";
 import { useAuth } from "@/context/auth-context";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { buildChecklistSummary } from "@/lib/checklist-summary";
@@ -289,6 +290,12 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         participants={participants}
         onUpdateChecklist={updateChecklist}
         onParticipantsUpdated={() => setTick((t) => t + 1)}
+      />
+
+      <WorkshopsOverviewPanel
+        course={course}
+        participants={participants}
+        onRefresh={() => setTick((t) => t + 1)}
       />
 
       {showParticipants && (

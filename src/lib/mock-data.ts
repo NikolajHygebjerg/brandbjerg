@@ -46,6 +46,8 @@ export interface MealDetails {
 export type { HeldagsturPlan } from "./heldagstur-utils";
 import { anyHeldagsturPunktUklar } from "./heldagstur-utils";
 import type { HeldagsturPlan } from "./heldagstur-utils";
+import type { WorkshopOption } from "./workshop-types";
+export type { WorkshopOption } from "./workshop-types";
 
 /** Lokalespecifikation — som i Pedel-arket (praktisk seddel) */
 export interface LokaleSpecifikation {
@@ -86,6 +88,8 @@ export interface CourseModule {
   maltid?: MealDetails;
   erHeldagstur?: boolean;
   heldagstur?: HeldagsturPlan;
+  erWorkshops?: boolean;
+  workshops?: WorkshopOption[];
   lokaleSpec?: LokaleSpecifikation;
   /** Modul har egen lokalespec — ellers arves kursus-standard */
   lokaleSpecManuallySet?: boolean;
@@ -197,6 +201,7 @@ export {
 export const moduleLibrary = [
   { id: "mod-lib-1", title: "Velkomst og introduktion", duration: 90 },
   { id: "mod-lib-2", title: "Fællesspisning", duration: 60 },
+  { id: "mod-lib-workshops", title: "Workshops (valg ved tilmelding)", duration: 120 },
   { id: "mod-lib-3", title: "Workshop — praktisk øvelse", duration: 120 },
   { id: "mod-lib-4", title: "Refleksion i gruppe", duration: 45 },
   { id: "mod-lib-5", title: "Afslutning og evaluering", duration: 30 },
@@ -316,6 +321,10 @@ export function defaultChecklist(overrides?: Partial<CourseChecklist>): CourseCh
   };
 }
 
+export function isWorkshopModule(mod: CourseModule): boolean {
+  return Boolean(mod.erWorkshops);
+}
+
 export function isHeldagsturModule(mod: CourseModule): boolean {
   return Boolean(
     mod.erHeldagstur ||
@@ -324,6 +333,14 @@ export function isHeldagsturModule(mod: CourseModule): boolean {
 }
 
 export function isModuleFilled(mod: CourseModule) {
+  if (isWorkshopModule(mod)) {
+    const options = (mod.workshops ?? []).filter((w) => w.overskrift.trim());
+    return Boolean(
+      mod.overskrift.trim() &&
+        options.length > 0 &&
+        options.every((w) => w.maxDeltagere > 0),
+    );
+  }
   if (isHeldagsturModule(mod)) {
     const punkter = mod.heldagstur?.punkter ?? [];
     if (punkter.length === 0) return false;
