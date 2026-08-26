@@ -63,3 +63,4 @@ npm run dev
 - Mockdata i `src/lib/mock-data.ts`
 - Ingen database, auth eller betaling — kun UI
 # brandbjerg
+# brandbjerg
