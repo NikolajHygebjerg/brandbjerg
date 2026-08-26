@@ -9,8 +9,8 @@ import {
   getCoursesForYear,
   getDefaultCourseYear,
 } from "@/lib/course-list";
+import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, weekLabel } from "@/lib/mock-data";
-import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import {
   KOMMUNIKATION_UPDATED_EVENT,
@@ -20,8 +20,8 @@ import {
   expectedEnrollmentToday,
   getBenchmarksForCourse,
   paceStatusClasses,
+  resolveKommunikationContext,
 } from "@/lib/kommunikation-utils";
-import { netEnrolled } from "@/lib/statusark-utils";
 
 export function KommunikationList() {
   const [hydrated, setHydrated] = useState(false);
@@ -47,17 +47,20 @@ export function KommunikationList() {
     if (!hydrated) return [];
     return getCoursesForYear(activeYear)
       .map((entry) => {
-        const sa = getStatusarkCourse(entry.id);
-        const enrolled = sa
-          ? netEnrolled(sa.totalEnrolled, sa.paidCancellations)
-          : entry.enrolled;
-        const budget = sa?.budgetStudents ?? entry.budgetStudents;
-        const benchmarks = sa?.startDate
-          ? getBenchmarksForCourse(entry.id, sa.startDate, budget)
-          : [];
+        const detail = getCourseDetailById(entry.id);
+        const ctx = detail
+          ? resolveKommunikationContext(entry.id, detail)
+          : null;
+        const enrolled = ctx?.enrolled ?? entry.enrolled;
+        const budget = ctx?.budgetStudents ?? entry.budgetStudents;
+        const startDate = ctx?.startDate ?? entry.startDate;
+        const benchmarks =
+          startDate && budget
+            ? getBenchmarksForCourse(entry.id, startDate, budget)
+            : [];
         const expected =
-          sa?.startDate && benchmarks.length > 0
-            ? expectedEnrollmentToday(sa.startDate, benchmarks)
+          startDate && benchmarks.length > 0
+            ? expectedEnrollmentToday(startDate, benchmarks)
             : null;
         const pace =
           expected != null

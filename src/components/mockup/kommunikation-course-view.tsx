@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Megaphone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { MarketingTimeline } from "@/components/mockup/marketing-timeline";
 import { EnrollmentTimelinePanel } from "@/components/mockup/enrollment-timeline";
 import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, type Course } from "@/lib/mock-data";
-import { getStatusarkCourse } from "@/lib/brandbjerg-status";
+import type { StatusarkCourse } from "@/lib/brandbjerg-statusark";
 import {
   addMarketingEffort,
   KOMMUNIKATION_UPDATED_EVENT,
@@ -25,9 +25,9 @@ import {
   expectedEnrollmentToday,
   getBenchmarksForCourse,
   paceStatusClasses,
+  resolveKommunikationContext,
   suggestBenchmarksFromHistory,
 } from "@/lib/kommunikation-utils";
-import { netEnrolled } from "@/lib/statusark-utils";
 
 export function KommunikationCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -35,8 +35,6 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
   const [showEffortDialog, setShowEffortDialog] = useState(false);
   const [showBenchmarkEditor, setShowBenchmarkEditor] = useState(false);
   const [tick, setTick] = useState(0);
-
-  const statusark = getStatusarkCourse(courseId);
 
   useEffect(() => {
     const found = getCourseDetailById(courseId);
@@ -52,6 +50,11 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
     return () => window.removeEventListener(KOMMUNIKATION_UPDATED_EVENT, refresh);
   }, []);
 
+  const ctx = useMemo(
+    () => (course ? resolveKommunikationContext(courseId, course) : null),
+    [course, courseId, tick],
+  );
+
   if (missing) {
     return (
       <Card>
@@ -60,28 +63,45 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
     );
   }
 
-  if (!course || !statusark?.startDate) {
+  if (!course || !ctx) {
     return (
       <Card>
         <CardDescription>
-          {!course ? "Indlæser…" : "Kurset mangler startdato for tidslinje."}
+          {!course ? "Indlæser…" : "Kurset mangler startdato — angiv dato under planlægning eller statusark."}
         </CardDescription>
       </Card>
     );
   }
 
-  const budget = statusark.budgetStudents;
-  const enrolled = netEnrolled(statusark.totalEnrolled, statusark.paidCancellations);
+  const { startDate, endDate, budgetStudents: budget, enrolled, enrollmentByWeek, statusark } = ctx;
   const state = loadKommunikationState(courseId);
-  const benchmarks = getBenchmarksForCourse(
-    courseId,
-    statusark.startDate,
-    budget,
-  );
-  const expected = expectedEnrollmentToday(statusark.startDate, benchmarks);
+  const benchmarks = getBenchmarksForCourse(courseId, startDate, budget);
+  const expected = expectedEnrollmentToday(startDate, benchmarks);
   const pace = benchmarkPaceStatus(enrolled, expected);
   const efforts = state?.efforts ?? [];
   const questions = loadRegistrationQuestionsForCourse(courseId);
+
+  const timelineCourse: StatusarkCourse | null = statusark ?? (enrollmentByWeek.length > 0
+    ? {
+        id: courseId,
+        courseWeekNumber: course.weekNumber,
+        startDate,
+        endDate,
+        dayCount: null,
+        seniorDiscount: false,
+        type: course.category,
+        title: course.title,
+        enrollmentByWeek,
+        totalEnrolled: enrolled,
+        extraEnrolled: 0,
+        budgetStudents: budget,
+        paidCancellations: 0,
+        maxStudents: course.capacity,
+        overUnderBudget: null,
+        rooms: { double: null, single: null, external: null, maxRooms: null },
+        statusNote: "",
+      }
+    : null);
 
   return (
     <div className="space-y-6">
@@ -97,8 +117,12 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
           <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          {formatDate(statusark.startDate)} –{" "}
-          {formatDate(statusark.endDate ?? statusark.startDate)}
+          {formatDate(startDate)} – {formatDate(endDate)}
+          {!statusark && (
+            <span className="ml-2 text-xs text-purple-600">
+              (dato fra kursusplan — ikke statusark-id)
+            </span>
+          )}
         </p>
       </div>
 
@@ -142,7 +166,7 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
         </div>
         <div className="mt-4">
           <MarketingTimeline
-            courseStartDate={statusark.startDate}
+            courseStartDate={startDate}
             benchmarks={benchmarks}
             efforts={efforts}
             enrolled={enrolled}
@@ -167,7 +191,14 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
       <Card>
         <CardTitle className="text-base">Tilmeldinger pr. uge</CardTitle>
         <div className="mt-3">
-          <EnrollmentTimelinePanel course={statusark} />
+          {timelineCourse ? (
+            <EnrollmentTimelinePanel course={timelineCourse} />
+          ) : (
+            <p className="text-sm text-slate-500">
+              Ingen ugentlige tilmeldingstal endnu — kobles automatisk når
+              kurset findes i statusark.
+            </p>
+          )}
         </div>
       </Card>
 
@@ -194,7 +225,7 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
 
       {showEffortDialog && (
         <MarketingEffortDialog
-          courseStartDate={statusark.startDate}
+          courseStartDate={startDate}
           onClose={() => setShowEffortDialog(false)}
           onSave={(effort) => {
             addMarketingEffort(courseId, effort);

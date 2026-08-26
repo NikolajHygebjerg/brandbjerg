@@ -14,7 +14,8 @@ import type {
 } from "./kommunikation-types";
 import { marketingEffortTypeLabels } from "./kommunikation-types";
 import { loadKommunikationState } from "./kommunikation-storage";
-import { enrollmentWeeksWithActivity } from "./statusark-utils";
+import type { Course } from "./mock-data";
+import { enrollmentWeeksWithActivity, netEnrolled } from "./statusark-utils";
 
 const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30.437;
 
@@ -325,6 +326,63 @@ function buildConclusions(
 
 export function getStatusarkForKommunikation(courseId: string) {
   return getStatusarkCourse(courseId);
+}
+
+/** Slå statusark op via id, titel+uge, eller brug kursus-detaljer som fallback */
+export interface KommunikationCourseContext {
+  storageCourseId: string;
+  statusark: StatusarkCourse | null;
+  startDate: string;
+  endDate: string;
+  budgetStudents: number;
+  enrolled: number;
+  enrollmentByWeek: WeeklyEnrollment[];
+}
+
+export function findStatusarkCourse(
+  courseId: string,
+  course?: Pick<Course, "title" | "weekNumber" | "startDate">,
+): StatusarkCourse | undefined {
+  const direct = getStatusarkCourse(courseId);
+  if (direct) return direct;
+
+  if (!course?.title || !course.weekNumber) return undefined;
+
+  const normalizedTitle = course.title.toLowerCase().trim();
+  return statusarkCourses.find(
+    (c) =>
+      c.courseWeekNumber === course.weekNumber &&
+      c.title.toLowerCase().trim() === normalizedTitle,
+  );
+}
+
+export function resolveKommunikationContext(
+  courseId: string,
+  course: Course,
+): KommunikationCourseContext | null {
+  const statusark = findStatusarkCourse(courseId, course) ?? null;
+  const startDate = statusark?.startDate || course.startDate;
+  if (!startDate) return null;
+
+  const endDate =
+    statusark?.endDate || course.endDate || startDate;
+  const budgetStudents =
+    statusark?.budgetStudents ||
+    course.capacity ||
+    20;
+  const enrolled = statusark
+    ? netEnrolled(statusark.totalEnrolled, statusark.paidCancellations)
+    : course.enrolled;
+
+  return {
+    storageCourseId: courseId,
+    statusark,
+    startDate,
+    endDate,
+    budgetStudents,
+    enrolled,
+    enrollmentByWeek: statusark?.enrollmentByWeek ?? [],
+  };
 }
 
 export function dateToTimelinePercent(
