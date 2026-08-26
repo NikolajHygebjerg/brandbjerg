@@ -9,7 +9,8 @@ export type CourseListAccent =
   | "violet"
   | "amber"
   | "blue"
-  | "emerald";
+  | "emerald"
+  | "teal";
 
 const accentTitleClasses: Record<CourseListAccent, string> = {
   purple: "text-purple-800 hover:text-purple-950",
@@ -17,6 +18,7 @@ const accentTitleClasses: Record<CourseListAccent, string> = {
   amber: "text-amber-800 hover:text-amber-950",
   blue: "text-blue-800 hover:text-blue-950",
   emerald: "text-emerald-800 hover:text-emerald-950",
+  teal: "text-teal-800 hover:text-teal-950",
 };
 
 const theadRowClass =

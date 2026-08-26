@@ -41,6 +41,24 @@ const SPECIAL_NOTES = [
   "Hører dårligt — plads forrest i sal",
 ];
 
+const CITIES = [
+  "København",
+  "Aarhus",
+  "Odense",
+  "Aalborg",
+  "Roskilde",
+  "Horsens",
+  "Vejle",
+  "Silkeborg",
+  "Herning",
+  "Næstved",
+  "Fredericia",
+  "Randers",
+  "Esbjerg",
+  "Holstebro",
+  "Slagelse",
+];
+
 function pickName(index: number): string {
   const first = FIRST_NAMES[index % FIRST_NAMES.length];
   const last = LAST_NAMES[(index * 7) % LAST_NAMES.length];
@@ -79,13 +97,14 @@ function mockParticipant(
   const wantsEnkelt =
     prefs.some((p) => p.type === "enevaerelse") || index % 7 === 0;
 
+  const city = CITIES[index % CITIES.length];
   return {
     id,
     courseId,
     name: pickName(index),
     email: `deltager${index}@example.dk`,
     phone: `+45 ${String(20 + (index % 70)).padStart(2, "0")} ${String(100000 + index * 137).slice(-6)}`,
-    address: `Eksempelvej ${index + 1}, ${1000 + (index % 9000)} København`,
+    address: `Eksempelvej ${index + 1}, ${1000 + (index % 9000)} ${city}`,
     registeredAt,
     status,
     amount: 5995,

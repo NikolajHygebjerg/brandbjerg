@@ -34,4 +34,69 @@ body {
     top: 0;
     width: 100%;
   }
+
+  body[data-print-target] * {
+    visibility: hidden;
+  }
+
+  body[data-print-target="kl-print-participants"] #kl-print-participants,
+  body[data-print-target="kl-print-participants"] #kl-print-participants *,
+  body[data-print-target="kl-print-badges"] #kl-print-badges,
+  body[data-print-target="kl-print-badges"] #kl-print-badges *,
+  body[data-print-target="kl-print-ubak"] #kl-print-ubak,
+  body[data-print-target="kl-print-ubak"] #kl-print-ubak *,
+  body[data-print-target="kl-print-program-full"] #kl-print-program-full,
+  body[data-print-target="kl-print-program-full"] #kl-print-program-full *,
+  body[data-print-target="kl-print-program-a4"] #kl-print-program-a4,
+  body[data-print-target="kl-print-program-a4"] #kl-print-program-a4 * {
+    visibility: visible;
+  }
+
+  body[data-print-target] [id^="kl-print-"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .badge-sheet {
+    display: grid;
+    grid-template-columns: 55mm 55mm;
+    column-gap: 0;
+    row-gap: 0;
+    width: 210mm;
+    margin: 0 auto;
+  }
+
+  .name-badge {
+    width: 55mm;
+    height: 90mm;
+    box-sizing: border-box;
+    padding: 6mm 4mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    page-break-inside: avoid;
+    overflow: hidden;
+  }
+
+  .badge-name {
+    font-size: 14pt;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .badge-course {
+    margin-top: 4mm;
+    font-size: 9pt;
+    line-height: 1.25;
+  }
+
+  .badge-city {
+    margin-top: 3mm;
+    font-size: 10pt;
+    font-weight: 600;
+  }
 }
