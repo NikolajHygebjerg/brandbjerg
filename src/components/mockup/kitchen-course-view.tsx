@@ -10,6 +10,8 @@ import { formatDate, type Course } from "@/lib/mock-data";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import { getMealRowsFromCourse } from "@/lib/kitchen-utils";
 import { loadKitchenSent } from "@/lib/kitchen-storage";
+import { validateKitchenPlan } from "@/lib/kitchen-plan-rules";
+import { KitchenPlanWarnings } from "@/components/mockup/kitchen-plan-warnings";
 
 export function KitchenCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -39,6 +41,7 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
 
   const sent = loadKitchenSent(courseId);
   const meals = sent?.meals ?? getMealRowsFromCourse(course);
+  const validation = validateKitchenPlan(course);
 
   const byDay = meals.reduce(
     (acc, row) => {
@@ -76,7 +79,11 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
         </p>
       </div>
 
-      {!sent && (
+      {!sent && !validation.ok && (
+        <KitchenPlanWarnings validation={validation} />
+      )}
+
+      {!sent && validation.ok && (
         <Card className="border-amber-200 bg-amber-50">
           <CardTitle className="text-base text-amber-900">
             Afventer godkendelse fra kursusleder

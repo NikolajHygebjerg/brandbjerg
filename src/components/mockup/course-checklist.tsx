@@ -31,6 +31,8 @@ import {
   getUnreadyKitchenModules,
 } from "@/lib/kitchen-utils";
 import { loadKitchenSent } from "@/lib/kitchen-storage";
+import { validateKitchenPlan } from "@/lib/kitchen-plan-rules";
+import { KitchenPlanWarnings } from "@/components/mockup/kitchen-plan-warnings";
 
 type ChecklistProps = {
   course: Course;
@@ -63,6 +65,7 @@ export function CourseChecklistPanel({
   );
   const kitchenReady = useMemo(() => allKitchenModulesReady(course), [course]);
   const kitchenSent = loadKitchenSent(course.id);
+  const kitchenValidation = useMemo(() => validateKitchenPlan(course), [course]);
 
   const allModulesReady =
     allModules.length > 0 && unreadyModules.length === 0;
@@ -125,11 +128,14 @@ export function CourseChecklistPanel({
       hint:
         kitchenModules.length === 0
           ? "Ingen måltidsmoduler i programmet endnu"
-          : checklist.kitchenPlanSent
-            ? `Sendt til køkken · ${kitchenModules.length} måltider godkendt`
-            : `${kitchenModules.length - unreadyKitchenModules.length}/${kitchenModules.length} køkkenmoduler godkendt`,
+          : !kitchenValidation.ok
+            ? `${kitchenValidation.warnings.length} mangler ift. standard (${kitchenValidation.profileLabel})`
+            : checklist.kitchenPlanSent
+              ? `Sendt til køkken · ${kitchenModules.length} måltider godkendt`
+              : `${kitchenModules.length - unreadyKitchenModules.length}/${kitchenModules.length} køkkenmoduler godkendt`,
       icon: Utensils,
-      hasDetail: unreadyKitchenModules.length > 0,
+      hasDetail:
+        unreadyKitchenModules.length > 0 || !kitchenValidation.ok,
     },
     {
       id: "pedel",
@@ -316,6 +322,7 @@ export function CourseChecklistPanel({
                     unreadyKitchenModules={unreadyKitchenModules}
                     kitchenReady={kitchenReady}
                     kitchenSent={kitchenSent}
+                    kitchenValidation={kitchenValidation}
                     compact={isSidebar}
                   />
                 </div>
@@ -352,6 +359,7 @@ function ChecklistAction({
   unreadyKitchenModules,
   kitchenReady,
   kitchenSent,
+  kitchenValidation,
   compact = false,
 }: {
   itemId: string;
@@ -367,6 +375,7 @@ function ChecklistAction({
   unreadyKitchenModules: ReturnType<typeof getUnreadyKitchenModules>;
   kitchenReady: boolean;
   kitchenSent: ReturnType<typeof loadKitchenSent>;
+  kitchenValidation: ReturnType<typeof validateKitchenPlan>;
   compact?: boolean;
 }) {
   const buttonClass = compact ? "h-7 text-[11px]" : "h-8 text-xs";
@@ -506,9 +515,14 @@ function ChecklistAction({
           ) : (
             <>
               <p className="text-xs text-slate-600">
-                Når alle køkkenmoduler er godkendt med flueben i modulplanen,
-                sendes planen automatisk til køkkenet.
+                Et normalt kursus skal have Morgenmad, Frokost, Aftensmad og
+                mellemmåltider (Formiddag + Eftermiddag) på hver fuld dag.
+                Heldagstur-dage undtages. Planen sendes automatisk til køkkenet
+                når alle krævede måltider er tilføjet og godkendt.
               </p>
+              {!kitchenValidation.ok && (
+                <KitchenPlanWarnings validation={kitchenValidation} compact />
+              )}
               {unreadyKitchenModules.length > 0 ? (
                 <ul className="space-y-1 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
                   <li className="font-medium">Mangler godkendelse:</li>

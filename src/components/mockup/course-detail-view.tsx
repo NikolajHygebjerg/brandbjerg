@@ -58,10 +58,12 @@ import {
   allKitchenModulesReady,
   buildKitchenPlanSummary,
 } from "@/lib/kitchen-utils";
+import { canSendKitchenPlan, validateKitchenPlan } from "@/lib/kitchen-plan-rules";
 import {
   revokeKitchenPlan,
   sendKitchenPlan,
 } from "@/lib/kitchen-storage";
+import { KitchenPlanWarnings } from "@/components/mockup/kitchen-plan-warnings";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -211,10 +213,10 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   useEffect(() => {
     if (!hydratedRef.current) return;
 
-    const kitchenReady = allKitchenModulesReady(course);
+    const canSend = canSendKitchenPlan(course);
     const alreadySent = course.checklist.kitchenPlanSent;
 
-    if (kitchenReady && !alreadySent) {
+    if (canSend && !alreadySent) {
       const summary = buildKitchenPlanSummary(course);
       sendKitchenPlan(course);
       updateChecklist({
@@ -224,7 +226,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
       return;
     }
 
-    if (!kitchenReady && alreadySent) {
+    if (!canSend && alreadySent) {
       revokeKitchenPlan(course.id);
       updateChecklist({ kitchenPlanSent: false });
     }
@@ -393,6 +395,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     course.days.length > 0 ? computeProgramTotals(course.days) : null;
 
   const incompleteCount = getIncompleteModules(course).length;
+  const kitchenValidation = validateKitchenPlan(course);
 
   const editingDay = editingModule
     ? course.days.find((d) => d.id === editingModule.dayId)
@@ -747,6 +750,11 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                     {incompleteCount} modul(er) mangler udfyldning — du kan
                     stadig gemme kladde og fortsætte senere.
                   </p>
+                )}
+                {!kitchenValidation.ok && course.days.length > 0 && (
+                  <div className="mt-3">
+                    <KitchenPlanWarnings validation={kitchenValidation} />
+                  </div>
                 )}
               </Card>
 

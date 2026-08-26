@@ -30,6 +30,23 @@ export interface ProgramTemplate {
   days: TemplateModuleRow[][];
 }
 
+function mellemmaltidRow(
+  overskrift: "Formiddag" | "Eftermiddag",
+  tidFra: string,
+  tidTil: string,
+): TemplateModuleRow {
+  return {
+    tidFra,
+    tidTil,
+    overskrift,
+    rolle: "Køkken",
+    underviserType: "intern",
+    timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+    lon: "",
+    erMaltid: true,
+  };
+}
+
 /** Program_UBAK — 5 dages skabelon (Uge 35: Liv i haven) */
 export const programUbak5Dage: ProgramTemplate = {
   id: "program-ubak-5d",
@@ -78,6 +95,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 45, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      mellemmaltidRow("Formiddag", "10:30", "11:00"),
       {
         tidFra: "12:30",
         tidTil: "13:30",
@@ -97,6 +115,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 45, ft: 0, pts: 45, bh: 0 },
         lon: "A",
       },
+      mellemmaltidRow("Eftermiddag", "15:00", "15:30"),
       {
         tidFra: "15:00",
         tidTil: "17:00",
@@ -199,6 +218,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      mellemmaltidRow("Formiddag", "10:30", "11:00"),
       {
         tidFra: "09:30",
         tidTil: "12:00",
@@ -218,6 +238,7 @@ export const programUbak5Dage: ProgramTemplate = {
         lon: "",
         erMaltid: true,
       },
+      mellemmaltidRow("Eftermiddag", "15:00", "15:30"),
       {
         tidFra: "18:00",
         tidTil: "19:00",
@@ -259,6 +280,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      mellemmaltidRow("Formiddag", "10:30", "11:00"),
       {
         tidFra: "09:30",
         tidTil: "12:00",
@@ -287,6 +309,7 @@ export const programUbak5Dage: ProgramTemplate = {
         lon: "",
         erMaltid: true,
       },
+      mellemmaltidRow("Eftermiddag", "15:00", "15:30"),
       {
         tidFra: "14:00",
         tidTil: "16:00",
@@ -337,6 +360,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      mellemmaltidRow("Formiddag", "10:30", "11:00"),
       {
         tidFra: "09:15",
         tidTil: "11:00",
