@@ -75,6 +75,10 @@ function mockParticipant(
   const paid = index % 5 !== 4;
   const status = paid ? "betalt" : index % 3 === 0 ? "reserveret" : "betalt";
 
+  const prefs = seededPreferences(index, courseId);
+  const wantsEnkelt =
+    prefs.some((p) => p.type === "enevaerelse") || index % 7 === 0;
+
   return {
     id,
     courseId,
@@ -87,7 +91,8 @@ function mockParticipant(
     amount: 5995,
     roomNumber: null,
     roomMateId: null,
-    preferences: seededPreferences(index, courseId),
+    roomType: wantsEnkelt ? "enkelt" : "dobbelt",
+    preferences: prefs,
     specialConsiderations: special,
     confirmationSentAt: index % 7 !== 6 ? registeredAt : undefined,
     invoiceSentAt: paid ? registeredAt : undefined,

@@ -2,11 +2,13 @@ import type {
   KontorAlert,
   KontorParticipant,
   RoomWeekCell,
+  CourseEnrollmentLimits,
 } from "./kontor-types";
 import { roomWeekKey } from "./room-utils";
 
 const ROOM_PREFIX = "brandbjerg-kontor-rooms-";
 const PARTICIPANTS_KEY = "brandbjerg-kontor-participants";
+const LIMITS_KEY = "brandbjerg-kontor-limits";
 const ALERTS_KEY = "brandbjerg-kontor-alerts";
 const UPDATED_EVENT = "brandbjerg-kontor-updated";
 
@@ -64,10 +66,16 @@ export function loadAllParticipants(): Record<string, KontorParticipant[]> {
   );
 }
 
+function normalizeParticipant(p: KontorParticipant): KontorParticipant {
+  if (p.roomType) return p;
+  const enkelt = p.preferences.some((pref) => pref.type === "enevaerelse");
+  return { ...p, roomType: enkelt ? "enkelt" : "dobbelt" };
+}
+
 export function loadParticipantsForCourse(
   courseId: string,
 ): KontorParticipant[] {
-  return loadAllParticipants()[courseId] ?? [];
+  return (loadAllParticipants()[courseId] ?? []).map(normalizeParticipant);
 }
 
 export function saveParticipantsForCourse(
@@ -161,4 +169,30 @@ export function clearCourseFromRoomGrid(
     }
   }
   saveRoomGrid(year, grid);
+}
+
+export function loadAllLimits(): Record<string, CourseEnrollmentLimits> {
+  if (typeof window === "undefined") return {};
+  return (
+    safeParse<Record<string, CourseEnrollmentLimits>>(
+      localStorage.getItem(LIMITS_KEY),
+    ) ?? {}
+  );
+}
+
+export function loadEnrollmentLimits(
+  courseId: string,
+): CourseEnrollmentLimits | null {
+  return loadAllLimits()[courseId] ?? null;
+}
+
+export function saveEnrollmentLimits(
+  courseId: string,
+  limits: CourseEnrollmentLimits,
+): void {
+  if (typeof window === "undefined") return;
+  const all = loadAllLimits();
+  all[courseId] = limits;
+  localStorage.setItem(LIMITS_KEY, JSON.stringify(all));
+  emitUpdate();
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Building2, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { ParticipantDetailDialog } from "@/components/mockup/participant-detail-dialog";
 import { getCourseDetailById } from "@/lib/course-list";
@@ -27,6 +27,8 @@ import {
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { netEnrolled } from "@/lib/statusark-utils";
 import { roomWeekKey } from "@/lib/room-utils";
+import { KontorLimitsPanel } from "@/components/mockup/kontor-limits-panel";
+import { defaultLimitsForCourse } from "@/lib/kontor-limits-utils";
 
 export function KontorCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -273,6 +275,11 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
           )}
         </Card>
 
+        <KontorLimitsPanel
+          courseId={courseId}
+          statusarkDefaults={defaultLimitsForCourse(courseId)}
+        />
+
         <Card>
           <CardTitle className="text-base">Kursusinfo til kontor</CardTitle>
           <dl className="mt-4 grid gap-3 text-sm">
@@ -283,26 +290,9 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">Max kursister</dt>
-              <dd className="font-medium text-slate-900">
-                {statusark?.maxStudents ?? course.capacity}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Budgetteret</dt>
               <dd className="font-medium text-slate-900">
                 {statusark?.budgetStudents ?? "—"}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">Værelser (statusark)</dt>
-              <dd className="font-medium text-slate-900">
-                {statusark?.rooms.double != null
-                  ? `D: ${statusark.rooms.double}`
-                  : "—"}
-                {statusark?.rooms.single != null
-                  ? ` · E: ${statusark.rooms.single}`
-                  : ""}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
@@ -319,6 +309,13 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
               </dd>
             </div>
           </dl>
+          <Link
+            href={`/tilmelding/${courseId}`}
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-violet-700 hover:underline"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Åbn tilmeldingsside
+          </Link>
         </Card>
       </div>
 

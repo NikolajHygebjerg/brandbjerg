@@ -40,12 +40,19 @@ export interface KontorParticipant {
   amount: number;
   roomNumber: string | null;
   roomMateId: string | null;
+  roomType: "enkelt" | "dobbelt" | "ingen";
   preferences: RoomPreference[];
   specialConsiderations: string;
   confirmationSentAt?: string;
   invoiceSentAt?: string;
   welcomeLetterSentAt?: string;
   paidAt?: string;
+}
+
+export interface CourseEnrollmentLimits {
+  maxKursister: number;
+  maxEnkeltvaerelser: number;
+  maxDobbeltvaerelser: number;
 }
 
 export interface KontorAlert {
