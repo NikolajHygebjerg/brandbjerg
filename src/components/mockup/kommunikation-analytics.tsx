@@ -1,11 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BarChart3, Target } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { KommunikationSubnav } from "@/components/mockup/kommunikation-subnav";
+import {
+  getAvailableCourseYears,
+  getDefaultCourseYear,
+} from "@/lib/course-list";
+import { weekLabel } from "@/lib/mock-data";
+import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { KOMMUNIKATION_UPDATED_EVENT } from "@/lib/kommunikation-storage";
-import { buildMarketingAnalytics } from "@/lib/kommunikation-utils";
+import {
+  buildOverallKommunikationAnalysis,
+  paceStatusClasses,
+} from "@/lib/kommunikation-utils";
 import {
   marketingEffortTypeLabels,
   type MarketingEffortRating,
@@ -27,6 +37,13 @@ const ratingClasses: Record<MarketingEffortRating, string> = {
 
 export function KommunikationAnalytics() {
   const [tick, setTick] = useState(0);
+  const [activeYear, setActiveYear] = useState(statusarkYear);
+  const [years, setYears] = useState<number[]>([statusarkYear]);
+
+  useEffect(() => {
+    setYears(getAvailableCourseYears());
+    setActiveYear(getDefaultCourseYear());
+  }, []);
 
   useEffect(() => {
     function refresh() {
@@ -36,53 +53,110 @@ export function KommunikationAnalytics() {
     return () => window.removeEventListener(KOMMUNIKATION_UPDATED_EVENT, refresh);
   }, []);
 
-  const { efforts, byType, conclusions, goals } = buildMarketingAnalytics();
+  const analysis = useMemo(
+    () => buildOverallKommunikationAnalysis(activeYear),
+    [activeYear, tick],
+  );
+
+  const { marketing } = analysis;
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Kommunikation</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Analyse og konklusioner på tværs af alle kurser
+        </p>
+      </div>
+
+      <KommunikationSubnav />
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link
-            href="/kommunikation"
-            className="text-sm text-purple-700 hover:underline"
-          >
-            ← Tilbage til kommunikation
-          </Link>
-          <div className="mt-2 flex items-center gap-3">
-            <BarChart3 className="h-6 w-6 text-purple-700" />
-            <h1 className="text-2xl font-bold text-slate-900">Samlet analyse</h1>
+        <div className="flex items-center gap-3">
+          <BarChart3 className="h-6 w-6 text-purple-700" />
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Analyse</h2>
+            <p className="text-sm text-slate-500">
+              Tilmeldingstempo og markedsføringseffekt for {activeYear}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Effektivitet af markedsføringsindsatser · omkostning pr. tilmelding
-          </p>
         </div>
-        <Link
-          href="/kommunikation/maal"
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2.5 text-sm font-medium text-purple-800 hover:bg-purple-50"
-        >
-          <Target className="h-4 w-4" />
-          Rediger mål
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            {years.map((y) => (
+              <button
+                key={y}
+                type="button"
+                onClick={() => setActiveYear(y)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  activeYear === y
+                    ? "bg-purple-700 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+          <Link
+            href="/kommunikation/maal"
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-sm font-medium text-purple-800 hover:bg-purple-50"
+          >
+            <Target className="h-4 w-4" />
+            Rediger mål
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Kurser" value={String(analysis.courseCount)} />
+        <StatCard
+          label="På benchmark"
+          value={String(analysis.paceCounts.green)}
+          detail={`${analysis.paceCounts.orange} orange · ${analysis.paceCounts.red} røde`}
+        />
+        <StatCard
+          label="Markedsføring"
+          value={`${analysis.totalMarketingEfforts} indsatser`}
+          detail={`${analysis.coursesWithMarketing} kurser · ${analysis.totalMarketingSpend.toLocaleString("da-DK")} kr.`}
+        />
+        <StatCard
+          label="Uden kampagner"
+          value={String(analysis.coursesWithoutMarketing)}
+          detail="kurser uden registrerede indsatser"
+        />
       </div>
 
       <Card className="border-purple-200 bg-purple-50/40">
-        <CardTitle className="text-base text-purple-950">Konklusioner</CardTitle>
-        <ul className="mt-3 space-y-3 text-sm text-purple-950">
-          {conclusions.map((line, i) => (
-            <li key={i} className="leading-relaxed">
-              {line}
-            </li>
+        <CardTitle className="text-base text-purple-950">
+          Konklusioner — tilmeldinger (alle kurser)
+        </CardTitle>
+        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-purple-950">
+          {analysis.enrollmentConclusions.map((line, i) => (
+            <li key={i}>{line}</li>
+          ))}
+        </ul>
+      </Card>
+
+      <Card className="border-purple-200 bg-purple-50/40">
+        <CardTitle className="text-base text-purple-950">
+          Konklusioner — markedsføring (alle indsatser)
+        </CardTitle>
+        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-purple-950">
+          {analysis.marketingConclusions.map((line, i) => (
+            <li key={i}>{line}</li>
           ))}
         </ul>
         <p className="mt-4 text-xs text-purple-800">
-          Mål: ≤ {goals.goodCostPerEnrollment.toLocaleString("da-DK")} kr/tilmelding
-          (god) · ≤ {goals.maxCostPerEnrollment.toLocaleString("da-DK")} kr (acceptabel)
-          · {goals.followUpDays} dages opfølgning efter kampagne.
+          Mål: ≤ {marketing.goals.goodCostPerEnrollment.toLocaleString("da-DK")}{" "}
+          kr/tilmelding (god) · ≤{" "}
+          {marketing.goals.maxCostPerEnrollment.toLocaleString("da-DK")} kr
+          (acceptabel) · {marketing.goals.followUpDays} dages opfølgning.
         </p>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {byType.map((summary) => (
+        {marketing.byType.map((summary) => (
           <Card key={summary.type}>
             <CardDescription>{summary.label}</CardDescription>
             <CardTitle className="text-lg">{summary.effortCount} indsatser</CardTitle>
@@ -112,12 +186,62 @@ export function KommunikationAnalytics() {
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-          <CardTitle className="text-base">Alle indsatser</CardTitle>
+          <CardTitle className="text-base">Tilmeldingstempo — alle kurser</CardTitle>
           <CardDescription>
-            Periode, pris, tilmeldinger i opfølgningsperioden og vurdering mod mål
+            Sammenligning af tilmeldte vs. benchmark i dag
           </CardDescription>
         </div>
-        {efforts.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3">Uge</th>
+                <th className="px-4 py-3">Kursus</th>
+                <th className="px-4 py-3">Tilmeldte</th>
+                <th className="px-4 py-3">Burde være</th>
+                <th className="px-4 py-3">Budget</th>
+                <th className="px-4 py-3">Indsatser</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.courses.map((c) => (
+                <tr key={c.courseId} className="border-b border-slate-100">
+                  <td className="px-4 py-3">{weekLabel(c.weekNumber)}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">
+                    <Link
+                      href={`/kommunikation/${c.courseId}`}
+                      className="hover:text-purple-700 hover:underline"
+                    >
+                      {c.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 font-semibold">{c.enrolled}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex min-w-[2rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${paceStatusClasses[c.pace]}`}
+                    >
+                      {c.expected}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{c.budget}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {c.effortCount > 0 ? c.effortCount : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+          <CardTitle className="text-base">Markedsføringsindsatser</CardTitle>
+          <CardDescription>
+            Alle indsatser på tværs af kurser med vurdering mod mål
+          </CardDescription>
+        </div>
+        {marketing.efforts.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-slate-500">
             Ingen indsatser endnu — opret markedsføring på enkeltkurser
           </p>
@@ -136,7 +260,7 @@ export function KommunikationAnalytics() {
                 </tr>
               </thead>
               <tbody>
-                {efforts.map((row) => (
+                {marketing.efforts.map((row) => (
                   <tr
                     key={row.effort.id}
                     className="border-b border-slate-100 align-top"
@@ -176,11 +300,11 @@ export function KommunikationAnalytics() {
         )}
       </Card>
 
-      {efforts.length > 0 && (
+      {marketing.efforts.length > 0 && (
         <Card>
           <CardTitle className="text-base">Detaljeret analyse pr. indsats</CardTitle>
           <ul className="mt-3 space-y-3">
-            {efforts.map((row) => (
+            {marketing.efforts.map((row) => (
               <li
                 key={row.effort.id}
                 className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
@@ -195,5 +319,23 @@ export function KommunikationAnalytics() {
         </Card>
       )}
     </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
+  return (
+    <Card>
+      <CardDescription>{label}</CardDescription>
+      <CardTitle className="text-2xl">{value}</CardTitle>
+      {detail && <p className="mt-1 text-xs text-slate-500">{detail}</p>}
+    </Card>
   );
 }

@@ -7,6 +7,7 @@ import {
 import type {
   BenchmarkPaceStatus,
   CourseMarketingAnalysis,
+  CoursePaceRow,
   EffortAnalysisDetail,
   EffortAnalyticsRow,
   EnrollmentBenchmark,
@@ -15,6 +16,7 @@ import type {
   MarketingEffortRating,
   MarketingEffortType,
   MarketingTypeSummary,
+  OverallKommunikationAnalysis,
 } from "./kommunikation-types";
 import { marketingEffortTypeLabels } from "./kommunikation-types";
 import {
@@ -24,6 +26,8 @@ import {
 } from "./kommunikation-storage";
 import type { Course } from "./mock-data";
 import { enrollmentWeeksWithActivity, netEnrolled } from "./statusark-utils";
+import { getCourseDetailById, getCoursesForYear } from "./course-list";
+import { statusarkYear } from "./brandbjerg-statusark";
 
 const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30.437;
 
@@ -237,24 +241,41 @@ export function analyzeEffort(
   };
 }
 
-function buildConclusions(
+function buildMarketingSummaryConclusions(
   byType: MarketingTypeSummary[],
   efforts: EffortAnalysisDetail[],
   goals: MarketingEffectivenessGoals,
 ): string[] {
   if (efforts.length === 0) {
     return [
-      "Ingen markedsføringsindsatser registreret endnu — opret indsatser på enkeltkurser for at starte analysen.",
+      "Ingen markedsføringsindsatser registreret endnu — opret indsatser på enkeltkurser for at måle effekt.",
     ];
   }
 
-  const lines = efforts.map((e) => e.narrative);
+  const lines: string[] = [];
+  const totalSpend = efforts.reduce((s, e) => s + e.effort.price, 0);
+  const totalEnrollments = efforts.reduce(
+    (s, e) => s + e.enrollmentsInFollowUp,
+    0,
+  );
+  const courseIds = new Set(efforts.map((e) => e.courseId));
+
+  lines.push(
+    `${efforts.length} markedsføringsindsats${efforts.length !== 1 ? "er" : ""} på tværs af ${courseIds.size} kursus${courseIds.size !== 1 ? "er" : ""} — samlet forbrug ${totalSpend.toLocaleString("da-DK")} kr. og ${totalEnrollments} tilmelding${totalEnrollments !== 1 ? "er" : ""} i opfølgningsperioden.`,
+  );
 
   const good = efforts.filter((e) => e.rating === "good");
   const poor = efforts.filter((e) => e.rating === "poor");
   if (good.length > 0 || poor.length > 0) {
     lines.push(
-      `Sammenlignet med jeres mål (≤ ${goals.goodCostPerEnrollment.toLocaleString("da-DK")} kr/tilmelding = god, ≤ ${goals.maxCostPerEnrollment.toLocaleString("da-DK")} kr = acceptabel): ${good.length} indsats${good.length !== 1 ? "er" : ""} opfylder målene, ${poor.length} ligger under.`,
+      `Mod jeres mål (≤ ${goals.goodCostPerEnrollment.toLocaleString("da-DK")} kr/tilmelding): ${good.length} effektive indsatser, ${poor.length} under målene.`,
+    );
+  }
+
+  const zeroReturn = efforts.filter((e) => e.enrollmentsInFollowUp === 0);
+  if (zeroReturn.length > 0) {
+    lines.push(
+      `${zeroReturn.length} indsats${zeroReturn.length !== 1 ? "er" : ""} uden tilmeldinger efter kampagnen — overvej anden kanal eller timing.`,
     );
   }
 
@@ -265,12 +286,44 @@ function buildConclusions(
         (a.avgCostPerEnrollment ?? Infinity) -
         (b.avgCostPerEnrollment ?? Infinity),
     );
-  if (ranked.length > 1) {
+  if (ranked.length > 0) {
     const best = ranked[0];
     lines.push(
-      `${best.label} har samlet set lavest omkostning pr. tilmelding (${best.avgCostPerEnrollment?.toLocaleString("da-DK")} kr.) på tværs af ${best.effortCount} indsats${best.effortCount !== 1 ? "er" : ""}.`,
+      `${best.label} har lavest omkostning pr. tilmelding (${best.avgCostPerEnrollment?.toLocaleString("da-DK")} kr.) baseret på ${best.effortCount} indsats${best.effortCount !== 1 ? "er" : ""}.`,
     );
   }
+
+  const bestEffort = [...efforts]
+    .filter((e) => e.enrollmentsInFollowUp > 0)
+    .sort(
+      (a, b) =>
+        (a.costPerEnrollmentFollowUp ?? Infinity) -
+        (b.costPerEnrollmentFollowUp ?? Infinity),
+    )[0];
+  if (bestEffort) {
+    lines.push(
+      `Bedste enkeltindsats: ${marketingEffortTypeLabels[bestEffort.effort.type]} på «${bestEffort.courseTitle}» (${bestEffort.costPerEnrollmentFollowUp?.toLocaleString("da-DK")} kr/tilmelding).`,
+    );
+  }
+
+  return lines;
+}
+
+function buildConclusions(
+  byType: MarketingTypeSummary[],
+  efforts: EffortAnalysisDetail[],
+  goals: MarketingEffectivenessGoals,
+  includeNarratives = true,
+): string[] {
+  if (efforts.length === 0) {
+    return buildMarketingSummaryConclusions(byType, efforts, goals);
+  }
+
+  const lines = includeNarratives
+    ? efforts.map((e) => e.narrative)
+    : [];
+
+  lines.push(...buildMarketingSummaryConclusions(byType, efforts, goals));
 
   return lines;
 }
@@ -604,7 +657,148 @@ export function buildMarketingAnalytics(
         : null,
   }));
 
-  const conclusions = buildConclusions(byType, efforts, g);
+  const conclusions = buildConclusions(byType, efforts, g, false);
 
   return { efforts, byType, conclusions, goals: g };
+}
+
+export function buildOverallKommunikationAnalysis(
+  year: number = statusarkYear,
+): OverallKommunikationAnalysis {
+  const marketing = buildMarketingAnalytics(undefined, loadMarketingGoals());
+  const courses: CoursePaceRow[] = [];
+
+  for (const entry of getCoursesForYear(year)) {
+    const detail = getCourseDetailById(entry.id);
+    if (!detail) continue;
+
+    const ctx = resolveKommunikationContext(entry.id, detail);
+    if (!ctx?.startDate) continue;
+
+    const benchmarks = getBenchmarksForCourse(
+      entry.id,
+      ctx.startDate,
+      ctx.budgetStudents,
+    );
+    const expected = expectedEnrollmentToday(ctx.startDate, benchmarks);
+    const pace = benchmarkPaceStatus(ctx.enrolled, expected);
+    const state = loadKommunikationState(entry.id);
+
+    courses.push({
+      courseId: entry.id,
+      title: entry.title,
+      weekNumber: entry.weekNumber,
+      enrolled: ctx.enrolled,
+      expected,
+      budget: ctx.budgetStudents,
+      pace,
+      gap: expected - ctx.enrolled,
+      effortCount: state?.efforts.length ?? 0,
+    });
+  }
+
+  courses.sort((a, b) => a.weekNumber - b.weekNumber);
+
+  const paceCounts: Record<BenchmarkPaceStatus, number> = {
+    green: 0,
+    orange: 0,
+    red: 0,
+  };
+  for (const c of courses) {
+    paceCounts[c.pace] += 1;
+  }
+
+  const coursesWithMarketing = courses.filter((c) => c.effortCount > 0).length;
+  const behind = courses
+    .filter((c) => c.pace === "red")
+    .sort((a, b) => b.gap - a.gap);
+
+  const enrollmentConclusions = buildEnrollmentConclusions(
+    year,
+    courses,
+    paceCounts,
+    behind,
+    coursesWithMarketing,
+  );
+
+  return {
+    year,
+    courseCount: courses.length,
+    paceCounts,
+    courses,
+    totalMarketingSpend: marketing.efforts.reduce(
+      (s, e) => s + e.effort.price,
+      0,
+    ),
+    totalMarketingEfforts: marketing.efforts.length,
+    coursesWithMarketing,
+    coursesWithoutMarketing: courses.length - coursesWithMarketing,
+    enrollmentConclusions,
+    marketingConclusions: buildMarketingSummaryConclusions(
+      marketing.byType,
+      marketing.efforts,
+      marketing.goals,
+    ),
+    marketing,
+  };
+}
+
+function buildEnrollmentConclusions(
+  year: number,
+  courses: CoursePaceRow[],
+  paceCounts: Record<BenchmarkPaceStatus, number>,
+  behind: CoursePaceRow[],
+  coursesWithMarketing: number,
+): string[] {
+  const lines: string[] = [];
+
+  if (courses.length === 0) {
+    lines.push(`Ingen kurser fundet for ${year}.`);
+    return lines;
+  }
+
+  lines.push(
+    `${courses.length} kurser i ${year}: ${paceCounts.green} på eller over benchmark, ${paceCounts.orange} tæt på (≤ 5 under), ${paceCounts.red} mere end 5 tilmeldinger bagud.`,
+  );
+
+  const totalEnrolled = courses.reduce((s, c) => s + c.enrolled, 0);
+  const totalBudget = courses.reduce((s, c) => s + c.budget, 0);
+  const fillRate =
+    totalBudget > 0 ? Math.round((totalEnrolled / totalBudget) * 100) : 0;
+  lines.push(
+    `Samlet ${totalEnrolled} tilmeldte mod ${totalBudget} budgetterede pladser (${fillRate}% belægning på tværs af alle kurser).`,
+  );
+
+  if (behind.length > 0) {
+    const names = behind
+      .slice(0, 5)
+      .map((c) => `«${c.title}» (${c.gap} mangler)`)
+      .join(", ");
+    lines.push(
+      `Kurser der halter mest: ${names}${behind.length > 5 ? ` og ${behind.length - 5} flere` : ""}.`,
+    );
+  } else if (paceCounts.green === courses.length) {
+    lines.push("Alle kurser ligger på eller over benchmark — god tilmeldingstempo.");
+  }
+
+  if (coursesWithMarketing === 0) {
+    lines.push(
+      "Ingen kurser har registrerede markedsføringsindsatser endnu — tilmeldingstempo kan ikke kobles til konkrete kampagner.",
+    );
+  } else if (coursesWithMarketing < courses.length) {
+    lines.push(
+      `${coursesWithMarketing} af ${courses.length} kurser har markedsføringsindsatser — ${courses.length - coursesWithMarketing} kurser mangler registrerede kampagner.`,
+    );
+  }
+
+  const noEffortsButRed = courses.filter(
+    (c) => c.pace === "red" && c.effortCount === 0,
+  );
+  if (noEffortsButRed.length > 0) {
+    lines.push(
+      `${noEffortsButRed.length} kursus${noEffortsButRed.length !== 1 ? "er" : ""} halter uden registreret markedsføring — overvej nye indsatser.`,
+    );
+  }
+
+  return lines;
 }

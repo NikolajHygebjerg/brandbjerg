@@ -84,3 +84,33 @@ export interface CourseMarketingAnalysis {
   overallConclusion: string;
   goals: MarketingEffectivenessGoals;
 }
+
+export interface CoursePaceRow {
+  courseId: string;
+  title: string;
+  weekNumber: number;
+  enrolled: number;
+  expected: number;
+  budget: number;
+  pace: BenchmarkPaceStatus;
+  gap: number;
+  effortCount: number;
+}
+
+export interface OverallKommunikationAnalysis {
+  year: number;
+  courseCount: number;
+  paceCounts: Record<BenchmarkPaceStatus, number>;
+  courses: CoursePaceRow[];
+  totalMarketingSpend: number;
+  totalMarketingEfforts: number;
+  coursesWithMarketing: number;
+  coursesWithoutMarketing: number;
+  enrollmentConclusions: string[];
+  marketingConclusions: string[];
+  marketing: {
+    efforts: EffortAnalysisDetail[];
+    byType: MarketingTypeSummary[];
+    goals: MarketingEffectivenessGoals;
+  };
+}

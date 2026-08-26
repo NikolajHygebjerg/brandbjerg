@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Megaphone, Target } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { KommunikationSubnav } from "@/components/mockup/kommunikation-subnav";
 import {
   getAvailableCourseYears,
   getCoursesForYear,
@@ -92,30 +93,14 @@ export function KommunikationList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kommunikation</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Tilmeldinger, benchmark og markedsføringsindsatser
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/kommunikation/analyse"
-            className="inline-flex items-center gap-2 rounded-lg bg-purple-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-800"
-          >
-            <BarChart3 className="h-4 w-4" />
-            Samlet analyse
-          </Link>
-          <Link
-            href="/kommunikation/maal"
-            className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2.5 text-sm font-medium text-purple-800 hover:bg-purple-50"
-          >
-            <Target className="h-4 w-4" />
-            Mål
-          </Link>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Kommunikation</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Tilmeldinger, benchmark og markedsføringsindsatser
+        </p>
       </div>
+
+      <KommunikationSubnav />
 
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

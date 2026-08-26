@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { KommunikationSubnav } from "@/components/mockup/kommunikation-subnav";
 import {
   defaultMarketingGoals,
   KOMMUNIKATION_UPDATED_EVENT,
@@ -45,21 +46,24 @@ export function KommunikationGoals() {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/kommunikation"
-          className="text-sm text-purple-700 hover:underline"
-        >
-          ← Tilbage til kommunikation
-        </Link>
-        <div className="mt-2 flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-slate-900">Kommunikation</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Mål for vurdering af markedsføringseffekt
+        </p>
+      </div>
+
+      <KommunikationSubnav />
+
+      <div>
+        <div className="flex items-center gap-3">
           <Target className="h-6 w-6 text-purple-700" />
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-xl font-bold text-slate-900">
             Mål for markedsføringseffekt
-          </h1>
+          </h2>
         </div>
         <p className="mt-1 text-sm text-slate-500">
           Disse mål bruges når appen vurderer indsatser og laver konklusioner
-          under Kommunikation
+          under Analyse
         </p>
       </div>
 
