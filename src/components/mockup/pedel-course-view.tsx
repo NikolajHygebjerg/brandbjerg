@@ -2,20 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { AskQuestionButton } from "@/components/mockup/module-questions";
+import { LokaleSetupDialog } from "@/components/mockup/lokale-setup-dialog";
 import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, type Course } from "@/lib/mock-data";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import {
   formatLokaleFlags,
-  getPedelRowsFromCourse,
+  getPedelDayRooms,
+  groupPedelDayRoomsByDate,
+  timeSpanForRoom,
+  type PedelDayRoom,
 } from "@/lib/pedel-utils";
 
 export function PedelCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
   const [missing, setMissing] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<PedelDayRoom | null>(null);
 
   useEffect(() => {
     const found = getCourseDetailById(courseId);
@@ -39,24 +43,8 @@ export function PedelCourseView({ courseId }: { courseId: string }) {
     );
   }
 
-  const rows = getPedelRowsFromCourse(course);
-  const participantCount =
-    course.enrolled > 0 ? course.enrolled : course.capacity;
-
-  const byDay = rows.reduce(
-    (acc, row) => {
-      const key = `${row.dayDate}|${row.dayLabel}`;
-      if (!acc[key]) {
-        acc[key] = { label: row.dayLabel, date: row.dayDate, rows: [] };
-      }
-      acc[key].rows.push(row);
-      return acc;
-    },
-    {} as Record<
-      string,
-      { label: string; date: string; rows: typeof rows }
-    >,
-  );
+  const dayRooms = getPedelDayRooms(course);
+  const byDay = groupPedelDayRoomsByDate(dayRooms);
 
   return (
     <div className="space-y-6">
@@ -72,106 +60,99 @@ export function PedelCourseView({ courseId }: { courseId: string }) {
           <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          {formatDate(course.startDate)} – {formatDate(course.endDate)} ·{" "}
-          <span className="font-medium text-slate-700">
-            {participantCount} deltagere
-          </span>
+          {formatDate(course.startDate)} – {formatDate(course.endDate)}
         </p>
       </div>
 
-      {rows.length === 0 ? (
+      {dayRooms.length === 0 ? (
         <Card className="border-blue-200 bg-blue-50">
           <CardTitle className="text-base text-blue-900">
-            Ingen lokalespecifikation endnu
+            Ingen lokaler planlagt endnu
           </CardTitle>
           <CardDescription className="text-blue-800">
-            Kursuslederen skal udfylde lokalespecifikation på moduler under
+            Kursuslederen skal vælge lokale og udfylde lokalespecifikation under
             Modulplan.
           </CardDescription>
         </Card>
       ) : (
-        Object.values(byDay).map((day) => (
+        byDay.map((day) => (
           <Card key={day.date} className="overflow-hidden p-0">
             <div className="border-b border-blue-200 bg-blue-50 px-4 py-3">
               <CardTitle className="text-base text-blue-950">
                 {day.label} · {formatDate(day.date)}
               </CardTitle>
               <CardDescription>
-                {day.rows.length} lokaleopsætninger
+                {day.rooms.length} lokale{day.rooms.length !== 1 ? "r" : ""} skal
+                klargøres — klik for opsætning
               </CardDescription>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[960px] text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-2">Modul</th>
-                    <th className="px-4 py-2">Fra</th>
-                    <th className="px-4 py-2">Til</th>
-                    <th className="px-4 py-2">Lokaler</th>
-                    <th className="px-4 py-2">Personer</th>
-                    <th className="px-4 py-2">Bordopstilling</th>
-                    <th className="px-4 py-2">Udstyr</th>
-                    <th className="px-4 py-2">Noter</th>
-                    <th className="px-4 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {day.rows.map((row) => {
-                    const flags = formatLokaleFlags(row.spec);
-                    const flereDage = row.spec.skalBrugesFlereDage
-                      ? `Klar ${row.spec.klarFraUgedag} ${row.spec.klarFraKl} · Ledig ${row.spec.ledigFraUgedag} ${row.spec.ledigFraKl}`
-                      : null;
-                    return (
-                      <tr
-                        key={row.moduleId}
-                        className="border-b border-slate-100"
-                      >
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {row.overskrift || "—"}
-                          {flereDage && (
-                            <p className="mt-0.5 text-xs font-normal text-blue-700">
-                              {flereDage}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums text-slate-700">
-                          {row.tidFra}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums text-slate-700">
-                          {row.tidTil}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
-                          {row.spec.lokale || "—"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
-                          {row.spec.antalPersoner || "—"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
-                          {row.spec.bordopstilling || "—"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {flags.length > 0 ? flags.join(", ") : "—"}
-                        </td>
-                        <td className="max-w-xs px-4 py-3 text-slate-600">
-                          {row.spec.noter || "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <AskQuestionButton
-                            courseId={courseId}
-                            moduleId={row.moduleId}
-                            department="pedel"
-                            moduleLabel={row.overskrift || row.spec.lokale}
-                            compact
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ul className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+              {day.rooms.map((room) => {
+                const flags = formatLokaleFlags(room.entries[0].spec);
+                const personer = Math.max(
+                  ...room.entries.map((e) => e.spec.antalPersoner),
+                );
+                return (
+                  <li key={`${room.dayDate}-${room.lokale}`}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRoom(room)}
+                      className="flex w-full flex-col rounded-xl border border-blue-200 bg-white p-4 text-left transition hover:border-blue-400 hover:bg-blue-50/50 hover:shadow-sm"
+                    >
+                      <div className="flex items-start gap-2">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900">
+                            {room.lokale}
+                          </p>
+                          <p className="mt-0.5 text-xs tabular-nums text-slate-500">
+                            Kl. {timeSpanForRoom(room.entries)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+                        {personer > 0 && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">
+                            {personer} pers.
+                          </span>
+                        )}
+                        {room.entries[0].spec.bordopstilling && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">
+                            {room.entries[0].spec.bordopstilling}
+                          </span>
+                        )}
+                        {flags.slice(0, 2).map((f) => (
+                          <span
+                            key={f}
+                            className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-800"
+                          >
+                            {f}
+                          </span>
+                        ))}
+                        {flags.length > 2 && (
+                          <span className="text-slate-500">
+                            +{flags.length - 2}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-3 text-xs font-medium text-blue-700">
+                        Se opsætning →
+                      </p>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </Card>
         ))
+      )}
+
+      {selectedRoom && (
+        <LokaleSetupDialog
+          room={selectedRoom}
+          courseId={courseId}
+          onClose={() => setSelectedRoom(null)}
+        />
       )}
     </div>
   );

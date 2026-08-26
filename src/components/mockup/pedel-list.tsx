@@ -17,7 +17,7 @@ import {
   countUnansweredQuestions,
   QUESTIONS_UPDATED_EVENT,
 } from "@/lib/module-questions-storage";
-import { countPedelModules } from "@/lib/pedel-utils";
+import { countPedelLokaler } from "@/lib/pedel-utils";
 
 export function PedelList() {
   const [hydrated, setHydrated] = useState(false);
@@ -44,11 +44,11 @@ export function PedelList() {
     return getCoursesForYear(activeYear)
       .map((entry) => {
         const detail = getCourseDetailById(entry.id);
-        const moduleCount = detail ? countPedelModules(detail) : 0;
+        const lokaleCount = detail ? countPedelLokaler(detail) : 0;
         const openQuestions = countUnansweredQuestions(entry.id, "pedel");
-        return { ...entry, moduleCount, openQuestions };
+        return { ...entry, lokaleCount, openQuestions };
       })
-      .filter((c) => c.moduleCount > 0 || activeYear === statusarkYear)
+      .filter((c) => c.lokaleCount > 0 || activeYear === statusarkYear)
       .sort(
         (a, b) =>
           a.weekNumber - b.weekNumber ||
@@ -109,7 +109,7 @@ export function PedelList() {
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-200 bg-blue-50 px-4 py-3">
           <p className="text-sm font-medium text-blue-900">
-            {courses.filter((c) => c.moduleCount > 0).length} kurser med
+            {courses.filter((c) => c.lokaleCount > 0).length} kurser med
             lokaler i {activeYear}
           </p>
         </div>
@@ -160,9 +160,9 @@ export function PedelList() {
                       {c.enrolled > 0 ? c.enrolled : c.budgetStudents}
                     </td>
                     <td className="px-4 py-3">
-                      {c.moduleCount > 0 ? (
+                      {c.lokaleCount > 0 ? (
                         <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                          {c.moduleCount} moduler
+                          {c.lokaleCount} lokale-dage
                         </span>
                       ) : (
                         <span className="text-xs text-slate-400">
