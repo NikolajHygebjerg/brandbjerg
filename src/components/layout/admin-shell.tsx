@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Briefcase,
   Building2,
   CalendarDays,
+  ChevronDown,
   ClipboardCheck,
   ClipboardList,
   GraduationCap,
@@ -65,9 +67,26 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const KK_GROUP_LABEL = "KK afdelingen";
+
+function isKkGroupActive(pathname: string, item: Extract<NavEntry, { type: "group" }>) {
+  return item.children.some((child) => isActive(pathname, child.href));
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { session } = useCourseDetailSession();
+  const kkGroup = nav.find(
+    (item): item is Extract<NavEntry, { type: "group" }> =>
+      item.type === "group" && item.label === KK_GROUP_LABEL,
+  );
+  const [kkExpanded, setKkExpanded] = useState(false);
+
+  useEffect(() => {
+    if (kkGroup && !isKkGroupActive(pathname, kkGroup)) {
+      setKkExpanded(false);
+    }
+  }, [pathname, kkGroup]);
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -108,43 +127,61 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               );
             }
 
-            const groupActive = item.children.some((child) =>
-              isActive(pathname, child.href),
-            );
+            const groupActive = isKkGroupActive(pathname, item);
             const GroupIcon = item.icon;
+            const expanded = item.label === KK_GROUP_LABEL ? kkExpanded : true;
 
             return (
               <div key={item.label} className="pt-1">
-                <div
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (item.label === KK_GROUP_LABEL) {
+                      setKkExpanded((open) => !open);
+                    }
+                  }}
+                  aria-expanded={item.label === KK_GROUP_LABEL ? kkExpanded : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold",
-                    groupActive ? "text-emerald-900" : "text-slate-700",
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors",
+                    groupActive
+                      ? "bg-emerald-50 text-emerald-900"
+                      : "text-slate-700 hover:bg-slate-100",
                   )}
                 >
                   <GroupIcon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </div>
-                <div className="ml-3 space-y-0.5 border-l border-slate-200 pl-3">
-                  {item.children.map((child) => {
-                    const active = isActive(pathname, child.href);
-                    const Icon = child.icon;
-                    return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-emerald-50 text-emerald-900"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                        )}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        {child.label}
-                      </Link>
-                    );
-                  })}
-                </div>
+                  <span className="flex-1">{item.label}</span>
+                  {item.label === KK_GROUP_LABEL && (
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-slate-400 transition-transform",
+                        expanded && "rotate-180",
+                      )}
+                    />
+                  )}
+                </button>
+                {expanded && (
+                  <div className="ml-3 space-y-0.5 border-l border-slate-200 pl-3">
+                    {item.children.map((child) => {
+                      const active = isActive(pathname, child.href);
+                      const Icon = child.icon;
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                            active
+                              ? "bg-emerald-50 text-emerald-900"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
