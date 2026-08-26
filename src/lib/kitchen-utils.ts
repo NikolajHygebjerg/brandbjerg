@@ -1,3 +1,7 @@
+import {
+  getBudgetAntal,
+  getRealiseretAntal,
+} from "./course-enrollment-counts";
 import type { Course, CourseModule } from "./mock-data";
 import { mergeCoursePlan } from "./course-plan-storage";
 import { isHeldagsturModule } from "./mock-data";
@@ -26,7 +30,8 @@ export interface KitchenMealRow {
 }
 
 function defaultPersonCount(course: Course): number {
-  return course.enrolled > 0 ? course.enrolled : course.capacity;
+  const realiseret = getRealiseretAntal(course);
+  return realiseret > 0 ? realiseret : getBudgetAntal(course);
 }
 
 function mealPersonCount(

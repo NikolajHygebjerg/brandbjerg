@@ -63,6 +63,10 @@ import {
   sendKitchenPlan,
 } from "@/lib/kitchen-storage";
 import { KitchenPlanWarnings } from "@/components/mockup/kitchen-plan-warnings";
+import {
+  getBudgetAntal,
+  getRealiseretAntal,
+} from "@/lib/course-enrollment-counts";
 
 type Tab = "oversigt" | "modulplan" | "tilmeldinger";
 
@@ -541,8 +545,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
           </Card>
 
           <Card>
-            <CardTitle>Datoer & kapacitet</CardTitle>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <CardTitle>Datoer & deltagere</CardTitle>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <Field label="Startdato">
                 <input
                   type="date"
@@ -559,7 +563,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
                 />
               </Field>
-              <Field label="Kapacitet">
+              <Field label="Budget antal">
                 <input
                   type="number"
                   value={course.capacity}
@@ -567,6 +571,15 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                     updateCourse({ capacity: Number(e.target.value) })
                   }
                   className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+                />
+              </Field>
+              <Field label="Realiseret antal">
+                <input
+                  type="number"
+                  readOnly
+                  value={getRealiseretAntal(course)}
+                  className="w-full cursor-default rounded border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-700"
+                  title="Hentes automatisk fra tilmeldinger"
                 />
               </Field>
               <Field label="Markedsføringsbudget">
@@ -879,8 +892,9 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         <Card>
           <CardTitle>Tilmeldinger</CardTitle>
           <CardDescription>
-            {course.enrolled} tilmeldte · {course.paid} betalt ·{" "}
-            {course.capacity - course.enrolled} pladser tilbage
+            {getRealiseretAntal(course)} tilmeldte · {course.paid} betalt ·{" "}
+            {Math.max(0, getBudgetAntal(course) - getRealiseretAntal(course))}{" "}
+            pladser tilbage
           </CardDescription>
           <Button href="/tilmeldinger" className="mt-4" variant="secondary">
             Se alle tilmeldinger

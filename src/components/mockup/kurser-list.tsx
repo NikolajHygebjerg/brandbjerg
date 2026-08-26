@@ -17,6 +17,7 @@ import {
   CourseListTitleCell,
   CourseListWeekCell,
 } from "@/components/mockup/course-list-table";
+import { getBudgetAntal, getRealiseretAntal } from "@/lib/course-enrollment-counts";
 import {
   getAvailableCourseYears,
   getCoursesForYear,
@@ -109,8 +110,8 @@ export function KurserList() {
               <>
                 <CourseListHeaderCell>Dato</CourseListHeaderCell>
                 <CourseListHeaderCell>Ansvarlig</CourseListHeaderCell>
-                <CourseListHeaderCell>Budget</CourseListHeaderCell>
-                <CourseListHeaderCell>Tilmeldte</CourseListHeaderCell>
+                <CourseListHeaderCell>Budget antal</CourseListHeaderCell>
+                <CourseListHeaderCell>Realiseret antal</CourseListHeaderCell>
                 <CourseListHeaderCell>Status</CourseListHeaderCell>
               </>
             }
@@ -140,10 +141,10 @@ export function KurserList() {
 }
 
 function CourseRow({ course }: { course: CourseListEntry }) {
+  const budget = getBudgetAntal(course);
+  const realiseret = getRealiseretAntal(course);
   const fillPct =
-    course.capacity > 0
-      ? Math.min(100, Math.round((course.enrolled / course.capacity) * 100))
-      : 0;
+    budget > 0 ? Math.min(100, Math.round((realiseret / budget) * 100)) : 0;
   const openQuestions = countUnansweredQuestions(course.id);
 
   return (
@@ -158,23 +159,21 @@ function CourseRow({ course }: { course: CourseListEntry }) {
       />
       <CourseListDatesCell startDate={course.startDate} />
       <CourseListDataCell>{course.responsible}</CourseListDataCell>
-      <CourseListDataCell>{course.budgetStudents}</CourseListDataCell>
+      <CourseListDataCell>{budget}</CourseListDataCell>
       <td className="px-4 py-3">
-        {course.enrolled > 0 ? (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {budget > 0 && (
             <div className="h-2 w-16 overflow-hidden rounded-full bg-slate-200">
               <div
                 className="h-full rounded-full bg-emerald-600"
                 style={{ width: `${fillPct}%` }}
               />
             </div>
-            <span className="text-xs">
-              {course.enrolled}/{course.capacity}
-            </span>
-          </div>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
+          )}
+          <span className="text-xs font-medium tabular-nums text-slate-900">
+            {realiseret}
+          </span>
+        </div>
       </td>
       <td className="px-4 py-3">
         <StatusBadge status={course.status} />

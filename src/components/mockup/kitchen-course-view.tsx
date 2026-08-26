@@ -12,6 +12,7 @@ import { getMealRowsFromCourse } from "@/lib/kitchen-utils";
 import { loadKitchenSent } from "@/lib/kitchen-storage";
 import { validateKitchenPlan } from "@/lib/kitchen-plan-rules";
 import { KitchenPlanWarnings } from "@/components/mockup/kitchen-plan-warnings";
+import { CourseEnrollmentBadges } from "@/components/mockup/course-enrollment-badges";
 
 export function KitchenCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -77,6 +78,9 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
             </span>
           )}
         </p>
+        <div className="mt-3">
+          <CourseEnrollmentBadges course={course} />
+        </div>
       </div>
 
       {!sent && !validation.ok && (

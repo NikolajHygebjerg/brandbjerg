@@ -29,6 +29,10 @@ import {
   countUnansweredQuestions,
   QUESTIONS_UPDATED_EVENT,
 } from "@/lib/module-questions-storage";
+import {
+  getBudgetAntal,
+  getRealiseretAntal,
+} from "@/lib/course-enrollment-counts";
 
 export function KitchenList() {
   const [hydrated, setHydrated] = useState(false);
@@ -139,7 +143,8 @@ export function KitchenList() {
             trailingHeaders={
               <>
                 <CourseListHeaderCell>Datoer</CourseListHeaderCell>
-                <CourseListHeaderCell>Deltagere</CourseListHeaderCell>
+                <CourseListHeaderCell>Budget antal</CourseListHeaderCell>
+                <CourseListHeaderCell>Realiseret antal</CourseListHeaderCell>
                 <CourseListHeaderCell>Måltider</CourseListHeaderCell>
                 <CourseListHeaderCell>Status</CourseListHeaderCell>
               </>
@@ -147,7 +152,7 @@ export function KitchenList() {
           />
           <tbody>
             {courses.length === 0 ? (
-              <CourseListEmptyRow colSpan={6}>
+              <CourseListEmptyRow colSpan={7}>
                 Ingen køkkenplaner modtaget endnu. Kursuslederen godkender
                 måltidsmoduler i modulplanen — derefter sendes planen
                 automatisk hertil.
@@ -167,7 +172,10 @@ export function KitchenList() {
                     endDate={c.endDate}
                   />
                   <CourseListDataCell>
-                    {c.enrolled > 0 ? c.enrolled : c.budgetStudents}
+                    {getBudgetAntal(c)}
+                  </CourseListDataCell>
+                  <CourseListDataCell>
+                    {getRealiseretAntal(c)}
                   </CourseListDataCell>
                   <td className="px-4 py-3">
                     {c.sent ? (

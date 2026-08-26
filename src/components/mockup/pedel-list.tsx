@@ -27,6 +27,10 @@ import {
   QUESTIONS_UPDATED_EVENT,
 } from "@/lib/module-questions-storage";
 import { countPedelLokaler } from "@/lib/pedel-utils";
+import {
+  getBudgetAntal,
+  getRealiseretAntal,
+} from "@/lib/course-enrollment-counts";
 
 export function PedelList() {
   const [hydrated, setHydrated] = useState(false);
@@ -127,14 +131,15 @@ export function PedelList() {
             trailingHeaders={
               <>
                 <CourseListHeaderCell>Datoer</CourseListHeaderCell>
-                <CourseListHeaderCell>Deltagere</CourseListHeaderCell>
+                <CourseListHeaderCell>Budget antal</CourseListHeaderCell>
+                <CourseListHeaderCell>Realiseret antal</CourseListHeaderCell>
                 <CourseListHeaderCell>Lokaler</CourseListHeaderCell>
               </>
             }
           />
           <tbody>
             {courses.length === 0 ? (
-              <CourseListEmptyRow colSpan={5}>
+              <CourseListEmptyRow colSpan={6}>
                 Ingen kurser fundet. Udfyld lokalespecifikation under
                 Modulplan.
               </CourseListEmptyRow>
@@ -153,7 +158,10 @@ export function PedelList() {
                     endDate={c.endDate}
                   />
                   <CourseListDataCell>
-                    {c.enrolled > 0 ? c.enrolled : c.budgetStudents}
+                    {getBudgetAntal(c)}
+                  </CourseListDataCell>
+                  <CourseListDataCell>
+                    {getRealiseretAntal(c)}
                   </CourseListDataCell>
                   <td className="px-4 py-3">
                     {c.lokaleCount > 0 ? (

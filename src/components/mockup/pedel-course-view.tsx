@@ -15,6 +15,7 @@ import {
   timeSpanForRoom,
   type PedelDayRoom,
 } from "@/lib/pedel-utils";
+import { CourseEnrollmentBadges } from "@/components/mockup/course-enrollment-badges";
 
 export function PedelCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -62,6 +63,9 @@ export function PedelCourseView({ courseId }: { courseId: string }) {
         <p className="mt-1 text-sm text-slate-500">
           {formatDate(course.startDate)} – {formatDate(course.endDate)}
         </p>
+        <div className="mt-3">
+          <CourseEnrollmentBadges course={course} />
+        </div>
       </div>
 
       {dayRooms.length === 0 ? (
