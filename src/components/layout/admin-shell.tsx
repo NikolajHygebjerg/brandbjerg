@@ -3,19 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
   Building2,
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
-  Coins,
   Home,
   LayoutDashboard,
   LayoutTemplate,
   Megaphone,
   Network,
   Sparkles,
-  Users,
   UtensilsCrossed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,9 +29,6 @@ const nav = [
   { href: "/pedel", label: "Pedel og rengøring", icon: Sparkles },
   { href: "/kontor", label: "Kontor", icon: Building2 },
   { href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
-  { href: "/tilmeldinger", label: "Tilmeldinger", icon: Users },
-  { href: "/afvikling", label: "Afvikling", icon: BarChart3 },
-  { href: "/oekonomi", label: "Økonomi / KOMiT", icon: Coins },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
