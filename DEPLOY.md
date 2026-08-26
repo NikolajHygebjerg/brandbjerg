@@ -16,10 +16,20 @@ npm run ship -- "Beskrivelse af rettelsen"
 
 Dette script:
 1. Committer alle ændringer (hvis der er nogen)
-2. Pusher til `origin/main`
-3. Deployer til Vercel produktion
+2. Pusher til `origin` og `github` på nuværende branch (typisk `main`)
+3. Forsøger Vercel CLI deploy — fejler CLI'en, deployer GitHub-push alligevel via Vercel Git-integration
 
-Cloud Agent kører dette efter hver kodeændring.
+Cloud Agent kører dette **automatisk efter hver kodeændring** (se `.cursor/rules/ship-after-changes.mdc`).
+
+### GitHub Actions (valgfrit)
+
+Workflow `.github/workflows/vercel-deploy.yml` bygger og deployer ved push til `main`, hvis disse secrets er sat i GitHub:
+
+| Secret | Værdi |
+|--------|-------|
+| `VERCEL_TOKEN` | Vercel → Settings → Tokens |
+| `VERCEL_ORG_ID` | `team_gY7y55YQgvGEYLjfaiWYXX6G` |
+| `VERCEL_PROJECT_ID` | `prj_vFCcBxdFsNYFJYadQ3gkBMPlFUBA` |
 
 ## Manuel deploy
 

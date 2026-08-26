@@ -1,20 +1,18 @@
 # Agent-instruktioner — Brandbjerg mockup
 
-## Efter hver rettelse
+## Efter hver rettelse (obligatorisk)
 
-Kør altid commit, push og deploy når der er lavet kodeændringer:
-
-```bash
-chmod +x scripts/ship.sh
-./scripts/ship.sh "Kort beskrivelse af rettelsen"
-```
-
-Eller manuelt:
+Kør **altid** dette når der er lavet kodeændringer — også små rettelser:
 
 ```bash
-git add -A && git commit -m "..." && git push -u origin main
-npm run deploy
+npm run ship -- "Kort beskrivelse af rettelsen"
 ```
+
+Det committer, pusher til Cursor-origin og GitHub (`main`), og deployer til Vercel.
+
+Push til GitHub udløser automatisk produktions-deploy via Vercel Git-integration. Hvis Vercel CLI fejler i Cloud Agent-miljøet, er GitHub-push nok.
+
+Valgfrit: tilføj `VERCEL_TOKEN`, `VERCEL_ORG_ID` og `VERCEL_PROJECT_ID` som GitHub-secrets for deploy via Actions (`.github/workflows/vercel-deploy.yml`).
 
 ## Live URL
 

@@ -1,0 +1,17 @@
+---
+description: Commit, push og deploy automatisk efter hver kodeændring
+alwaysApply: true
+---
+
+Efter **hver rettelse** med kodeændringer skal du afslutte med:
+
+```bash
+npm run ship -- "Kort beskrivelse af rettelsen"
+```
+
+Scriptet committer, pusher til både Cursor-origin og GitHub (`main`), og forsøger Vercel-produktion.
+
+- Kør ship **før** du tester UI i browser, medmindre du stadig debugger aktivt.
+- Brug danske, beskrivende commit-beskeder.
+- Hvis Vercel CLI fejler lokalt, er push til GitHub nok — Vercel deployer automatisk ved push til `main`.
+- Live URL: https://temporary-agile-boron-nfvvr9v.vercel.app
