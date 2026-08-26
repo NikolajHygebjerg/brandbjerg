@@ -8,6 +8,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { MarketingEffortDialog } from "@/components/mockup/marketing-effort-dialog";
 import { MarketingTimeline } from "@/components/mockup/marketing-timeline";
 import { MarketingAnalysisPanel } from "@/components/mockup/marketing-analysis-panel";
+import { HistoricalLearningPanel } from "@/components/mockup/historical-learning-panel";
 import { EnrollmentTimelinePanel } from "@/components/mockup/enrollment-timeline";
 import { getCourseDetailById } from "@/lib/course-list";
 import { formatDate, type Course } from "@/lib/mock-data";
@@ -15,6 +16,7 @@ import type { StatusarkCourse } from "@/lib/brandbjerg-statusark";
 import {
   addMarketingEffort,
   ensureDemoMarketingData,
+  ensureHistoricalMarketingDemoData,
   KOMMUNIKATION_UPDATED_EVENT,
   loadKommunikationState,
   loadRegistrationQuestionsForCourse,
@@ -31,6 +33,7 @@ import {
   resolveKommunikationContext,
   suggestBenchmarksFromHistory,
 } from "@/lib/kommunikation-utils";
+import { buildHistoricalLearningAnalysis } from "@/lib/kommunikation-history-analysis";
 
 export function KommunikationCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
@@ -47,6 +50,7 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
 
   useEffect(() => {
     ensureDemoMarketingData(courseId);
+    ensureHistoricalMarketingDemoData();
   }, [courseId]);
 
   useEffect(() => {
@@ -66,6 +70,15 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
     if (!course) return null;
     return buildCourseMarketingAnalysis(courseId, course);
   }, [course, courseId, tick]);
+
+  const historicalLearning = useMemo(() => {
+    if (!course || !ctx) return null;
+    return buildHistoricalLearningAnalysis(courseId, {
+      title: course.title,
+      type: ctx.statusark?.type ?? course.category,
+      startDate: ctx.startDate,
+    });
+  }, [course, courseId, ctx, tick]);
 
   if (missing) {
     return (
@@ -233,6 +246,10 @@ export function KommunikationCourseView({ courseId }: { courseId: string }) {
             ))}
           </ul>
         </Card>
+      )}
+
+      {historicalLearning && (
+        <HistoricalLearningPanel analysis={historicalLearning} />
       )}
 
       {analysis && <MarketingAnalysisPanel analysis={analysis} />}

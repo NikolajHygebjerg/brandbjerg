@@ -114,3 +114,30 @@ export interface OverallKommunikationAnalysis {
     goals: MarketingEffectivenessGoals;
   };
 }
+
+export interface SimilarCourseSnapshot {
+  courseId: string;
+  title: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  enrolled: number;
+  budget: number;
+  fillRate: number;
+  matchReason: string;
+  matchScore: number;
+  peakMonthsBefore: number | null;
+  peakWeekLabel: string | null;
+  peakWeekCount: number;
+  efforts: EffortAnalysisDetail[];
+}
+
+export interface HistoricalLearningAnalysis {
+  targetTitle: string;
+  targetType: string;
+  similarCourses: SimilarCourseSnapshot[];
+  conclusions: string[];
+  recommendations: string[];
+  avgPeakMonthsBefore: number | null;
+  arshjulHistory: Record<number, number>;
+}

@@ -242,3 +242,83 @@ export function ensureDemoMarketingData(courseId: string): void {
   attribution[facebook.id] = 0;
   localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
 }
+
+/** Demo markedsføring på afholdte HL-kurser — til historisk læringsanalyse */
+export function ensureHistoricalMarketingDemoData(): void {
+  if (typeof window === "undefined") return;
+
+  seedHistoricalCourse("sa26-23", [
+    {
+      id: "mkt-hist-lyse-avis",
+      type: "avis" as const,
+      startDate: "2026-03-10",
+      endDate: "2026-03-10",
+      price: 4500,
+    },
+    {
+      id: "mkt-hist-lyse-fb",
+      type: "facebook" as const,
+      startDate: "2026-05-15",
+      endDate: "2026-05-22",
+      price: 6000,
+    },
+  ], { "mkt-hist-lyse-avis": 3, "mkt-hist-lyse-fb": 0 });
+
+  seedHistoricalCourse("sa26-5", [
+    {
+      id: "mkt-hist-skriv-avis",
+      type: "avis" as const,
+      startDate: "2025-11-20",
+      endDate: "2025-11-20",
+      price: 4000,
+    },
+    {
+      id: "mkt-hist-skriv-some",
+      type: "some" as const,
+      startDate: "2026-01-08",
+      endDate: "2026-01-15",
+      price: 3500,
+    },
+  ], { "mkt-hist-skriv-avis": 2, "mkt-hist-skriv-some": 1 });
+}
+
+function seedHistoricalCourse(
+  courseId: string,
+  efforts: Array<{
+    id: string;
+    type: "facebook" | "some" | "avis";
+    startDate: string;
+    endDate: string;
+    price: number;
+  }>,
+  attribution: Record<string, number>,
+): void {
+  const existing = loadKommunikationState(courseId);
+  if (existing && existing.efforts.length > 0) return;
+
+  const created = efforts.map((e) => ({
+    id: e.id,
+    courseId,
+    type: e.type,
+    startDate: e.startDate,
+    endDate: e.endDate,
+    price: e.price,
+    createdAt: new Date().toISOString(),
+  }));
+
+  saveKommunikationState(courseId, {
+    benchmarks: existing?.benchmarks ?? [],
+    benchmarksFromHistory: existing?.benchmarksFromHistory ?? false,
+    efforts: created,
+  });
+
+  for (const e of created) {
+    addRegistrationQuestionForEffort(courseId, e);
+  }
+
+  const counts = loadAttributionCounts();
+  for (const [id, count] of Object.entries(attribution)) {
+    counts[id] = count;
+  }
+  localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(counts));
+}
