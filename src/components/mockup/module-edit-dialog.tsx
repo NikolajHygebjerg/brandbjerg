@@ -239,17 +239,12 @@ function MealForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex items-center gap-2 text-sm sm:col-span-2">
-          <input
-            type="checkbox"
-            checked={meal.sendesTilKoekken}
-            onChange={(e) =>
-              updateMeal({ sendesTilKoekken: e.target.checked })
-            }
-          />
-          Sendes til køkken
-        </label>
-
+        <FieldInput
+          label="Antal personer"
+          value={String(meal.antalPersoner || "")}
+          onChange={(v) => updateMeal({ antalPersoner: Number(v) || 0 })}
+          placeholder="0 = hele kurset"
+        />
         <FieldSelect
           label="Forplejning"
           value={meal.forplejning}

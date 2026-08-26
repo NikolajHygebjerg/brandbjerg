@@ -260,22 +260,20 @@ function MaltidFields({
           ...lokaler.map((l) => ({ value: l, label: l })),
         ]}
       />
+      <FieldInput
+        label="Antal personer"
+        value={String(maltid.antalPersoner || "")}
+        onChange={(v) =>
+          onChange({ ...maltid, antalPersoner: Number(v) || 0 })
+        }
+        placeholder="0 = hele kurset"
+      />
       <FieldTextarea
         label="Note"
         value={maltid.note}
         onChange={(v) => onChange({ ...maltid, note: v })}
         rows={2}
       />
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={maltid.sendesTilKoekken}
-          onChange={(e) =>
-            onChange({ ...maltid, sendesTilKoekken: e.target.checked })
-          }
-        />
-        Sendes til køkken
-      </label>
     </div>
   );
 }
@@ -328,11 +326,13 @@ function FieldInput({
   value,
   onChange,
   type = "text",
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  placeholder?: string;
 }) {
   return (
     <label className="block text-sm">
@@ -340,6 +340,7 @@ function FieldInput({
       <input
         type={type}
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="mt-0.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
       />

@@ -74,7 +74,6 @@ export function createHeldagsturPunkt(type: HeldagsturPunktType): HeldagsturPunk
     maltid: defaultMealDetails({
       forplejning: "Madpakker",
       specifikation: "Almindelig",
-      sendesTilKoekken: true,
     }),
   };
 }

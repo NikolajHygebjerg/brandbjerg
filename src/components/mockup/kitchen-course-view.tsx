@@ -37,8 +37,6 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
   }
 
   const meals = getMealRowsFromCourse(course);
-  const participantCount =
-    course.enrolled > 0 ? course.enrolled : course.capacity;
 
   const byDay = meals.reduce(
     (acc, row) => {
@@ -67,10 +65,7 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
           <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          {formatDate(course.startDate)} – {formatDate(course.endDate)} ·{" "}
-          <span className="font-medium text-slate-700">
-            {participantCount} deltagere
-          </span>
+          {formatDate(course.startDate)} – {formatDate(course.endDate)}
         </p>
       </div>
 
@@ -92,14 +87,15 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
                 {day.label} · {formatDate(day.date)}
               </CardTitle>
               <CardDescription>
-                {participantCount} kuverter · {day.rows.length} serveringer
+                {day.rows.reduce((sum, r) => sum + r.antalPersoner, 0)} kuverter
+                i alt · {day.rows.length} serveringer
               </CardDescription>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-2">Sendes til køkken</th>
+                    <th className="px-4 py-2">Antal pers.</th>
                     <th className="px-4 py-2">Forplejning</th>
                     <th className="px-4 py-2">Specifikation</th>
                     <th className="px-4 py-2">Fra kl.</th>
@@ -115,7 +111,9 @@ export function KitchenCourseView({ courseId }: { courseId: string }) {
                       key={row.moduleId}
                       className="border-b border-slate-100"
                     >
-                      <td className="px-4 py-3 text-emerald-700">Ja</td>
+                      <td className="px-4 py-3 font-semibold tabular-nums text-slate-900">
+                        {row.antalPersoner}
+                      </td>
                       <td className="px-4 py-3 font-medium text-slate-900">
                         {row.forplejning}
                       </td>

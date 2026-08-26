@@ -12,7 +12,20 @@ export interface KitchenMealRow {
   tidTil: string;
   lokale: string;
   note: string;
-  sendesTilKoekken: boolean;
+  antalPersoner: number;
+}
+
+function defaultPersonCount(course: Course): number {
+  return course.enrolled > 0 ? course.enrolled : course.capacity;
+}
+
+function mealPersonCount(
+  antalPersoner: number | undefined,
+  course: Course,
+): number {
+  return antalPersoner && antalPersoner > 0
+    ? antalPersoner
+    : defaultPersonCount(course);
 }
 
 export function getMealRowsFromCourse(course: Course): KitchenMealRow[] {
@@ -22,7 +35,6 @@ export function getMealRowsFromCourse(course: Course): KitchenMealRow[] {
   for (const day of merged.days) {
     for (const mod of day.modules) {
       if (mod.erMaltid && mod.maltid) {
-        if (!mod.maltid.sendesTilKoekken) continue;
         rows.push({
           moduleId: mod.id,
           dayLabel: day.label,
@@ -33,14 +45,13 @@ export function getMealRowsFromCourse(course: Course): KitchenMealRow[] {
           tidTil: mod.tidTil,
           lokale: mod.maltid.lokale,
           note: mod.maltid.note,
-          sendesTilKoekken: mod.maltid.sendesTilKoekken,
+          antalPersoner: mealPersonCount(mod.maltid.antalPersoner, merged),
         });
       }
 
       if (isHeldagsturModule(mod) && mod.heldagstur) {
         for (const punkt of mod.heldagstur.punkter) {
           if (punkt.type !== "maltid" || !punkt.maltid) continue;
-          if (!punkt.maltid.sendesTilKoekken) continue;
           rows.push({
             moduleId: `${mod.id}-${punkt.id}`,
             dayLabel: day.label,
@@ -51,7 +62,7 @@ export function getMealRowsFromCourse(course: Course): KitchenMealRow[] {
             tidTil: punkt.tidTil,
             lokale: punkt.maltid.lokale,
             note: punkt.maltid.note || mod.overskrift,
-            sendesTilKoekken: punkt.maltid.sendesTilKoekken,
+            antalPersoner: mealPersonCount(punkt.maltid.antalPersoner, merged),
           });
         }
       }
@@ -70,5 +81,5 @@ export function countKitchenMeals(course: Course): number {
 }
 
 export function isMealModule(mod: CourseModule): boolean {
-  return Boolean(mod.erMaltid && mod.maltid?.sendesTilKoekken);
+  return Boolean(mod.erMaltid && mod.maltid);
 }

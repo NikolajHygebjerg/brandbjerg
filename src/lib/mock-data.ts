@@ -40,7 +40,7 @@ export interface MealDetails {
   specifikation: string;
   lokale: string;
   note: string;
-  sendesTilKoekken: boolean;
+  antalPersoner: number;
 }
 
 export type { HeldagsturPlan } from "./heldagstur-utils";
@@ -209,7 +209,7 @@ export function defaultMealDetails(
     specifikation: "Almindelig",
     lokale: "L. spisesal",
     note: "",
-    sendesTilKoekken: true,
+    antalPersoner: 0,
     ...overrides,
   };
 }
