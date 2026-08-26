@@ -15,7 +15,7 @@ import type {
 } from "@/lib/budget/budget-types";
 import { formatDate, formatDKK, weekLabel, type Course } from "@/lib/mock-data";
 import { countInclusiveDays } from "@/lib/module-plan-utils";
-import { getStaff } from "@/lib/brandbjerg-staff";
+import { getPersonById } from "@/lib/person-utils";
 
 type CourseBudgetPanelProps = {
   course: Course;
@@ -34,7 +34,7 @@ export function CourseBudgetPanel({
   onUpdateBudgetManual,
   onUpdateBudgetInput,
 }: CourseBudgetPanelProps) {
-  const leader = getStaff(course.courseLeaderId);
+  const leader = getPersonById(course.courseLeaderId);
   const dayCount =
     course.days.length > 0
       ? course.days.length

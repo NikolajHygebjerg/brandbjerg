@@ -3,7 +3,7 @@
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { getStaff } from "@/lib/brandbjerg-staff";
+import { getPersonById } from "@/lib/person-utils";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import type { Course } from "@/lib/mock-data";
 import {
@@ -23,7 +23,7 @@ export function UbakBeskrivelsePanel({
   const merged = mergeCoursePlan(course);
   const rows = getUbakBeskrivelseRows(merged);
   const stats = computeUbakBeskrivelseStats(merged);
-  const leader = getStaff(merged.courseLeaderId);
+  const leader = getPersonById(merged.courseLeaderId);
 
   function handlePrint() {
     window.print();

@@ -19,7 +19,8 @@ import {
   loadActiveYearFromStorage,
   loadPlansFromStorage,
 } from "./arshjul-utils";
-import { defaultLeaderForInitials, getStaffByInitials } from "./brandbjerg-staff";
+import { getStaffByInitials } from "./brandbjerg-staff";
+import { leaderIdForInitials } from "./person-utils";
 import { netEnrolled } from "./statusark-utils";
 import {
   buildEmptyDays,
@@ -185,8 +186,8 @@ export function plannedCourseToDetail(
     department: "Planlægning",
     weekNumber: c.weekNumber,
     courseLeaderId: staff
-      ? staff.id
-      : defaultLeaderForInitials(c.responsible || "AG"),
+      ? leaderIdForInitials(c.responsible || staff.initials)
+      : leaderIdForInitials(c.responsible || "AG"),
     hostIds: [],
     budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,

@@ -42,10 +42,13 @@ import {
   getTemplateForDayCount,
 } from "@/lib/template-storage";
 import {
-  getStaff,
-  hojskolelaerere,
-  kortKursusLedere,
-} from "@/lib/brandbjerg-staff";
+  getPersonById,
+  listCourseLeaderCandidates,
+  listStaffUsers,
+  resolvePersonId,
+} from "@/lib/person-utils";
+import { AUTH_UPDATED_EVENT } from "@/lib/auth-storage";
+import type { User } from "@/lib/auth-types";
 import {
   createPlanSnapshot,
   formatPlanSavedAt,
@@ -90,9 +93,23 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   >({});
   const hydratedRef = useRef(false);
   const { registerSession } = useCourseDetailSession();
+  const [courseLeaders, setCourseLeaders] = useState<User[]>([]);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
 
-  const leader = getStaff(course.courseLeaderId);
-  const hosts = course.hostIds.map((id) => getStaff(id)).filter(Boolean);
+  const leader = getPersonById(course.courseLeaderId);
+  const hosts = course.hostIds
+    .map((id) => getPersonById(id))
+    .filter(Boolean);
+
+  useEffect(() => {
+    function refreshPeople() {
+      setCourseLeaders(listCourseLeaderCandidates());
+      setStaffUsers(listStaffUsers());
+    }
+    refreshPeople();
+    window.addEventListener(AUTH_UPDATED_EVENT, refreshPeople);
+    return () => window.removeEventListener(AUTH_UPDATED_EVENT, refreshPeople);
+  }, []);
   const dayCount = countInclusiveDays(course.startDate, course.endDate);
   const templateForCourse = getTemplateForDayCount(dayCount);
 
@@ -466,31 +483,27 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   Kursusleder
                 </label>
                 <select
-                  value={course.courseLeaderId}
+                  value={resolvePersonId(course.courseLeaderId)}
                   onChange={(e) =>
                     updateCourse({ courseLeaderId: e.target.value })
                   }
                   className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
-                  <optgroup label="Højskolelærere — korte kurser">
-                    {kortKursusLedere.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.initials})
+                  {courseLeaders.length === 0 ? (
+                    <option value="">Ingen højskolelærere oprettet endnu</option>
+                  ) : (
+                    courseLeaders.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
                       </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Højskolelærere">
-                    {hojskolelaerere
-                      .filter((t) => t.group === "hojskolelaerer")
-                      .map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                  </optgroup>
+                    ))
+                  )}
                 </select>
                 {leader && (
-                  <p className="mt-1 text-xs text-slate-400">{leader.subjects}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {leader.email}
+                    {leader.roleLabel ? ` · ${leader.roleLabel}` : ""}
+                  </p>
                 )}
               </div>
               <div>
@@ -498,48 +511,39 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   Ekstra kursusværter
                 </label>
                 <div className="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-100 p-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Korte kurser
-                  </p>
-                  {kortKursusLedere
-                    .filter((t) => t.id !== course.courseLeaderId)
-                    .map((t) => (
-                      <HostCheckbox
-                        key={t.id}
-                        id={t.id}
-                        name={`${t.name} (${t.initials})`}
-                        checked={course.hostIds.includes(t.id)}
-                        onChange={(checked) => {
-                          const hostIds = checked
-                            ? [...course.hostIds, t.id]
-                            : course.hostIds.filter((id) => id !== t.id);
-                          updateCourse({ hostIds });
-                        }}
-                      />
-                    ))}
-                  <p className="pt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Højskolelærere
-                  </p>
-                  {hojskolelaerere
+                  {staffUsers
                     .filter(
-                      (t) =>
-                        t.group === "hojskolelaerer" &&
-                        t.id !== course.courseLeaderId,
+                      (person) =>
+                        resolvePersonId(person.id) !==
+                        resolvePersonId(course.courseLeaderId),
                     )
-                    .map((t) => (
+                    .map((person) => (
                       <HostCheckbox
-                        key={t.id}
-                        id={t.id}
-                        name={t.name}
-                        checked={course.hostIds.includes(t.id)}
+                        key={person.id}
+                        id={person.id}
+                        name={person.name}
+                        checked={course.hostIds.some(
+                          (id) => resolvePersonId(id) === person.id,
+                        )}
                         onChange={(checked) => {
+                          const leaderId = resolvePersonId(
+                            course.courseLeaderId,
+                          );
+                          const normalizedHosts = course.hostIds
+                            .map((id) => resolvePersonId(id))
+                            .filter((id) => id !== leaderId);
                           const hostIds = checked
-                            ? [...course.hostIds, t.id]
-                            : course.hostIds.filter((id) => id !== t.id);
+                            ? [...normalizedHosts, person.id]
+                            : normalizedHosts.filter((id) => id !== person.id);
                           updateCourse({ hostIds });
                         }}
                       />
                     ))}
+                  {staffUsers.length === 0 && (
+                    <p className="text-xs text-slate-500">
+                      Ingen brugere oprettet endnu
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="text-xs text-slate-500">

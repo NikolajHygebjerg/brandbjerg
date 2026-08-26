@@ -1,5 +1,6 @@
 import { brandbjerg2026Courses } from "./brandbjerg-arshjul";
-import { defaultLeaderForInitials, getStaffByInitials } from "./brandbjerg-staff";
+import { getStaffByInitials } from "./brandbjerg-staff";
+import { leaderIdForInitials } from "./person-utils";
 import type { Course, CourseStatus } from "./mock-data";
 import { defaultChecklist } from "./mock-data";
 import {
@@ -33,9 +34,11 @@ function findResponsibleInitials(title: string, week: number): string {
 export function statusarkToCourse(c: StatusarkCourse): Course {
   const enrolled = netEnrolled(c.totalEnrolled, c.paidCancellations);
   const capacity = (c.maxStudents ?? c.budgetStudents) || 20;
-  const staff = getStaffByInitials(
-    findResponsibleInitials(c.title, c.courseWeekNumber),
+  const responsibleInitials = findResponsibleInitials(
+    c.title,
+    c.courseWeekNumber,
   );
+  const staff = getStaffByInitials(responsibleInitials);
 
   return {
     id: c.id,
@@ -53,8 +56,8 @@ export function statusarkToCourse(c: StatusarkCourse): Course {
     department: "Planlægning",
     weekNumber: c.courseWeekNumber,
     courseLeaderId: staff
-      ? staff.id
-      : defaultLeaderForInitials("AG"),
+      ? leaderIdForInitials(responsibleInitials || staff.initials)
+      : leaderIdForInitials(responsibleInitials || "AG"),
     hostIds: [],
     budget: c.budgetStudents * 6_000,
     marketingBudget: 3_000,

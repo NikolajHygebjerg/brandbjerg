@@ -12,6 +12,7 @@ import type { User, UserRole } from "@/lib/auth-types";
 import {
   AUTH_UPDATED_EVENT,
   deleteUser,
+  ensureSeedUsers,
   getCurrentUser,
   loginUser,
   logoutUser,
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    ensureSeedUsers();
     refresh();
     setHydrated(true);
 

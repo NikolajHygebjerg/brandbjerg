@@ -4,6 +4,7 @@ import {
   isBrandbjergEmail,
   isStaffRole,
 } from "./auth-types";
+import { SEED_PASSWORD, SEED_USERS } from "./auth-seed";
 
 const USERS_KEY = "brandbjerg-auth-users";
 const SESSION_KEY = "brandbjerg-auth-session";
@@ -35,6 +36,66 @@ function saveUsers(users: Record<string, StoredUserRecord>) {
   if (typeof window === "undefined") return;
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
   notifyAuthUpdated();
+}
+
+/** Opret/opdater foruddefinerede Brandbjerg-brugere */
+export function ensureSeedUsers(): void {
+  if (typeof window === "undefined") return;
+  const users = loadUsers();
+  let changed = false;
+
+  for (const seed of SEED_USERS) {
+    const email = normalizeEmail(seed.email);
+    const existing = users[email];
+    const user: User = {
+      id: seed.id,
+      email,
+      name: seed.name,
+      role: seed.role,
+      createdAt: existing?.user.createdAt ?? new Date().toISOString(),
+    };
+
+    if (
+      !existing ||
+      existing.user.name !== user.name ||
+      existing.user.role !== user.role ||
+      existing.user.id !== user.id ||
+      existing.password !== SEED_PASSWORD
+    ) {
+      users[email] = { user, password: SEED_PASSWORD };
+      changed = true;
+    }
+  }
+
+  if (changed) saveUsers(users);
+}
+
+export function listAllUsers(): User[] {
+  ensureSeedUsers();
+  return Object.values(loadUsers())
+    .map((r) => r.user)
+    .sort((a, b) => a.name.localeCompare(b.name, "da"));
+}
+
+export function listStaffUsers(): User[] {
+  return listAllUsers().filter((u) => isStaffRole(u.role));
+}
+
+export function listCourseLeaderCandidates(): User[] {
+  return listStaffUsers().filter((u) => u.role === "hojskolelaerer");
+}
+
+export function getUserById(userId: string): User | null {
+  ensureSeedUsers();
+  for (const record of Object.values(loadUsers())) {
+    if (record.user.id === userId) return record.user;
+  }
+  return null;
+}
+
+export function findUserByEmail(email: string): User | null {
+  ensureSeedUsers();
+  return loadUsers()[normalizeEmail(email)]?.user ?? null;
 }
 
 function normalizeEmail(email: string): string {
