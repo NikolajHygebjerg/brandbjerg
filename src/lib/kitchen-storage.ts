@@ -50,6 +50,10 @@ export function isKitchenPlanSent(courseId: string): boolean {
   return Boolean(loadKitchenSent(courseId));
 }
 
+export function listSentKitchenCourseIds(): string[] {
+  return Object.keys(loadAll());
+}
+
 export function sendKitchenPlan(course: Course): KitchenSentRecord {
   const meals = getMealRowsFromCourse(course);
   const record: KitchenSentRecord = {

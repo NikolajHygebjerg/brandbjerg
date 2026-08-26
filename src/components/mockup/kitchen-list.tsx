@@ -23,7 +23,10 @@ import {
 } from "@/lib/course-list";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { countKitchenMeals } from "@/lib/kitchen-utils";
-import { isKitchenPlanSent, KITCHEN_UPDATED_EVENT } from "@/lib/kitchen-storage";
+import {
+  KITCHEN_UPDATED_EVENT,
+  loadKitchenSent,
+} from "@/lib/kitchen-storage";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
 import {
   countUnansweredQuestions,
@@ -70,12 +73,15 @@ export function KitchenList() {
       .map((entry) => {
         const detail = getCourseDetailById(entry.id);
         const merged = detail ? mergeCoursePlan(detail) : null;
-        const mealCount = merged ? countKitchenMeals(merged) : 0;
-        const sent = isKitchenPlanSent(entry.id);
+        const sentRecord = loadKitchenSent(entry.id);
+        const sent = Boolean(sentRecord);
+        const mealCount = merged
+          ? countKitchenMeals(merged)
+          : sentRecord?.mealCount ?? 0;
         const openQuestions = countUnansweredQuestions(entry.id, "koekken");
         return { ...entry, mealCount, sent, openQuestions };
       })
-      .filter((c) => c.sent || (c.mealCount > 0 && activeYear === statusarkYear))
+      .filter((c) => c.sent || c.mealCount > 0)
       .sort(
         (a, b) =>
           a.weekNumber - b.weekNumber ||

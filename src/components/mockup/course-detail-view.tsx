@@ -62,6 +62,7 @@ import {
 } from "@/lib/kitchen-utils";
 import { canSendKitchenPlan, validateKitchenPlan } from "@/lib/kitchen-plan-rules";
 import {
+  loadKitchenSent,
   revokeKitchenPlan,
   sendKitchenPlan,
 } from "@/lib/kitchen-storage";
@@ -92,6 +93,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     Partial<CourseBudgetInput>
   >({});
   const hydratedRef = useRef(false);
+  const [planHydrated, setPlanHydrated] = useState(false);
+  const kitchenAutoSentRef = useRef(false);
   const { registerSession } = useCourseDetailSession();
   const [courseLeaders, setCourseLeaders] = useState<User[]>([]);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
@@ -115,26 +118,41 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
 
   useEffect(() => {
     const stored = loadCoursePlan(initial.id);
-    if (stored) {
+    const kitchenSent = loadKitchenSent(initial.id);
+    if (stored || kitchenSent) {
       setCourse((prev) => ({
         ...prev,
-        days: stored.days.length > 0 ? stored.days : prev.days,
-        modulePlanMode: stored.modulePlanMode ?? prev.modulePlanMode,
-        moduleTemplateName: stored.moduleTemplateName ?? prev.moduleTemplateName,
-        checklist: stored.checklist ?? prev.checklist,
-        courseLokaleSpec: stored.courseLokaleSpec ?? prev.courseLokaleSpec,
-        pedelGenerelleNoter: stored.pedelGenerelleNoter ?? prev.pedelGenerelleNoter,
-        kursetsHovedsigte: stored.kursetsHovedsigte ?? prev.kursetsHovedsigte,
+        days: stored && stored.days.length > 0 ? stored.days : prev.days,
+        modulePlanMode: stored?.modulePlanMode ?? prev.modulePlanMode,
+        moduleTemplateName:
+          stored?.moduleTemplateName ?? prev.moduleTemplateName,
+        checklist: {
+          ...prev.checklist,
+          ...stored?.checklist,
+          ...(kitchenSent
+            ? {
+                kitchenPlanSent: true,
+                kitchenPlan: kitchenSent.summary,
+              }
+            : {}),
+        },
+        courseLokaleSpec: stored?.courseLokaleSpec ?? prev.courseLokaleSpec,
+        pedelGenerelleNoter:
+          stored?.pedelGenerelleNoter ?? prev.pedelGenerelleNoter,
+        kursetsHovedsigte: stored?.kursetsHovedsigte ?? prev.kursetsHovedsigte,
       }));
-      if (stored.days.length > 0) {
+      if (stored && stored.days.length > 0) {
         setLastActiveDayId(stored.days[0]?.id ?? "");
       }
-      if (stored.budgetManual) setBudgetManual(stored.budgetManual);
-      if (stored.budgetInput) setBudgetInputOverrides(stored.budgetInput);
-      setPlanStatus(stored.programStatus);
-      setLastSavedAt(stored.updatedAt);
+      if (stored?.budgetManual) setBudgetManual(stored.budgetManual);
+      if (stored?.budgetInput) setBudgetInputOverrides(stored.budgetInput);
+      if (stored) {
+        setPlanStatus(stored.programStatus);
+        setLastSavedAt(stored.updatedAt);
+      }
     }
     hydratedRef.current = true;
+    setPlanHydrated(true);
   }, [initial.id]);
 
   const persistPlan = useCallback(
@@ -186,9 +204,10 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   );
 
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!planHydrated) return;
     persistPlan({ silent: true });
   }, [
+    planHydrated,
     course.days,
     course.price,
     course.capacity,
@@ -238,10 +257,11 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   }
 
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!planHydrated) return;
 
     const canSend = canSendKitchenPlan(course);
-    const alreadySent = course.checklist.kitchenPlanSent;
+    const alreadySent =
+      course.checklist.kitchenPlanSent || Boolean(loadKitchenSent(course.id));
 
     if (canSend && !alreadySent) {
       const summary = buildKitchenPlanSummary(course);
@@ -250,14 +270,24 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         kitchenPlanSent: true,
         kitchenPlan: summary,
       });
+      kitchenAutoSentRef.current = true;
       return;
     }
 
-    if (!canSend && alreadySent) {
+    // Træk kun tilbage når brugeren ændrer planen efter den var sendt — ikke ved genindlæsning
+    if (
+      kitchenAutoSentRef.current &&
+      !canSend &&
+      course.checklist.kitchenPlanSent
+    ) {
       revokeKitchenPlan(course.id);
       updateChecklist({ kitchenPlanSent: false });
     }
-  }, [course.days, course.checklist.kitchenPlanSent, course.id]);
+
+    if (canSend || alreadySent) {
+      kitchenAutoSentRef.current = true;
+    }
+  }, [planHydrated, course.days, course.checklist.kitchenPlanSent, course.id]);
 
   function markProgramDone() {
     handleProgramFinished();
