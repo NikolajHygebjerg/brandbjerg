@@ -30,6 +30,19 @@ export interface ProgramTemplate {
   days: TemplateModuleRow[][];
 }
 
+function aftenRow(): TemplateModuleRow {
+  return {
+    tidFra: "20:30",
+    tidTil: "21:00",
+    overskrift: "Aften",
+    rolle: "Køkken",
+    underviserType: "intern",
+    timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
+    lon: "",
+    erMaltid: true,
+  };
+}
+
 function mellemmaltidRow(
   overskrift: "Formiddag" | "Eftermiddag",
   tidFra: string,
@@ -144,6 +157,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      aftenRow(),
     ],
     // Tirsdag
     [
@@ -196,6 +210,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 30, ft: 60, pts: 0, bh: 0 },
         lon: "A",
       },
+      aftenRow(),
     ],
     // Onsdag
     [
@@ -258,6 +273,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      aftenRow(),
     ],
     // Torsdag
     [
@@ -338,6 +354,7 @@ export const programUbak5Dage: ProgramTemplate = {
         timing: { ubak: 0, ft: 0, pts: 0, bh: 0 },
         lon: "A",
       },
+      aftenRow(),
     ],
     // Fredag
     [
@@ -488,6 +505,7 @@ export const weekend2Dage: ProgramTemplate = {
         lon: "",
         erMaltid: true,
       },
+      aftenRow(),
     ],
     [
       {
@@ -600,6 +618,7 @@ export const kort3Dage: ProgramTemplate = {
         timing: { ubak: 120, ft: 60, pts: 0, bh: 0 },
         lon: "A",
       },
+      aftenRow(),
     ],
     [
       {
@@ -664,10 +683,18 @@ export function templateRowToModule(
     lon: row.lon,
     erMaltid: row.erMaltid ?? false,
     maltid: row.erMaltid
-      ? defaultMealDetails({
-          forplejning: inferForplejningFromTitle(row.overskrift),
-          specifikation: inferSpecifikationFromTitle(row.overskrift),
-        })
+      ? defaultMealDetails(
+          row.overskrift === "Aften"
+            ? {
+                forplejning: "Aften",
+                specifikation: "Almindelig",
+                lokale: "L. spisesal",
+              }
+            : {
+                forplejning: inferForplejningFromTitle(row.overskrift),
+                specifikation: inferSpecifikationFromTitle(row.overskrift),
+              },
+        )
       : undefined,
     lokaleSpec: row.erMaltid ? undefined : defaultLokaleSpec(),
     erHeldagstur: row.erHeldagstur ?? row.overskrift.toLowerCase() === "heldagstur",

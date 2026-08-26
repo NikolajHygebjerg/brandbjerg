@@ -6,6 +6,7 @@ export const forplejningTyper = [
   "Frokost",
   "Eftermiddag",
   "Aftensmad",
+  "Aften",
   "Aftensforplejning",
   "Madpakker",
   "Disp.1",
@@ -78,6 +79,7 @@ export function inferForplejningFromTitle(title: string): ForplejningType {
   if (t.includes("morgenmad") || t.includes("brunch")) return "Morgenmad";
   if (t.includes("frokost")) return "Frokost";
   if (t.includes("aftensmad")) return "Aftensmad";
+  if (t === "aften") return "Aften";
   if (t.includes("aftensforplejning") || t.includes("fest")) return "Aftensforplejning";
   if (t.includes("formiddag") || t.includes("kaffe") || t.includes("the"))
     return "Formiddag";
