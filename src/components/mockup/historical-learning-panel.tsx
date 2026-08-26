@@ -37,8 +37,8 @@ export function HistoricalLearningPanel({ analysis }: HistoricalLearningPanelPro
             Læring fra lignende afholdte kurser
           </CardTitle>
           <CardDescription>
-            Automatisk analyse baseret på titel, emne og kurstype — opdateres når
-            nye kurser afholdes
+            Automatisk analyse baseret på fælles emneord i titlen — fx «haven»
+            for «Liv i haven»
           </CardDescription>
         </div>
       </div>
@@ -134,8 +134,8 @@ export function HistoricalLearningPanel({ analysis }: HistoricalLearningPanelPro
         </div>
       ) : (
         <p className="mt-4 text-sm text-slate-600">
-          Når lignende kurser er afholdt med tilmeldingstal, vises de her med
-          detaljer om timing og markedsføring.
+          Når afholdte kurser deler tydelige emneord i titlen (fx have/haven),
+          vises de her med timing og markedsføring.
         </p>
       )}
     </Card>

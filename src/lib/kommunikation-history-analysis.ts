@@ -34,26 +34,48 @@ function isoDateForWeek(year: number, week: number): string {
   return monday.toISOString().slice(0, 10);
 }
 
-function baseType(type: string): string {
-  return type.split(/[\s(]/)[0]?.trim() ?? type;
+
+/** Ord der alene ikke indikerer samme emne */
+const TITLE_STOPWORDS = new Set([
+  "i", "og", "af", "det", "den", "de", "et", "en", "til", "med", "for", "som",
+  "din", "dit", "der", "på", "at", "du", "vi", "har", "kan", "om", "ud", "fra",
+  "over", "under", "mellem", "eller", "når", "hvor", "hvad", "the",
+  "liv", "kursus", "dag", "dage", "tidl", "resten", "skab",
+]);
+
+function significantTitleWords(title: string): string[] {
+  return normalizeTitle(title)
+    .split(" ")
+    .filter((w) => w.length > 2 && !TITLE_STOPWORDS.has(w));
 }
 
-function titleWordOverlap(a: string, b: string): number {
-  const wordsA = new Set(
-    normalizeTitle(a)
-      .split(" ")
-      .filter((w) => w.length > 2),
-  );
-  const wordsB = new Set(
-    normalizeTitle(b)
-      .split(" ")
-      .filter((w) => w.length > 2),
-  );
-  let overlap = 0;
-  for (const w of wordsA) {
-    if (wordsB.has(w)) overlap += 1;
+/** Fælles ord eller tydelig stamme (fx haven ↔ havebrug) */
+function wordsRelate(a: string, b: string): boolean {
+  if (a === b) return true;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  if (shorter.length >= 4 && longer.includes(shorter)) return true;
+  if (Math.min(a.length, b.length) >= 4) {
+    const stem = shorter.slice(0, 4);
+    if (longer.startsWith(stem)) return true;
   }
-  return overlap;
+  return false;
+}
+
+function sharedSignificantWords(a: string, b: string): string[] {
+  const wordsA = significantTitleWords(a);
+  const wordsB = significantTitleWords(b);
+  const shared: string[] = [];
+
+  for (const wa of wordsA) {
+    for (const wb of wordsB) {
+      if (wordsRelate(wa, wb) && !shared.includes(wa)) {
+        shared.push(wa);
+      }
+    }
+  }
+
+  return shared;
 }
 
 function similarityScore(
@@ -68,19 +90,37 @@ function similarityScore(
     return { score: 100, reason: "Samme titel" };
   }
 
-  const overlap = titleWordOverlap(candidate.title, target.title);
-  if (overlap >= 2) {
-    return { score: 70 + overlap * 5, reason: `Lignende titel (${overlap} fælles ord)` };
-  }
-  if (overlap === 1) {
-    return { score: 55, reason: "Delvis titel-match" };
+  const shared = sharedSignificantWords(candidate.title, target.title);
+  if (shared.length === 0) {
+    return { score: 0, reason: "" };
   }
 
-  if (baseType(candidate.type) === baseType(target.type)) {
-    return { score: 35, reason: `Samme kurstype (${baseType(candidate.type)})` };
+  const targetWords = significantTitleWords(target.title);
+  const allTargetWordsMatched =
+    targetWords.length > 0 &&
+    targetWords.every((tw) =>
+      significantTitleWords(candidate.title).some((cw) => wordsRelate(tw, cw)),
+    );
+
+  if (allTargetWordsMatched && targetWords.length >= 2) {
+    return {
+      score: 90,
+      reason: `Samme emneord (${shared.join(", ")})`,
+    };
   }
 
-  return { score: 0, reason: "" };
+  if (shared.length >= 2) {
+    return {
+      score: 70 + shared.length * 5,
+      reason: `Fælles emneord (${shared.join(", ")})`,
+    };
+  }
+
+  const word = shared[0];
+  return {
+    score: word.length >= 5 ? 65 : 55,
+    reason: `Fælles emneord («${word}»)`,
+  };
 }
 
 function isCourseHeldBefore(
@@ -198,7 +238,7 @@ function buildHistoricalConclusions(
 
   if (snapshots.length === 0) {
     conclusions.push(
-      "Ingen afholdte kurser med tilmeldingstal matcher dette kursus endnu — analysen opdateres når der findes historik.",
+      "Ingen afholdte kurser med tilmeldingstal deler tydelige emneord i titlen endnu — analysen opdateres når der findes historik med samme emne (fx «haven» for «Liv i haven»).",
     );
     const histYears = Object.keys(arshjulHistory);
     if (histYears.length > 0) {
@@ -214,7 +254,7 @@ function buildHistoricalConclusions(
   }
 
   conclusions.push(
-    `Appen fandt ${snapshots.length} afholdt${snapshots.length !== 1 ? "e" : ""} lignende kursus${snapshots.length !== 1 ? "er" : ""} at lære af (match på titel, emne eller kurstype).`,
+    `Appen fandt ${snapshots.length} afholdt${snapshots.length !== 1 ? "e" : ""} lignende kursus${snapshots.length !== 1 ? "er" : ""} at lære af (match på fælles emneord i titlen).`,
   );
 
   const peaks = snapshots
