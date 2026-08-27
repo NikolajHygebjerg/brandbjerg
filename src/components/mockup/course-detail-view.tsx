@@ -655,13 +655,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   </button>
                 </div>
                 <div className="mt-2 space-y-2">
-                  {manualHosts.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-xs text-slate-500">
-                      Opret eksterne eller manuelle værter med kontrakt — samme
-                      felter som foredragsholdere.
-                    </p>
-                  ) : (
-                    manualHosts.map((host) => {
+                  {manualHosts.map((host) => {
                       const contract = host.contractId
                         ? getContract(host.contractId)
                         : null;
@@ -689,8 +683,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                           )}
                         </button>
                       );
-                    })
-                  )}
+                  })}
                 </div>
               </div>
               <p className="text-xs text-slate-500">
