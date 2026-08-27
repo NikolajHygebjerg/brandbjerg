@@ -1,6 +1,7 @@
 import { Database, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { RegistrationModulePanel } from "@/components/mockup/registration-module-panel";
 import { StatusarkTable } from "@/components/mockup/statusark-table";
 import {
   statusarkCourses,
@@ -28,7 +29,7 @@ export default function StatusarkPage() {
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-500">
             Live tilmeldinger fra databasen — aggregeret pr. kalenderuge som i
-            jeres regneark. Historikken bevares til fremtidig KMR-analyse.
+            jeres regneark.
           </p>
         </div>
         <Button href="/planlaegning/arshjul" variant="secondary">
@@ -67,9 +68,8 @@ export default function StatusarkPage() {
             <CardDescription className="text-violet-800">
               Hver tilmelding gemmes med dato og kalenderuge. Årsoversigten
               aggregerer ugentlige tal automatisk (som kolonnerne uge 34/2025 →
-              uge 52). Den rå historik bevares permanent, så I senere kan bygge
-              KMR-værktøjer der sammenligner tilmeldingstoppe med
-              markedsføringstiltag, nyhedsbreve og SoMe-kampagner.
+              uge 52). Den rå historik bevares permanent til analyse af
+              tilmeldingstempo.
             </CardDescription>
             <div className="mt-2 flex items-center gap-2 text-xs text-violet-700">
               <LineChart className="h-3.5 w-3.5" />
@@ -83,30 +83,7 @@ export default function StatusarkPage() {
         <StatusarkTable courses={statusarkCourses} />
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-blue-200 bg-blue-50">
-          <CardTitle className="text-blue-900">Tilmeldingsmodul</CardTitle>
-          <CardDescription className="text-blue-800">
-            Nye tilmeldinger skriver direkte til databasen med{" "}
-            <code className="rounded bg-blue-100 px-1">registeredAt</code> og
-            valgfri kampagnekilde. Årsoversigten opdateres automatisk.
-          </CardDescription>
-          <Button href="/katalog" className="mt-3" variant="secondary">
-            Se offentligt katalog
-          </Button>
-        </Card>
-        <Card className="border-amber-200 bg-amber-50">
-          <CardTitle className="text-amber-900">KMR — fremtidigt modul</CardTitle>
-          <CardDescription className="text-amber-800">
-            Planlagt analyse: korrelation mellem markedsføringsaktiviteter og
-            tilmeldingstoppe pr. uge. Kræver at tilmeldinger gemmes individuelt
-            med kilde/sporingsdata — grundlaget er allerede lagt i datamodellen.
-          </CardDescription>
-          <Button href="/kommunikation" className="mt-3" variant="secondary">
-            Kommunikationsmodul
-          </Button>
-        </Card>
-      </div>
+      <RegistrationModulePanel />
     </div>
   );
 }

@@ -230,3 +230,16 @@ export function getCourseDetailById(id: string): Course | undefined {
 
   return undefined;
 }
+
+/** Kurser til offentligt tilmeldingsmodul — fra statusark (2026) eller årshjul */
+export function getRegistrationCoursesForYear(year: number): Course[] {
+  return getCoursesForYear(year)
+    .map((entry) => getCourseDetailById(entry.id))
+    .filter(
+      (course): course is Course =>
+        course != null &&
+        !["udkast", "afsluttet"].includes(course.status) &&
+        Boolean(course.title?.trim()) &&
+        course.title !== "-",
+    );
+}

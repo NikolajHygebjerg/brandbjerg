@@ -1,4 +1,5 @@
-import { CourseRegistrationForm } from "@/components/mockup/course-registration-form";
+import { Suspense } from "react";
+import { TilmeldingPageClient } from "@/components/mockup/tilmelding-page-client";
 
 export default async function TilmeldingPage({
   params,
@@ -7,12 +8,14 @@ export default async function TilmeldingPage({
 }) {
   const { id } = await params;
   return (
-    <div className="px-4 py-10">
-      <CourseRegistrationForm
-        courseId={id}
-        backHref={`/kontor/${id}`}
-        backLabel="← Tilbage til kontor"
-      />
-    </div>
+    <Suspense
+      fallback={
+        <div className="px-4 py-10 text-center text-stone-500">
+          Indlæser tilmelding…
+        </div>
+      }
+    >
+      <TilmeldingPageClient courseId={id} />
+    </Suspense>
   );
 }
