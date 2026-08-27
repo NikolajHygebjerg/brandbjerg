@@ -4,6 +4,7 @@ import {
 } from "./course-enrollment-counts";
 import type { Course, CourseModule } from "./mock-data";
 import { mergeCoursePlan } from "./course-plan-storage";
+import { loadKitchenSent } from "./kitchen-storage";
 import { isHeldagsturModule } from "./mock-data";
 import type { HeldagsturPunkt } from "./heldagstur-utils";
 import { formatDate } from "./mock-data";
@@ -93,6 +94,50 @@ export function getMealRowsFromCourse(course: Course): KitchenMealRow[] {
 
 export function countKitchenMeals(course: Course): number {
   return getMealRowsFromCourse(course).length;
+}
+
+/** Måltider til køkkenvisning — gemt snapshot hvis sendt, ellers live plan */
+export function getKitchenMealsForCourse(
+  courseId: string,
+  course: Course,
+): KitchenMealRow[] {
+  const sent = loadKitchenSent(courseId);
+  if (sent?.meals?.length) return sent.meals;
+  return getMealRowsFromCourse(course);
+}
+
+export interface KitchenWeekMealRow extends KitchenMealRow {
+  courseId: string;
+  courseTitle: string;
+}
+
+export function collectKitchenWeekMeals(
+  courses: Array<{ id: string; title: string; weekNumber: number }>,
+  weekNumber: number,
+  resolveCourse: (id: string) => Course | undefined,
+): KitchenWeekMealRow[] {
+  const rows: KitchenWeekMealRow[] = [];
+
+  for (const entry of courses) {
+    if (entry.weekNumber !== weekNumber) continue;
+    const detail = resolveCourse(entry.id);
+    if (!detail) continue;
+    const merged = mergeCoursePlan(detail);
+    for (const meal of getKitchenMealsForCourse(entry.id, merged)) {
+      rows.push({
+        ...meal,
+        courseId: entry.id,
+        courseTitle: entry.title,
+      });
+    }
+  }
+
+  return rows.sort(
+    (a, b) =>
+      a.dayDate.localeCompare(b.dayDate) ||
+      a.tidFra.localeCompare(b.tidFra) ||
+      a.courseTitle.localeCompare(b.courseTitle, "da"),
+  );
 }
 
 export function isMealModule(mod: CourseModule): boolean {

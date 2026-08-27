@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { UtensilsCrossed } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { QuestionCountBadge } from "@/components/mockup/module-questions";
+import { KitchenWeekOverview } from "@/components/mockup/kitchen-week-overview";
 import {
   CourseListDataCell,
   CourseListDatesCell,
@@ -22,7 +23,8 @@ import {
   getDefaultCourseYear,
 } from "@/lib/course-list";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
-import { countKitchenMeals } from "@/lib/kitchen-utils";
+import { weekLabel } from "@/lib/mock-data";
+import { getKitchenMealsForCourse } from "@/lib/kitchen-utils";
 import {
   KITCHEN_UPDATED_EVENT,
   loadKitchenSent,
@@ -40,6 +42,7 @@ import {
 export function KitchenList() {
   const [hydrated, setHydrated] = useState(false);
   const [activeYear, setActiveYear] = useState(statusarkYear);
+  const [activeWeek, setActiveWeek] = useState<number | null>(null);
   const [years, setYears] = useState<number[]>([statusarkYear]);
 
   const [questionTick, setQuestionTick] = useState(0);
@@ -76,12 +79,17 @@ export function KitchenList() {
         const sentRecord = loadKitchenSent(entry.id);
         const sent = Boolean(sentRecord);
         const mealCount = merged
-          ? countKitchenMeals(merged)
+          ? getKitchenMealsForCourse(entry.id, merged).length
           : sentRecord?.mealCount ?? 0;
         const openQuestions = countUnansweredQuestions(entry.id, "koekken");
         return { ...entry, mealCount, sent, openQuestions };
       })
-      .filter((c) => c.sent || c.mealCount > 0)
+      .filter(
+        (c) =>
+          c.sent ||
+          c.mealCount > 0 ||
+          (activeYear === statusarkYear && c.startDate),
+      )
       .sort(
         (a, b) =>
           a.weekNumber - b.weekNumber ||
@@ -89,6 +97,26 @@ export function KitchenList() {
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, activeYear, questionTick, kitchenTick]);
+
+  const weekNumbers = useMemo(() => {
+    const weeks = new Set(courses.map((c) => c.weekNumber));
+    return Array.from(weeks).sort((a, b) => a - b);
+  }, [courses]);
+
+  useEffect(() => {
+    if (weekNumbers.length === 0) {
+      setActiveWeek(null);
+      return;
+    }
+    setActiveWeek((prev) =>
+      prev !== null && weekNumbers.includes(prev) ? prev : weekNumbers[0],
+    );
+  }, [weekNumbers, activeYear]);
+
+  const filteredCourses =
+    activeWeek === null
+      ? courses
+      : courses.filter((c) => c.weekNumber === activeWeek);
 
   if (!hydrated) {
     return (
@@ -114,7 +142,7 @@ export function KitchenList() {
             <div>
               <CardTitle className="text-base">Vælg uge / år</CardTitle>
               <CardDescription>
-                Kurser med planlagte måltider vises her
+                Se madbehov for hele ugen eller vælg enkeltkursus nedenfor
               </CardDescription>
             </div>
           </div>
@@ -135,13 +163,36 @@ export function KitchenList() {
             ))}
           </div>
         </div>
+        {weekNumbers.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+            {weekNumbers.map((w) => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setActiveWeek(w)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  activeWeek === w
+                    ? "bg-amber-100 text-amber-900 ring-1 ring-amber-300"
+                    : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                {weekLabel(w)}
+              </button>
+            ))}
+          </div>
+        )}
       </Card>
+
+      {activeWeek !== null && (
+        <KitchenWeekOverview weekNumber={activeWeek} courses={courses} />
+      )}
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-medium text-amber-900">
             {courses.filter((c) => c.sent).length} kurser modtaget fra kursusledere
             i {activeYear}
+            {activeWeek !== null ? ` · ${weekLabel(activeWeek)}` : ""}
           </p>
         </div>
         <CourseListTable minWidth="640px">
@@ -157,14 +208,14 @@ export function KitchenList() {
             }
           />
           <tbody>
-            {courses.length === 0 ? (
+            {filteredCourses.length === 0 ? (
               <CourseListEmptyRow colSpan={7}>
                 Ingen køkkenplaner modtaget endnu. Kursuslederen godkender
                 måltidsmoduler i modulplanen — derefter sendes planen
                 automatisk hertil.
               </CourseListEmptyRow>
             ) : (
-              courses.map((c) => (
+              filteredCourses.map((c) => (
                 <CourseListRow key={c.id}>
                   <CourseListWeekCell weekNumber={c.weekNumber} />
                   <CourseListTitleCell
@@ -184,7 +235,7 @@ export function KitchenList() {
                     {getRealiseretAntal(c)}
                   </CourseListDataCell>
                   <td className="px-4 py-3">
-                    {c.sent ? (
+                    {c.mealCount > 0 ? (
                       <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                         {c.mealCount} måltider
                       </span>
@@ -196,6 +247,10 @@ export function KitchenList() {
                     {c.sent ? (
                       <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
                         Modtaget
+                      </span>
+                    ) : c.mealCount > 0 ? (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">
+                        Udkast
                       </span>
                     ) : (
                       <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
