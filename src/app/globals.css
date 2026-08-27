@@ -99,4 +99,17 @@ body {
     font-size: 10pt;
     font-weight: 600;
   }
+
+  #contract-print-root,
+  #contract-print-root * {
+    visibility: visible;
+  }
+
+  #contract-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 12mm;
+  }
 }

@@ -909,6 +909,11 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   open
                   courseId={course.id}
                   courseDefaults={course}
+                  courseMeta={{
+                    id: course.id,
+                    title: course.title,
+                    weekNumber: course.weekNumber,
+                  }}
                   module={editingModuleData}
                   dayLabel={editingDay.label}
                   onClose={() => setEditingModule(null)}

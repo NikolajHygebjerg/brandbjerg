@@ -671,6 +671,7 @@ export function templateRowToModule(
     id: `mod-${Date.now()}-${index}`,
     source: "skabelon",
     underviser: row.rolle === "Foredragsholder" ? "" : row.rolle,
+    underviserEmail: "",
     underviserType: row.underviserType,
     rolle: row.rolle,
     pris: 0,

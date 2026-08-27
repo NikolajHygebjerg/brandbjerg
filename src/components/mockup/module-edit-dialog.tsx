@@ -30,12 +30,14 @@ import {
 } from "@/lib/lokale-spec-utils";
 import type { Course } from "@/lib/mock-data";
 import { ModuleQuestionsReplyPanel } from "@/components/mockup/module-questions";
+import { SendContractFromModule } from "@/components/contracts/send-contract-from-module";
 
 type ModuleEditDialogProps = {
   module: CourseModule;
   dayLabel: string;
   courseId?: string;
   courseDefaults?: Pick<Course, "courseLokaleSpec">;
+  courseMeta?: Pick<Course, "id" | "title" | "weekNumber">;
   open: boolean;
   onClose: () => void;
   onChange: (patch: Partial<CourseModule>) => void;
@@ -47,6 +49,7 @@ export function ModuleEditDialog({
   dayLabel,
   courseId,
   courseDefaults,
+  courseMeta,
   open,
   onClose,
   onChange,
@@ -203,6 +206,8 @@ export function ModuleEditDialog({
               duration={duration}
               timingSum={timingSum}
               courseDefaults={courseDefaults}
+              courseMeta={courseMeta}
+              dayLabel={dayLabel}
               onChange={onChange}
             />
           )}
@@ -480,12 +485,16 @@ function RegularForm({
   duration,
   timingSum,
   courseDefaults,
+  courseMeta,
+  dayLabel,
   onChange,
 }: {
   mod: CourseModule;
   duration: number;
   timingSum: number;
   courseDefaults?: Pick<Course, "courseLokaleSpec">;
+  courseMeta?: Pick<Course, "id" | "title" | "weekNumber">;
+  dayLabel: string;
   onChange: (patch: Partial<CourseModule>) => void;
 }) {
   const courseCtx = courseDefaults ?? {};
@@ -529,6 +538,13 @@ function RegularForm({
           label="Underviser / ansvarlig"
           value={mod.underviser}
           onChange={(v) => onChange({ underviser: v })}
+        />
+        <FieldInput
+          label="Mail (foredragsholder)"
+          type="email"
+          value={mod.underviserEmail}
+          onChange={(v) => onChange({ underviserEmail: v })}
+          placeholder="til kontrakt og korrespondance"
         />
         <FieldSelect
           label="Undervisertype"
@@ -584,6 +600,15 @@ function RegularForm({
           />
         </div>
       </div>
+
+      {courseMeta && (
+        <SendContractFromModule
+          course={courseMeta}
+          module={mod}
+          dayLabel={dayLabel}
+          onContractSent={(contractId) => onChange({ contractId })}
+        />
+      )}
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">

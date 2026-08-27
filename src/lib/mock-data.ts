@@ -74,6 +74,7 @@ export interface CourseModule {
   id: string;
   source: "skabelon" | "liste" | "manuel";
   underviser: string;
+  underviserEmail: string;
   underviserType: TeacherType;
   rolle: string;
   pris: number;
@@ -95,6 +96,8 @@ export interface CourseModule {
   lokaleSpecManuallySet?: boolean;
   /** Beskrivelse af undervisningens almene karakter (UBAK-ark) */
   ubakBeskrivelse?: string;
+  /** Tilknyttet kontrakt (foredragsholder) */
+  contractId?: string;
   klar: boolean;
 }
 
@@ -265,6 +268,7 @@ function sampleModules(
       id: `${dayLabel}-m1`,
       source: "skabelon",
       underviser: "Lise Møller",
+      underviserEmail: "",
       underviserType: "intern",
       rolle: "Kursusleder",
       pris: 0,
@@ -286,6 +290,7 @@ function sampleModules(
       id: `${dayLabel}-m2`,
       source: "liste",
       underviser: "Ken Hartmann",
+      underviserEmail: "ken@example.dk",
       underviserType: "ekstern",
       rolle: "Foredragsholder",
       pris: 150,
@@ -631,6 +636,7 @@ export function createEmptyModule(): CourseModule {
     id: `mod-${Date.now()}`,
     source: "manuel",
     underviser: "",
+    underviserEmail: "",
     underviserType: "intern",
     rolle: "",
     pris: 0,
