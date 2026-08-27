@@ -59,6 +59,7 @@ export interface Contract {
   courseId?: string;
   courseTitle?: string;
   moduleId?: string;
+  hostEntryId?: string;
   moduleLabel?: string;
   leaderId: string;
   leaderName: string;

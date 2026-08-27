@@ -4,6 +4,7 @@ import type {
   CourseDay,
   LokaleSpecifikation,
 } from "./mock-data";
+import type { CourseHostEntry } from "./course-host-types";
 import type { BudgetManualLines, CourseBudgetInput } from "./budget/budget-types";
 import { defaultBudgetManualLines } from "./budget/budget-calculator";
 
@@ -20,6 +21,7 @@ export interface StoredCoursePlan {
   courseLokaleSpec?: LokaleSpecifikation;
   pedelGenerelleNoter?: string;
   kursetsHovedsigte?: string;
+  manualHosts?: CourseHostEntry[];
   updatedAt: string;
 }
 
@@ -46,6 +48,7 @@ export function loadCoursePlan(courseId: string): StoredCoursePlan | null {
       courseLokaleSpec: parsed.courseLokaleSpec,
       pedelGenerelleNoter: parsed.pedelGenerelleNoter,
       kursetsHovedsigte: parsed.kursetsHovedsigte,
+      manualHosts: parsed.manualHosts,
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
     };
   } catch {
@@ -62,6 +65,7 @@ export type PlanSnapshotInput = Pick<
   | "courseLokaleSpec"
   | "pedelGenerelleNoter"
   | "kursetsHovedsigte"
+  | "manualHosts"
 > & {
   budgetManual?: BudgetManualLines;
   budgetInput?: Partial<CourseBudgetInput>;
@@ -84,6 +88,7 @@ export function createPlanSnapshot(
     courseLokaleSpec: course.courseLokaleSpec,
     pedelGenerelleNoter: course.pedelGenerelleNoter,
     kursetsHovedsigte: course.kursetsHovedsigte,
+    manualHosts: course.manualHosts,
     programStatus,
   };
 }
@@ -115,6 +120,7 @@ export function mergeCoursePlan(course: Course): Course {
     courseLokaleSpec: stored.courseLokaleSpec ?? course.courseLokaleSpec,
     pedelGenerelleNoter: stored.pedelGenerelleNoter ?? course.pedelGenerelleNoter,
     kursetsHovedsigte: stored.kursetsHovedsigte ?? course.kursetsHovedsigte,
+    manualHosts: stored.manualHosts ?? course.manualHosts,
   };
 }
 

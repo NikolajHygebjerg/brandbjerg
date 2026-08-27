@@ -37,7 +37,7 @@ type ModuleEditDialogProps = {
   dayLabel: string;
   courseId?: string;
   courseDefaults?: Pick<Course, "courseLokaleSpec">;
-  courseMeta?: Pick<Course, "id" | "title" | "weekNumber">;
+  courseMeta?: Pick<Course, "id" | "title" | "weekNumber" | "startDate" | "endDate">;
   open: boolean;
   onClose: () => void;
   onChange: (patch: Partial<CourseModule>) => void;
@@ -493,7 +493,7 @@ function RegularForm({
   duration: number;
   timingSum: number;
   courseDefaults?: Pick<Course, "courseLokaleSpec">;
-  courseMeta?: Pick<Course, "id" | "title" | "weekNumber">;
+  courseMeta?: Pick<Course, "id" | "title" | "weekNumber" | "startDate" | "endDate">;
   dayLabel: string;
   onChange: (patch: Partial<CourseModule>) => void;
 }) {

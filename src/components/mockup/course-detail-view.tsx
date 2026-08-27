@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, FileSpreadsheet, LayoutTemplate, Save } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, LayoutTemplate, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/mockup/status-badge";
@@ -11,6 +11,13 @@ import {
   defaultBudgetManualLines,
 } from "@/components/mockup/course-budget-panel";
 import { ModuleEditDialog } from "@/components/mockup/module-edit-dialog";
+import { CourseHostDialog } from "@/components/mockup/course-host-dialog";
+import {
+  defaultCourseHostEntry,
+  type CourseHostEntry,
+} from "@/lib/course-host-types";
+import { getContract } from "@/lib/contract-storage";
+import { contractStatusLabels } from "@/lib/contract-types";
 import {
   ModulePlanBoard,
   type EditingModule,
@@ -98,6 +105,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   const { registerSession } = useCourseDetailSession();
   const [courseLeaders, setCourseLeaders] = useState<User[]>([]);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [editingHost, setEditingHost] = useState<CourseHostEntry | null>(null);
+  const [hostDialogOpen, setHostDialogOpen] = useState(false);
 
   const leader = getPersonById(course.courseLeaderId);
   const hosts = course.hostIds
@@ -113,6 +122,37 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     window.addEventListener(AUTH_UPDATED_EVENT, refreshPeople);
     return () => window.removeEventListener(AUTH_UPDATED_EVENT, refreshPeople);
   }, []);
+  function updateManualHosts(hosts: CourseHostEntry[]) {
+    updateCourse({ manualHosts: hosts });
+  }
+
+  function saveHostEntry(entry: CourseHostEntry) {
+    const hosts = course.manualHosts ?? [];
+    const idx = hosts.findIndex((h) => h.id === entry.id);
+    if (idx >= 0) {
+      const next = [...hosts];
+      next[idx] = entry;
+      updateManualHosts(next);
+    } else {
+      updateManualHosts([...hosts, entry]);
+    }
+  }
+
+  function removeHostEntry(id: string) {
+    updateManualHosts((course.manualHosts ?? []).filter((h) => h.id !== id));
+  }
+
+  function openNewHostDialog() {
+    setEditingHost(defaultCourseHostEntry());
+    setHostDialogOpen(true);
+  }
+
+  function openEditHostDialog(host: CourseHostEntry) {
+    setEditingHost(host);
+    setHostDialogOpen(true);
+  }
+
+  const manualHosts = course.manualHosts ?? [];
   const dayCount = countInclusiveDays(course.startDate, course.endDate);
   const templateForCourse = getTemplateForDayCount(dayCount);
 
@@ -140,6 +180,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
         pedelGenerelleNoter:
           stored?.pedelGenerelleNoter ?? prev.pedelGenerelleNoter,
         kursetsHovedsigte: stored?.kursetsHovedsigte ?? prev.kursetsHovedsigte,
+        manualHosts: stored?.manualHosts ?? prev.manualHosts ?? [],
       }));
       if (stored && stored.days.length > 0) {
         setLastActiveDayId(stored.days[0]?.id ?? "");
@@ -220,6 +261,7 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
     course.courseLokaleSpec,
     course.pedelGenerelleNoter,
     course.kursetsHovedsigte,
+    course.manualHosts,
     budgetManual,
     budgetInputOverrides,
     persistPlan,
@@ -598,11 +640,65 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   )}
                 </div>
               </div>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-slate-500">
+                    Manuelle kursusværter
+                  </label>
+                  <button
+                    type="button"
+                    onClick={openNewHostDialog}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-800"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Tilføj kursusvært
+                  </button>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {manualHosts.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-xs text-slate-500">
+                      Opret eksterne eller manuelle værter med kontrakt — samme
+                      felter som foredragsholdere.
+                    </p>
+                  ) : (
+                    manualHosts.map((host) => {
+                      const contract = host.contractId
+                        ? getContract(host.contractId)
+                        : null;
+                      return (
+                        <button
+                          key={host.id}
+                          type="button"
+                          onClick={() => openEditHostDialog(host)}
+                          className="flex w-full items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left hover:border-emerald-300 hover:bg-emerald-50/40"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">
+                              {host.navn || "Uden navn"}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {host.email || "Ingen mail"}
+                              {host.pris > 0 ? ` · ${host.pris} kr` : ""}
+                              {host.lon ? ` · ${host.lon}-løn` : ""}
+                            </p>
+                          </div>
+                          {contract && (
+                            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                              {contractStatusLabels[contract.status]}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
               <p className="text-xs text-slate-500">
                 Valgt leder: {leader?.name} · Værter:{" "}
-                {hosts.length > 0
-                  ? hosts.map((h) => h?.name).join(", ")
-                  : "Ingen"}
+                {[
+                  ...hosts.map((h) => h?.name).filter(Boolean),
+                  ...manualHosts.map((h) => h.navn).filter(Boolean),
+                ].join(", ") || "Ingen"}
               </p>
             </div>
           </Card>
@@ -913,6 +1009,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                     id: course.id,
                     title: course.title,
                     weekNumber: course.weekNumber,
+                    startDate: course.startDate,
+                    endDate: course.endDate,
                   }}
                   module={editingModuleData}
                   dayLabel={editingDay.label}
@@ -989,6 +1087,30 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
             Offentlig tilmeldingsside
           </Button>
         </Card>
+      )}
+
+      {hostDialogOpen && editingHost && (
+        <CourseHostDialog
+          open
+          host={editingHost}
+          course={{
+            id: course.id,
+            title: course.title,
+            weekNumber: course.weekNumber,
+            startDate: course.startDate,
+            endDate: course.endDate,
+          }}
+          isNew={!(course.manualHosts ?? []).some((h) => h.id === editingHost.id)}
+          onClose={() => {
+            setHostDialogOpen(false);
+            setEditingHost(null);
+          }}
+          onChange={(entry) => {
+            setEditingHost(entry);
+            saveHostEntry(entry);
+          }}
+          onRemove={() => removeHostEntry(editingHost.id)}
+        />
       )}
     </div>
   );

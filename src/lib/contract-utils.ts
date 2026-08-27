@@ -88,31 +88,80 @@ function applyHonorar(
   return next;
 }
 
+export interface ContractSourceData {
+  navn: string;
+  email: string;
+  lon: string;
+  pris: number;
+  overskrift: string;
+  broedtekst: string;
+  tidFra: string;
+  tidTil: string;
+  datoTidsramme?: string;
+  contractId?: string;
+}
+
+export function prefillFromSource(
+  course: Pick<Course, "title" | "weekNumber" | "startDate" | "endDate">,
+  source: ContractSourceData,
+  contextLabel?: string,
+): Partial<ContractFields> {
+  const honorarType = honorarTypeFromLon(source.lon);
+  const honorarText =
+    source.pris > 0 ? `honorar på ${source.pris} kr` : "";
+  const tidsramme =
+    source.datoTidsramme?.trim() ||
+    contextLabel ||
+    (source.tidFra && source.tidTil
+      ? `${source.tidFra}–${source.tidTil}`
+      : `${course.startDate} – ${course.endDate}`);
+
+  let fields: ContractFields = {
+    ...defaultContractFields(),
+    navn: source.navn,
+    email: source.email,
+    ugenummer: `${weekLabel(course.weekNumber)} ${new Date(course.startDate || Date.now()).getFullYear()}`,
+    kursustitel: course.title,
+    datoTidsramme: tidsramme,
+    antalTimerHonorar: honorarText,
+    indhold: [source.overskrift, source.broedtekst].filter(Boolean).join("\n"),
+  };
+
+  fields = applyHonorar(fields, honorarType, source.pris);
+  return fields;
+}
+
 export function prefillFromModule(
-  course: Pick<Course, "title" | "weekNumber">,
+  course: Pick<Course, "title" | "weekNumber" | "startDate" | "endDate">,
   module: CourseModule,
   dayLabel: string,
 ): Partial<ContractFields> {
   const minutes = moduleDurationMinutes(module);
   const timer = minutes > 0 ? `${Math.round((minutes / 60) * 10) / 10} timer` : "";
-  const honorarType = honorarTypeFromLon(module.lon);
-  const honorarText =
-    module.pris > 0 ? `honorar på ${module.pris} kr` : timer;
+  const contextLabel = `${dayLabel}: ${module.tidFra}–${module.tidTil}`;
 
-  let fields: ContractFields = {
-    ...defaultContractFields(),
-    navn: module.underviser,
-    email: module.underviserEmail ?? "",
-    ugenummer: `${weekLabel(course.weekNumber)} ${new Date().getFullYear()}`,
-    kursustitel: course.title,
-    datoTidsramme: `${dayLabel}: ${module.tidFra}–${module.tidTil}`,
-    antalTimerHonorar: honorarText || timer,
-    indhold: [module.overskrift, module.broedtekst].filter(Boolean).join("\n"),
-    skalBrugesProjektor: module.lokaleSpec?.projektor ?? false,
-  };
+  const base = prefillFromSource(
+    course,
+    {
+      navn: module.underviser,
+      email: module.underviserEmail ?? "",
+      lon: module.lon,
+      pris: module.pris,
+      overskrift: module.overskrift,
+      broedtekst: module.broedtekst,
+      tidFra: module.tidFra,
+      tidTil: module.tidTil,
+    },
+    contextLabel,
+  );
 
-  fields = applyHonorar(fields, honorarType, module.pris);
-  return fields;
+  if (timer && !module.pris) {
+    base.antalTimerHonorar = timer;
+  }
+  if (module.lokaleSpec?.projektor) {
+    base.skalBrugesProjektor = true;
+  }
+  return base;
 }
 
 export function contractPublicUrl(accessToken: string): string {
@@ -155,6 +204,7 @@ export function createContract(input: {
   courseId?: string;
   courseTitle?: string;
   moduleId?: string;
+  hostEntryId?: string;
   moduleLabel?: string;
 }): Contract {
   const now = new Date().toISOString();
@@ -177,6 +227,7 @@ export function createContract(input: {
     courseId: input.courseId,
     courseTitle: input.courseTitle,
     moduleId: input.moduleId,
+    hostEntryId: input.hostEntryId,
     moduleLabel: input.moduleLabel,
     leaderId: input.leader.id,
     leaderName: input.leader.name,

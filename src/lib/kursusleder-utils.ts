@@ -23,7 +23,7 @@ function nameMatches(a: string, b: string): boolean {
 
 export function getUserRolesOnCourse(
   course: Course,
-  user: Pick<User, "id" | "name">,
+  user: Pick<User, "id" | "name" | "email">,
 ): KursuslederRole[] {
   const roles: KursuslederRole[] = [];
   const userId = resolvePersonId(user.id);
@@ -36,6 +36,15 @@ export function getUserRolesOnCourse(
     course.hostIds.some((hostId) => resolvePersonId(hostId) === userId)
   ) {
     roles.push("Vært");
+  }
+
+  for (const host of course.manualHosts ?? []) {
+    if (
+      nameMatches(host.navn, user.name) ||
+      nameMatches(host.email, user.email)
+    ) {
+      if (!roles.includes("Vært")) roles.push("Vært");
+    }
   }
 
   const merged = mergeCoursePlan(course);
@@ -51,13 +60,13 @@ export function getUserRolesOnCourse(
 
 export function userHasAccessToCourse(
   course: Course,
-  user: Pick<User, "id" | "name">,
+  user: Pick<User, "id" | "name" | "email">,
 ): boolean {
   return getUserRolesOnCourse(course, user).length > 0;
 }
 
 export function getKursuslederCoursesForUser(
-  user: Pick<User, "id" | "name">,
+  user: Pick<User, "id" | "name" | "email">,
   year: number,
 ): KursuslederCourseEntry[] {
   return getCoursesForYear(year)

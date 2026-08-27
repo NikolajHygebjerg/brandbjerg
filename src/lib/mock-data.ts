@@ -48,6 +48,7 @@ import { anyHeldagsturPunktUklar } from "./heldagstur-utils";
 import type { HeldagsturPlan } from "./heldagstur-utils";
 import type { WorkshopOption } from "./workshop-types";
 export type { WorkshopOption } from "./workshop-types";
+import type { CourseHostEntry } from "./course-host-types";
 
 /** Lokalespecifikation — som i Pedel-arket (praktisk seddel) */
 export interface LokaleSpecifikation {
@@ -149,6 +150,8 @@ export interface Course {
   weekNumber: number;
   courseLeaderId: string;
   hostIds: string[];
+  /** Manuelt oprettede kursusværter (eksterne m.m.) */
+  manualHosts?: CourseHostEntry[];
   budget: number;
   marketingBudget: number;
   planStatus: PlanStatus;
