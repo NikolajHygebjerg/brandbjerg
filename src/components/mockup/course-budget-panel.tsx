@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { BUDGET_RATES } from "@/lib/budget/budget-constants";
 import {
@@ -10,6 +10,7 @@ import {
   defaultBudgetManualLines,
 } from "@/lib/budget/budget-calculator";
 import type {
+  BudgetExternalLine,
   BudgetManualLines,
   CourseBudgetInput,
 } from "@/lib/budget/budget-types";
@@ -51,6 +52,29 @@ export function CourseBudgetPanel({
 
   function patchManual(patch: Partial<BudgetManualLines>) {
     onUpdateBudgetManual({ ...budgetManual, ...patch });
+  }
+
+  function addOtherExternalLine() {
+    patchManual({
+      otherExternal: [...budgetManual.otherExternal, createExternalLine()],
+    });
+  }
+
+  function removeOtherExternalLine(id: string) {
+    patchManual({
+      otherExternal: budgetManual.otherExternal.filter((line) => line.id !== id),
+    });
+  }
+
+  function updateOtherExternalLine(
+    id: string,
+    patch: Partial<BudgetExternalLine>,
+  ) {
+    patchManual({
+      otherExternal: budgetManual.otherExternal.map((line) =>
+        line.id === id ? { ...line, ...patch } : line,
+      ),
+    });
   }
 
   return (
@@ -261,43 +285,63 @@ export function CourseBudgetPanel({
       </Card>
 
       <Card>
-        <CardTitle className="text-base">Andre eksterne udgifter</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-base">Andre eksterne udgifter</CardTitle>
+          <button
+            type="button"
+            onClick={addOtherExternalLine}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tilføj linje
+          </button>
+        </div>
         <div className="mt-3 space-y-2">
-          {budgetManual.otherExternal.map((line, i) => (
-            <div key={line.id} className="grid gap-2 sm:grid-cols-4">
-              <input
-                value={line.label}
-                onChange={(e) => {
-                  const next = [...budgetManual.otherExternal];
-                  next[i] = { ...line, label: e.target.value };
-                  patchManual({ otherExternal: next });
-                }}
-                placeholder="Beskrivelse"
-                className="rounded border border-slate-200 px-2 py-1 text-sm sm:col-span-2"
-              />
-              <input
-                type="number"
-                value={line.amount || ""}
-                onChange={(e) => {
-                  const next = [...budgetManual.otherExternal];
-                  next[i] = { ...line, amount: Number(e.target.value) };
-                  patchManual({ otherExternal: next });
-                }}
-                placeholder="Beløb"
-                className="rounded border border-slate-200 px-2 py-1 text-sm"
-              />
-              <input
-                value={line.note}
-                onChange={(e) => {
-                  const next = [...budgetManual.otherExternal];
-                  next[i] = { ...line, note: e.target.value };
-                  patchManual({ otherExternal: next });
-                }}
-                placeholder="Note"
-                className="rounded border border-slate-200 px-2 py-1 text-sm"
-              />
-            </div>
-          ))}
+          {budgetManual.otherExternal.length === 0 ? (
+            <p className="text-sm text-slate-500">Ingen linjer endnu.</p>
+          ) : (
+            budgetManual.otherExternal.map((line) => (
+              <div key={line.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+                <input
+                  value={line.label}
+                  onChange={(e) =>
+                    updateOtherExternalLine(line.id, { label: e.target.value })
+                  }
+                  placeholder="Beskrivelse"
+                  className="rounded border border-slate-200 px-2 py-1 text-sm sm:col-span-2"
+                />
+                <input
+                  type="number"
+                  value={line.amount || ""}
+                  onChange={(e) =>
+                    updateOtherExternalLine(line.id, {
+                      amount: Number(e.target.value),
+                    })
+                  }
+                  placeholder="Beløb"
+                  className="rounded border border-slate-200 px-2 py-1 text-sm"
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    value={line.note}
+                    onChange={(e) =>
+                      updateOtherExternalLine(line.id, { note: e.target.value })
+                    }
+                    placeholder="Note"
+                    className="min-w-0 flex-1 rounded border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeOtherExternalLine(line.id)}
+                    className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    aria-label="Fjern linje"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
         <p className="mt-2 text-right text-sm font-semibold text-red-700">
           I alt: {formatDKK(budget.totalOtherExternal)}
@@ -320,6 +364,16 @@ export function CourseBudgetPanel({
       </Card>
     </div>
   );
+}
+
+function createExternalLine(): BudgetExternalLine {
+  return {
+    id: crypto.randomUUID(),
+    label: "",
+    amount: 0,
+    confirmed: false,
+    note: "",
+  };
 }
 
 function Row({ label, value }: { label: string; value: string }) {
