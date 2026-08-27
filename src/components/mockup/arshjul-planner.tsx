@@ -7,6 +7,8 @@ import {
   Copy,
   Eye,
   FilePlus,
+  GripVertical,
+  LockOpen,
   Plus,
   Save,
   Sparkles,
@@ -36,6 +38,7 @@ import {
 } from "@/lib/brandbjerg-arshjul";
 import { planStatusLabels, type PlanStatus } from "@/lib/mock-data";
 import { brandbjergStaff } from "@/lib/brandbjerg-staff";
+import { cn } from "@/lib/utils";
 
 const WEEKS = Array.from({ length: 52 }, (_, i) => i + 1);
 const BASE_YEARS = [2026, 2025, 2024, 2023, 2022, 2021];
@@ -76,6 +79,8 @@ export function ArshjulPlanner() {
   const [newYearInput, setNewYearInput] = useState("2027");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [yearError, setYearError] = useState<string | null>(null);
+  const [draggedCourseId, setDraggedCourseId] = useState<string | null>(null);
+  const [dropHighlightWeek, setDropHighlightWeek] = useState<number | null>(null);
 
   useEffect(() => {
     const stored = loadPlansFromStorage();
@@ -169,6 +174,44 @@ export function ArshjulPlanner() {
       next,
       `${activeYear} godkendt — planen er låst og klar til statusark`,
     );
+  }
+
+  function reopenPlan() {
+    if (!activePlan || activePlan.planStatus !== "godkendt") return;
+    const ok = window.confirm(
+      "Genåbn årshjulet til redigering?\n\n" +
+        "Planen er godkendt, og andre kan allerede have begyndt arbejde ud fra " +
+        "den eksisterende plan — fx i statusark, kursusplaner og modulplaner.\n\n" +
+        "Ændringer kan påvirke deres planlægning. Fortsæt kun hvis det er nødvendigt.",
+    );
+    if (!ok) return;
+    const next = plans.map((p) =>
+      p.year === activeYear
+        ? { ...p, planStatus: "udkast" as PlanStatus, readonly: false }
+        : p,
+    );
+    persistPlans(next, `${activeYear} genåbnet — planen kan redigeres igen`);
+  }
+
+  function moveCourseToWeek(courseId: string, targetWeek: number) {
+    if (!isEditable) return;
+    updateCourse(courseId, { weekNumber: targetWeek });
+  }
+
+  function handleDragStart(courseId: string) {
+    if (!isEditable) return;
+    setDraggedCourseId(courseId);
+  }
+
+  function handleDragEnd() {
+    setDraggedCourseId(null);
+    setDropHighlightWeek(null);
+  }
+
+  function handleDropOnWeek(targetWeek: number) {
+    if (!draggedCourseId || !isEditable) return;
+    moveCourseToWeek(draggedCourseId, targetWeek);
+    handleDragEnd();
   }
 
   function setTarget(value: number) {
@@ -523,9 +566,13 @@ export function ArshjulPlanner() {
         {planStatus === "godkendt" && (
           <>
             <Button href="/planlaegning/statusark">Gå til statusark</Button>
+            <Button onClick={reopenPlan} variant="secondary">
+              <LockOpen className="h-4 w-4" />
+              Genåbn til redigering
+            </Button>
             <span className="flex items-center gap-1 text-xs text-slate-500">
               <Eye className="h-3.5 w-3.5" />
-              Planen er låst — opret nyt år for at planlægge fremad
+              Godkendt plan — træk kurser mellem uger når genåbnet
             </span>
           </>
         )}
@@ -535,12 +582,14 @@ export function ArshjulPlanner() {
       <Card>
         <CardTitle>Årsoversigt {activeYear}</CardTitle>
         <CardDescription>
-          Samlet oversigt — rediger direkte i tabellen eller uge for uge nedenfor
+          Samlet oversigt — træk kurser til en anden uge (drop på uge-række eller
+          uge-knap nedenfor)
         </CardDescription>
         <div className="mt-4 max-h-96 overflow-auto">
           <table className="w-full text-left text-sm">
             <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 text-slate-600">
               <tr>
+                {isEditable && <th className="w-8 px-1 py-2" aria-label="Træk" />}
                 <th className="px-3 py-2 font-medium">Uge</th>
                 <th className="px-3 py-2 font-medium">Start</th>
                 <th className="px-3 py-2 font-medium">Slut</th>
@@ -562,7 +611,17 @@ export function ArshjulPlanner() {
                       course={c}
                       planningYear={activeYear}
                       editable={isEditable}
+                      dragging={draggedCourseId === c.id}
+                      dropActive={
+                        draggedCourseId !== null &&
+                        draggedCourseId !== c.id &&
+                        dropHighlightWeek === c.weekNumber
+                      }
                       onUpdate={(patch) => updateCourse(c.id, patch)}
+                      onDragStart={() => handleDragStart(c.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={() => setDropHighlightWeek(c.weekNumber)}
+                      onDrop={() => handleDropOnWeek(c.weekNumber)}
                     />
                   )),
               )}
@@ -574,22 +633,46 @@ export function ArshjulPlanner() {
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-1">
           <CardTitle>Vælg uge</CardTitle>
-          <CardDescription>52 uger — flere kurser kan ligge sideløbende</CardDescription>
+          <CardDescription>
+            52 uger — træk et kursus hertil for at flytte det
+          </CardDescription>
           <div className="mt-3 max-h-80 overflow-y-auto">
             <div className="grid grid-cols-4 gap-1 sm:grid-cols-5">
               {WEEKS.map((week) => {
                 const items = weekCourses.filter((c) => c.weekNumber === week);
+                const isDropTarget =
+                  isEditable &&
+                  draggedCourseId !== null &&
+                  dropHighlightWeek === week;
                 return (
                   <button
                     key={week}
                     type="button"
                     onClick={() => setSelectedWeek(week)}
+                    onDragOver={(e) => {
+                      if (!isEditable || !draggedCourseId) return;
+                      e.preventDefault();
+                      setDropHighlightWeek(week);
+                    }}
+                    onDragLeave={() => {
+                      if (dropHighlightWeek === week) setDropHighlightWeek(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleDropOnWeek(week);
+                    }}
                     className={`rounded-lg px-2 py-2 text-xs font-medium transition ${
+                      isDropTarget
+                        ? "ring-2 ring-emerald-500 ring-offset-1"
+                        : ""
+                    } ${
                       selectedWeek === week
                         ? "bg-emerald-700 text-white"
                         : items.length > 0
                           ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                          : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                          : draggedCourseId && isEditable
+                            ? "border border-dashed border-emerald-300 bg-white text-slate-600 hover:bg-emerald-50"
+                            : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     {week}
@@ -651,6 +734,9 @@ export function ArshjulPlanner() {
                   course={course}
                   planningYear={activeYear}
                   editable={isEditable}
+                  dragging={draggedCourseId === course.id}
+                  onDragStart={() => handleDragStart(course.id)}
+                  onDragEnd={handleDragEnd}
                   onUpdate={(patch) => updateCourse(course.id, patch)}
                   onRemove={() => removeCourse(course.id)}
                 />
@@ -729,12 +815,18 @@ function CourseRow({
   course,
   planningYear,
   editable,
+  dragging,
+  onDragStart,
+  onDragEnd,
   onUpdate,
   onRemove,
 }: {
   course: BrandbjergPlannedCourse;
   planningYear: number;
   editable: boolean;
+  dragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
   onUpdate: (patch: Partial<BrandbjergPlannedCourse>) => void;
   onRemove: () => void;
 }) {
@@ -760,7 +852,26 @@ function CourseRow({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", course.id);
+        onDragStart?.();
+      }}
+      onDragEnd={onDragEnd}
+      className={cn(
+        "rounded-lg border border-slate-200 bg-white p-4 shadow-sm",
+        dragging && "opacity-50",
+      )}
+    >
+      <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
+        <GripVertical
+          className="size-4 shrink-0 cursor-grab text-slate-400 active:cursor-grabbing"
+          aria-hidden
+        />
+        <span>Træk kursus til en uge-knap for at flytte det</span>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block sm:col-span-2">
           <span className="text-xs font-medium text-slate-500">Titel</span>
@@ -882,11 +993,23 @@ function OverviewRow({
   course,
   planningYear,
   editable,
+  dragging,
+  dropActive,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
   onUpdate,
 }: {
   course: BrandbjergPlannedCourse;
   planningYear: number;
   editable: boolean;
+  dragging?: boolean;
+  dropActive?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  onDragOver?: () => void;
+  onDrop?: () => void;
   onUpdate: (patch: Partial<BrandbjergPlannedCourse>) => void;
 }) {
   if (!editable) {
@@ -904,7 +1027,34 @@ function OverviewRow({
   }
 
   return (
-    <tr className="border-b border-slate-50 bg-white">
+    <tr
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", course.id);
+        onDragStart?.();
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => {
+        event.preventDefault();
+        onDragOver?.();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDrop?.();
+      }}
+      className={cn(
+        "border-b border-slate-50 bg-white transition-colors",
+        dragging && "opacity-50",
+        dropActive && "bg-emerald-50 ring-1 ring-inset ring-emerald-300",
+      )}
+    >
+      <td className="px-1 py-1 text-slate-400">
+        <GripVertical
+          className="size-4 cursor-grab active:cursor-grabbing"
+          aria-hidden
+        />
+      </td>
       <td className="px-2 py-1">
         <select
           value={course.weekNumber}
