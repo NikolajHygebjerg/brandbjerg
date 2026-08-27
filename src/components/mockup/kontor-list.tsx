@@ -25,9 +25,12 @@ import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import {
   countUnreadAlerts,
   KONTOR_UPDATED_EVENT,
-  loadParticipantsForCourse,
 } from "@/lib/kontor-storage";
-import { countAssignedRooms } from "@/lib/kontor-participants";
+import {
+  countAssignedRooms,
+  ensureParticipantsForCourse,
+} from "@/lib/kontor-participants";
+import { paymentOverviewLabel } from "@/lib/kontor-types";
 import { ROOM_COUNT } from "@/lib/room-utils";
 
 export function KontorList() {
@@ -57,12 +60,14 @@ export function KontorList() {
     return getCoursesForYear(activeYear)
       .map((entry) => {
         const sa = getStatusarkCourse(entry.id);
-        const participants = loadParticipantsForCourse(entry.id);
+        const participants = ensureParticipantsForCourse(entry.id);
         const roomsAssigned = countAssignedRooms(participants);
+        const paymentLabel = paymentOverviewLabel(participants);
         return {
           ...entry,
           roomsAssigned,
           roomsNeeded: sa?.rooms.double ?? null,
+          paymentLabel,
         };
       })
       .sort(
@@ -147,12 +152,13 @@ export function KontorList() {
             {courses.length} kurser i {activeYear}
           </p>
         </div>
-        <CourseListTable minWidth="680px">
+        <CourseListTable minWidth="820px">
           <CourseListThead
             trailingHeaders={
               <>
                 <CourseListHeaderCell>Datoer</CourseListHeaderCell>
                 <CourseListHeaderCell>Kursister</CourseListHeaderCell>
+                <CourseListHeaderCell>Betaling</CourseListHeaderCell>
                 <CourseListHeaderCell>Værelser</CourseListHeaderCell>
               </>
             }
@@ -179,6 +185,19 @@ export function KontorList() {
                     }
                   >
                     {c.enrolled > 0 ? c.enrolled : c.budgetStudents || "—"}
+                  </span>
+                </CourseListDataCell>
+                <CourseListDataCell>
+                  <span
+                    className={
+                      c.paymentLabel === "Alle har betalt"
+                        ? "font-medium text-emerald-700"
+                        : c.paymentLabel.endsWith("mangler at betale")
+                          ? "font-medium text-amber-800"
+                          : "text-slate-500"
+                    }
+                  >
+                    {c.paymentLabel}
                   </span>
                 </CourseListDataCell>
                 <td className="px-4 py-3 text-slate-600">

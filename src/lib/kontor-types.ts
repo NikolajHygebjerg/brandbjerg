@@ -76,11 +76,39 @@ export function deriveParticipantChecks(
   return {
     modtagetBekræftelse: Boolean(p.confirmationSentAt),
     modtagetFaktura: Boolean(p.invoiceSentAt),
-    betalt: p.status === "betalt" || Boolean(p.paidAt),
+    betalt: isParticipantPaid(p),
     modtagetVelkomstbrev: Boolean(p.welcomeLetterSentAt),
     vaerelsePlaceret: Boolean(p.roomNumber),
     saerligeHensyn: Boolean(p.specialConsiderations.trim()),
   };
+}
+
+export function isParticipantPaid(p: KontorParticipant): boolean {
+  return p.status === "betalt" || Boolean(p.paidAt);
+}
+
+export function isActiveParticipant(p: KontorParticipant): boolean {
+  return p.status !== "aflyst";
+}
+
+export function countUnpaidParticipants(
+  participants: KontorParticipant[],
+): number {
+  return participants.filter(
+    (p) => isActiveParticipant(p) && !isParticipantPaid(p),
+  ).length;
+}
+
+export function paymentOverviewLabel(
+  participants: KontorParticipant[],
+): string {
+  const active = participants.filter(isActiveParticipant);
+  if (active.length === 0) return "—";
+  const unpaid = countUnpaidParticipants(participants);
+  if (unpaid === 0) return "Alle har betalt";
+  return unpaid === 1
+    ? "1 mangler at betale"
+    : `${unpaid} mangler at betale`;
 }
 
 export const checkLabels: Record<keyof KontorParticipantChecks, string> = {
