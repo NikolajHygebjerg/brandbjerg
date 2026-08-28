@@ -30,7 +30,7 @@ import { useCourseDetailSession } from "@/context/course-detail-session";
 import { UserMenu } from "@/components/auth/user-menu";
 import { useAuth } from "@/context/auth-context";
 import { navEntryVisible } from "@/lib/auth-permissions";
-import type { UserRole } from "@/lib/auth-types";
+import { hasFullPlatformAccess, type UserRole } from "@/lib/auth-types";
 
 type NavLink = {
   href: string;
@@ -213,7 +213,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   const showCommonFooter = role !== "hojskolelaerer";
   const showOverblik =
-    role === "admin" ||
+    hasFullPlatformAccess(role) ||
     [
       "kursusleder",
       "koekkenleder",
@@ -330,7 +330,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {session && role === "admin" ? (
+        {session && hasFullPlatformAccess(role) ? (
           <div className="flex min-h-0 flex-1 flex-col border-t-2 border-slate-300">
             <div className="flex-1 overflow-y-auto p-3">
               <CourseChecklistPanel

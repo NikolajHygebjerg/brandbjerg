@@ -45,6 +45,8 @@ export interface UserImportBatchResult {
 }
 
 const ROLE_ALIASES: Record<string, UserRole> = {
+  superadmin: "superadmin",
+  "super admin": "superadmin",
   admin: "admin",
   administrator: "admin",
   kursusleder: "kursusleder",

@@ -1,4 +1,5 @@
 export type UserRole =
+  | "superadmin"
   | "admin"
   | "kursusleder"
   | "hojskolelaerer"
@@ -21,6 +22,7 @@ export interface User {
 }
 
 export const userRoleLabels: Record<UserRole, string> = {
+  superadmin: "Superadmin",
   admin: "Admin",
   kursusleder: "Kursusleder",
   hojskolelaerer: "Højskolelærer",
@@ -63,5 +65,13 @@ export function canAccessStaffPages(role: UserRole): boolean {
 }
 
 export function isAdminRole(role: UserRole): boolean {
-  return role === "admin";
+  return role === "admin" || role === "superadmin";
+}
+
+export function isSuperAdminRole(role: UserRole): boolean {
+  return role === "superadmin";
+}
+
+export function hasFullPlatformAccess(role: UserRole): boolean {
+  return role === "admin" || role === "superadmin";
 }

@@ -21,7 +21,7 @@ export const SEED_USERS: SeedUser[] = [
     id: "user-nh",
     name: "Nikolaj Hygebjerg",
     email: "nh@brandbjerg.dk",
-    role: "kursusleder",
+    role: "superadmin",
   },
   {
     id: "user-kalc",

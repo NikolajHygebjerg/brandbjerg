@@ -1,4 +1,5 @@
 import type { UserRole } from "./auth-types";
+import { hasFullPlatformAccess } from "./auth-types";
 
 /** Fællessider — tilgængelige for de fleste medarbejderroller */
 export const COMMON_ROUTES = ["/katalog", "/overblik"] as const;
@@ -31,7 +32,7 @@ function isCommonRoute(pathname: string): boolean {
 }
 
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
-  if (role === "admin") return true;
+  if (hasFullPlatformAccess(role)) return true;
 
   if (matchesPrefix(pathname, "/rengoring/admin")) {
     return role === "rengoringsleder";
@@ -65,6 +66,7 @@ function roleHasCommonAccess(role: UserRole): boolean {
 }
 
 const ROLE_MODULE_ACCESS: Record<UserRole, string[]> = {
+  superadmin: [],
   admin: [],
   kursusleder: ["kursusleder", "common"],
   hojskolelaerer: ["vaerelsesbooking"],
@@ -80,6 +82,7 @@ const ROLE_MODULE_ACCESS: Record<UserRole, string[]> = {
 
 export function getDefaultRouteForRole(role: UserRole): string {
   switch (role) {
+    case "superadmin":
     case "admin":
       return "/planlaegning/statusark";
     case "kursusleder":
@@ -105,11 +108,11 @@ export function getDefaultRouteForRole(role: UserRole): string {
 }
 
 export function canManageUsers(role: UserRole): boolean {
-  return role === "admin";
+  return hasFullPlatformAccess(role);
 }
 
 export function canAccessRengoringAdmin(role: UserRole): boolean {
-  return role === "admin" || role === "rengoringsleder";
+  return hasFullPlatformAccess(role) || role === "rengoringsleder";
 }
 
 export function isRengoringsassistent(role: UserRole): boolean {
@@ -120,7 +123,7 @@ export function navEntryVisible(
   roles: UserRole[] | "all",
   userRole: UserRole,
 ): boolean {
-  if (userRole === "admin") return true;
+  if (hasFullPlatformAccess(userRole)) return true;
   if (roles === "all") return true;
   return roles.includes(userRole);
 }
