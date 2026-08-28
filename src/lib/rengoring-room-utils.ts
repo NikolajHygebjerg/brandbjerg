@@ -124,6 +124,28 @@ export function getVaerelserForRengoringDate(
   );
 }
 
+/** Alle værelser til gittervisning — inkl. værelser uden aktiv opgave. */
+export function getAllVaerelserGridForDate(date: string): RengoringVaerelseRow[] {
+  const active = new Map(
+    getVaerelserForRengoringDate(date).map((r) => [r.roomNumber, r]),
+  );
+
+  return getAllRoomNumbers().map((roomNumber) => {
+    const existing = active.get(roomNumber);
+    if (existing) return existing;
+
+    const inUse = isRoomInUseOnNight(roomNumber, date);
+    const klar = isVaerelseKlar(roomNumber, date);
+    return {
+      roomNumber,
+      floor: roomFloor(roomNumber),
+      inUse,
+      klar,
+      needsCleaning: false,
+    };
+  });
+}
+
 export function countVaerelserNeedingCleaning(date: string): number {
   return getVaerelserForRengoringDate(date).filter((r) => r.needsCleaning)
     .length;

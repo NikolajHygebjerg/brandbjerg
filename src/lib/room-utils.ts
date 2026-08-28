@@ -11,6 +11,94 @@ export function getAllRoomNumbers(): string[] {
 
 export const ROOM_COUNT = getAllRoomNumbers().length;
 
+export type RoomBuildingColumn =
+  | "red-top"
+  | "red-bottom"
+  | "yellow-top"
+  | "yellow-bottom"
+  | "orange-top"
+  | "orange-bottom";
+
+export const ROOM_BUILDING_COLUMNS: {
+  id: RoomBuildingColumn;
+  label: string;
+  columnClass: string;
+  headerClass: string;
+}[] = [
+  {
+    id: "red-top",
+    label: "Rød øverst",
+    columnClass: "border-red-200 bg-red-50/40",
+    headerClass: "bg-red-100 text-red-900",
+  },
+  {
+    id: "red-bottom",
+    label: "Rød nederst",
+    columnClass: "border-red-200 bg-red-50/40",
+    headerClass: "bg-red-100 text-red-900",
+  },
+  {
+    id: "yellow-top",
+    label: "Gul øverst",
+    columnClass: "border-yellow-200 bg-yellow-50/40",
+    headerClass: "bg-yellow-100 text-yellow-900",
+  },
+  {
+    id: "yellow-bottom",
+    label: "Gul nederst",
+    columnClass: "border-yellow-200 bg-yellow-50/40",
+    headerClass: "bg-yellow-100 text-yellow-900",
+  },
+  {
+    id: "orange-top",
+    label: "Orange øverst",
+    columnClass: "border-orange-200 bg-orange-50/40",
+    headerClass: "bg-orange-100 text-orange-900",
+  },
+  {
+    id: "orange-bottom",
+    label: "Orange nederst",
+    columnClass: "border-orange-200 bg-orange-50/40",
+    headerClass: "bg-orange-100 text-orange-900",
+  },
+];
+
+export function getRoomBuildingColumn(roomNumber: string): RoomBuildingColumn {
+  const num = parseInt(roomNumber, 10);
+  const series = Math.floor(num / 100);
+  const isOdd = num % 2 === 1;
+  if (series === 1) return isOdd ? "red-top" : "red-bottom";
+  if (series === 2) return isOdd ? "yellow-top" : "yellow-bottom";
+  return isOdd ? "orange-top" : "orange-bottom";
+}
+
+export function groupRoomsByBuildingColumn(
+  roomNumbers: string[],
+): Record<RoomBuildingColumn, string[]> {
+  const groups: Record<RoomBuildingColumn, string[]> = {
+    "red-top": [],
+    "red-bottom": [],
+    "yellow-top": [],
+    "yellow-bottom": [],
+    "orange-top": [],
+    "orange-bottom": [],
+  };
+  for (const room of roomNumbers) {
+    groups[getRoomBuildingColumn(room)].push(room);
+  }
+  for (const col of ROOM_BUILDING_COLUMNS) {
+    groups[col.id].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  }
+  return groups;
+}
+
+export function getAllRoomsByBuildingColumn(): Record<
+  RoomBuildingColumn,
+  string[]
+> {
+  return groupRoomsByBuildingColumn(getAllRoomNumbers());
+}
+
 export function roomFloor(roomNumber: string): number {
   return parseInt(roomNumber.charAt(0), 10) || 1;
 }

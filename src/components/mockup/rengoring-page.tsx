@@ -22,9 +22,9 @@ import {
   setVaerelseKlar,
 } from "@/lib/rengoring-storage";
 import {
-  getVaerelserForRengoringDate,
-  type RengoringVaerelseRow,
+  getAllVaerelserGridForDate,
 } from "@/lib/rengoring-room-utils";
+import { RengoringVaerelserTab } from "@/components/mockup/rengoring-vaerelser-tab";
 import {
   getLokalerForRengoringDate,
   type RengoringLokaleRow,
@@ -65,8 +65,6 @@ function buildMonthGrid(year: number, month: number): (string | null)[][] {
   }
   return weeks;
 }
-
-const WEEKDAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
 export function RengoringPage() {
   const { user } = useAuth();
@@ -265,7 +263,7 @@ function RengoringLeaderView({ today }: { today: string }) {
   );
 
   const vaerelser = useMemo(
-    () => getVaerelserForRengoringDate(selectedDate),
+    () => getAllVaerelserGridForDate(selectedDate),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedDate, tick],
   );
@@ -275,16 +273,6 @@ function RengoringLeaderView({ today }: { today: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedDate, tick],
   );
-
-  const filteredVaerelser = useMemo(() => {
-    if (vaerelseFilter === "klar") {
-      return vaerelser.filter((r) => r.klar);
-    }
-    if (vaerelseFilter === "needs_cleaning") {
-      return vaerelser.filter((r) => r.needsCleaning);
-    }
-    return vaerelser;
-  }, [vaerelser, vaerelseFilter]);
 
   const monthGrid = useMemo(
     () => buildMonthGrid(calendarYear, calendarMonth),
@@ -379,12 +367,12 @@ function RengoringLeaderView({ today }: { today: string }) {
       </div>
 
       {activeTab === "vaerelser" ? (
-        <VaerelserTab
+        <RengoringVaerelserTab
           selectedDate={selectedDate}
           today={today}
           monthLabel={monthLabel}
           monthGrid={monthGrid}
-          filteredVaerelser={filteredVaerelser}
+          vaerelser={vaerelser}
           vaerelseFilter={vaerelseFilter}
           onSelectDate={setSelectedDate}
           onPrevMonth={prevMonth}
@@ -435,169 +423,6 @@ function TabButton({
     >
       {children}
     </button>
-  );
-}
-
-function VaerelserTab({
-  selectedDate,
-  today,
-  monthLabel,
-  monthGrid,
-  filteredVaerelser,
-  vaerelseFilter,
-  onSelectDate,
-  onPrevMonth,
-  onNextMonth,
-  onFilterChange,
-  onToggleKlar,
-}: {
-  selectedDate: string;
-  today: string;
-  monthLabel: string;
-  monthGrid: (string | null)[][];
-  filteredVaerelser: RengoringVaerelseRow[];
-  vaerelseFilter: VaerelseFilter;
-  onSelectDate: (d: string) => void;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
-  onFilterChange: (f: VaerelseFilter) => void;
-  onToggleKlar: (room: string, klar: boolean) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-4">
-          <CardTitle className="text-base capitalize">{monthLabel}</CardTitle>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={onPrevMonth}
-              className="rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              onClick={onNextMonth}
-              className="rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              →
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
-          {WEEKDAY_LABELS.map((d) => (
-            <div key={d} className="py-1">
-              {d}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-1 grid grid-cols-7 gap-1">
-          {monthGrid.flat().map((date, idx) => {
-            if (!date) {
-              return <div key={`empty-${idx}`} className="aspect-square" />;
-            }
-            const isSelected = date === selectedDate;
-            const isToday = date === today;
-            const isPast = date < today;
-
-            return (
-              <button
-                key={date}
-                type="button"
-                onClick={() => onSelectDate(date)}
-                className={cn(
-                  "aspect-square rounded-lg text-sm font-medium transition",
-                  isSelected
-                    ? "bg-emerald-600 text-white ring-2 ring-emerald-300"
-                    : isToday
-                      ? "bg-emerald-100 text-emerald-900 ring-1 ring-emerald-300"
-                      : isPast
-                        ? "text-slate-400 hover:bg-slate-50"
-                        : "text-slate-700 hover:bg-emerald-50",
-                )}
-              >
-                {parseIsoDate(date).getDate()}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
-      <Card>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-base">
-              Værelser · {formatDateDaShort(selectedDate)}
-            </CardTitle>
-            <CardDescription>
-              Værelser der skal bruges eller ikke er gjort rent siden sidste brug
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <FilterButton
-              active={vaerelseFilter === "klar"}
-              onClick={() =>
-                onFilterChange(vaerelseFilter === "klar" ? "all" : "klar")
-              }
-            >
-              Kun klar
-            </FilterButton>
-            <FilterButton
-              active={vaerelseFilter === "needs_cleaning"}
-              onClick={() =>
-                onFilterChange(
-                  vaerelseFilter === "needs_cleaning" ? "all" : "needs_cleaning",
-                )
-              }
-            >
-              Skal gøres rent
-            </FilterButton>
-          </div>
-        </div>
-
-        {filteredVaerelser.length === 0 ? (
-          <p className="mt-6 text-sm text-slate-500">
-            Ingen værelser matcher filteret for den valgte dato.
-          </p>
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[480px] text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                  <th className="px-3 py-2">Værelse</th>
-                  <th className="px-3 py-2 text-center">I brug</th>
-                  <th className="px-3 py-2 text-center">Klar</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredVaerelser.map((row) => (
-                  <tr key={row.roomNumber} className="hover:bg-slate-50">
-                    <td className="px-3 py-2.5 font-semibold tabular-nums text-slate-900">
-                      {row.roomNumber}
-                    </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <StatusCheckbox checked={row.inUse} disabled label="I brug" />
-                    </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <StatusCheckbox
-                        checked={row.klar}
-                        label="Klar"
-                        onChange={(checked) =>
-                          onToggleKlar(row.roomNumber, checked)
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-    </div>
   );
 }
 
