@@ -34,10 +34,6 @@ function isCommonRoute(pathname: string): boolean {
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
   if (hasFullPlatformAccess(role)) return true;
 
-  if (matchesPrefix(pathname, "/rengoring/admin")) {
-    return role === "rengoringsleder";
-  }
-
   if (isCommonRoute(pathname)) {
     return roleHasCommonAccess(role);
   }

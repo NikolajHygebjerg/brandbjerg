@@ -131,13 +131,6 @@ const nav: NavEntry[] = [
   },
   {
     type: "link",
-    href: "/rengoring?tab=uddelegering",
-    label: "Rengøringsadmin",
-    icon: ClipboardList,
-    roles: ["admin", "rengoringsleder"],
-  },
-  {
-    type: "link",
     href: "/vaerelsesbooking",
     label: "Værelsesbooking",
     icon: BedDouble,
