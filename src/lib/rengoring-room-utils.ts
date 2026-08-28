@@ -1,7 +1,7 @@
 import { getIsoWeekForDate } from "./kitchen-active-meal";
 import { loadParticipantsForCourse, loadRoomGrid } from "./kontor-storage";
-import { statusarkCourses, statusarkYear } from "./brandbjerg-statusark";
 import { loadAnsatVaerelseBookings } from "./ansat-vaerelse-booking-storage";
+import { getCoursesForYear } from "./course-list";
 import { eachNight, addDaysIso } from "./date-utils";
 import { getAllRoomNumbers, roomWeekKey, roomFloor } from "./room-utils";
 import {
@@ -16,15 +16,16 @@ function parseIsoDateLocal(dateStr: string): Date {
 
 function isRoomOccupiedByParticipantsOnNight(
   roomNumber: string,
-  year: number,
-  week: number,
+  night: string,
 ): boolean {
-  for (const course of statusarkCourses) {
-    if (course.courseWeekNumber !== week) continue;
-    const courseYear = course.startDate
-      ? parseInt(course.startDate.slice(0, 4), 10)
-      : statusarkYear;
-    if (courseYear !== year) continue;
+  const year = parseInt(night.slice(0, 4), 10);
+  for (const course of getCoursesForYear(year)) {
+    if (!course.startDate || !course.endDate) continue;
+    const occupiedNights = eachNight(
+      course.startDate,
+      addDaysIso(course.endDate, 1),
+    );
+    if (!occupiedNights.includes(night)) continue;
 
     for (const p of loadParticipantsForCourse(course.id)) {
       if (p.status === "aflyst") continue;
@@ -57,7 +58,7 @@ export function isRoomInUseOnNight(
   const cell = grid[roomWeekKey(roomNumber, year, weekNumber)];
 
   if (cell?.status === "optaget" || cell?.status === "ansatte") return true;
-  if (isRoomOccupiedByParticipantsOnNight(roomNumber, year, weekNumber)) {
+  if (isRoomOccupiedByParticipantsOnNight(roomNumber, night)) {
     return true;
   }
   if (isRoomBookedByStaffOnNight(roomNumber, night)) return true;
@@ -126,4 +127,18 @@ export function getVaerelserForRengoringDate(
 export function countVaerelserNeedingCleaning(date: string): number {
   return getVaerelserForRengoringDate(date).filter((r) => r.needsCleaning)
     .length;
+}
+
+/** Værelser der forlades på datoen (check-out dag). */
+export function getVaerelserWithCheckoutOnDate(date: string): string[] {
+  const rooms: string[] = [];
+  for (const roomNumber of getAllRoomNumbers()) {
+    const checkoutToday =
+      isRoomInUseOnNight(roomNumber, addDaysIso(date, -1)) &&
+      !isRoomInUseOnNight(roomNumber, date);
+    if (checkoutToday) rooms.push(roomNumber);
+  }
+  return rooms.sort(
+    (a, b) => roomFloor(a) - roomFloor(b) || a.localeCompare(b),
+  );
 }

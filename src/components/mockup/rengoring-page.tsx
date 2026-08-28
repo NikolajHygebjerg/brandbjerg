@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 import { canAccessRengoringAdmin, isRengoringsassistent } from "@/lib/auth-permissions";
+import { getUserById, listUsersByRole } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import {
   todayIso,
@@ -25,17 +26,20 @@ import {
   type RengoringVaerelseRow,
 } from "@/lib/rengoring-room-utils";
 import {
-  getDagensRengoringOpgaver,
   getLokalerForRengoringDate,
   type RengoringLokaleRow,
 } from "@/lib/rengoring-lokale-utils";
+import { syncAutoRengoringTasksForDate } from "@/lib/rengoring-auto-tasks";
 import { KONTOR_UPDATED_EVENT } from "@/lib/kontor-storage";
 import { ANSAT_VAERELSE_BOOKING_UPDATED_EVENT } from "@/lib/ansat-vaerelse-booking-storage";
 import {
+  assignLeaderTask,
+  completeRengoringTask,
   getIncompleteTasksForAssignee,
+  getLeaderTasksForDate,
   getTasksForAssignee,
   RENGORING_TASKS_UPDATED_EVENT,
-  updateRengoringTask,
+  type RengoringTask,
 } from "@/lib/rengoring-task-storage";
 import { RengoringDelegationTab } from "@/components/mockup/rengoring-delegation-tab";
 
@@ -87,12 +91,22 @@ function RengoringAssistantView({
 
   useEffect(() => {
     function onUpdate() {
+      syncAutoRengoringTasksForDate(today);
       reload();
     }
+    syncAutoRengoringTasksForDate(today);
     window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
-    return () =>
+    window.addEventListener(KONTOR_UPDATED_EVENT, onUpdate);
+    window.addEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
+    return () => {
       window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
-  }, [reload]);
+      window.removeEventListener(KONTOR_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(
+        ANSAT_VAERELSE_BOOKING_UPDATED_EVENT,
+        onUpdate,
+      );
+    };
+  }, [reload, today]);
 
   const dagensTasks = useMemo(
     () => getIncompleteTasksForAssignee(userId, today),
@@ -135,6 +149,11 @@ function RengoringAssistantView({
               >
                 <div>
                   <p className="font-medium text-slate-900">{task.label}</p>
+                  {task.dueBy && (
+                    <p className="text-xs font-medium text-amber-800">
+                      Før kl. {task.dueBy}
+                    </p>
+                  )}
                   {task.note && (
                     <p className="text-sm text-slate-500">{task.note}</p>
                   )}
@@ -142,7 +161,7 @@ function RengoringAssistantView({
                 <Button
                   className="h-8 shrink-0"
                   onClick={() => {
-                    updateRengoringTask(task.id, { completed: true });
+                    completeRengoringTask(task);
                     reload();
                   }}
                 >
@@ -212,17 +231,21 @@ function RengoringLeaderView({ today }: { today: string }) {
 
   useEffect(() => {
     function onUpdate() {
+      syncAutoRengoringTasksForDate(today);
       reload();
     }
+    syncAutoRengoringTasksForDate(today);
     window.addEventListener(RENGORING_UPDATED_EVENT, onUpdate);
     window.addEventListener(KONTOR_UPDATED_EVENT, onUpdate);
     window.addEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
+    window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
     return () => {
       window.removeEventListener(RENGORING_UPDATED_EVENT, onUpdate);
       window.removeEventListener(KONTOR_UPDATED_EVENT, onUpdate);
       window.removeEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
     };
-  }, [reload]);
+  }, [reload, today]);
 
   useEffect(() => {
     const d = parseIsoDate(selectedDate);
@@ -230,10 +253,15 @@ function RengoringLeaderView({ today }: { today: string }) {
     setCalendarMonth(d.getMonth());
   }, [selectedDate]);
 
-  const dagensOpgaver = useMemo(
-    () => getDagensRengoringOpgaver(today),
+  const leaderTasks = useMemo(
+    () => getLeaderTasksForDate(today),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [today, tick],
+  );
+
+  const assistants = useMemo(
+    () => listUsersByRole("rengoringsassistent"),
+    [tick],
   );
 
   const vaerelser = useMemo(
@@ -288,8 +316,7 @@ function RengoringLeaderView({ today }: { today: string }) {
     );
   }
 
-  const totalDagens =
-    dagensOpgaver.vaerelser.length + dagensOpgaver.lokaler.length;
+  const totalDagens = leaderTasks.length;
 
   return (
     <div className="space-y-6">
@@ -321,67 +348,20 @@ function RengoringLeaderView({ today }: { today: string }) {
         <RengoringDelegationTab today={today} />
       ) : (
         <>
-      <Card className="border-emerald-200 bg-emerald-50/60">
-        <CardTitle className="text-base text-emerald-900">
-          Dagens opgaver
-        </CardTitle>
-        <CardDescription className="mt-1 text-emerald-800/80">
-          {formatDateDa(today)} · {totalDagens}{" "}
-          {totalDagens === 1 ? "opgave" : "opgaver"} til rengøring i dag
-        </CardDescription>
-
-        {totalDagens === 0 ? (
-          <p className="mt-4 text-sm text-emerald-800">
-            Ingen opgaver i dag — alt er klart.
-          </p>
-        ) : (
-          <div className="mt-4 space-y-4">
-            {dagensOpgaver.vaerelser.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                  Værelser ({dagensOpgaver.vaerelser.length})
-                </p>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {dagensOpgaver.vaerelser.map((r) => (
-                    <li
-                      key={r.roomNumber}
-                      className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium tabular-nums text-slate-800 ring-1 ring-emerald-200"
-                    >
-                      {r.roomNumber}
-                      {r.inUse && (
-                        <span className="ml-1.5 text-xs font-normal text-amber-700">
-                          i brug
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {dagensOpgaver.lokaler.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                  Lokaler ({dagensOpgaver.lokaler.length})
-                </p>
-                <ul className="mt-2 space-y-1.5">
-                  {dagensOpgaver.lokaler.map((l) => (
-                    <li
-                      key={l.id}
-                      className="rounded-lg bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-emerald-200"
-                    >
-                      <span className="font-medium">{l.lokale}</span>
-                      <span className="text-slate-500"> · {l.courseTitle}</span>
-                      {l.timeSpan && (
-                        <span className="text-slate-400"> · {l.timeSpan}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
+      <LeaderDagensOpgaverCard
+        today={today}
+        tasks={leaderTasks}
+        assistants={assistants}
+        totalCount={totalDagens}
+        onAssign={(taskId, assigneeUserId) => {
+          assignLeaderTask(taskId, assigneeUserId);
+          reload();
+        }}
+        onComplete={(task) => {
+          completeRengoringTask(task);
+          reload();
+        }}
+      />
 
       <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
         <TabButton
@@ -768,5 +748,106 @@ function StatusCheckbox({
       />
       <span className="text-xs font-medium text-slate-600">{label}</span>
     </label>
+  );
+}
+
+function LeaderDagensOpgaverCard({
+  today,
+  tasks,
+  assistants,
+  totalCount,
+  onAssign,
+  onComplete,
+}: {
+  today: string;
+  tasks: RengoringTask[];
+  assistants: { id: string; name: string }[];
+  totalCount: number;
+  onAssign: (taskId: string, assigneeUserId: string) => void;
+  onComplete: (task: RengoringTask) => void;
+}) {
+  const unassignedCount = tasks.filter((t) => !t.assigneeUserId).length;
+
+  return (
+    <Card className="border-emerald-200 bg-emerald-50/60">
+      <CardTitle className="text-base text-emerald-900">Dagens opgaver</CardTitle>
+      <CardDescription className="mt-1 text-emerald-800/80">
+        {formatDateDa(today)} · {totalCount}{" "}
+        {totalCount === 1 ? "opgave" : "opgaver"}
+        {unassignedCount > 0 && (
+          <> · {unassignedCount} ikke tildelt</>
+        )}
+      </CardDescription>
+
+      {totalCount === 0 ? (
+        <p className="mt-4 text-sm text-emerald-800">
+          Ingen opgaver i dag — alt er klart.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {tasks.map((task) => {
+            const assignee = task.assigneeUserId
+              ? getUserById(task.assigneeUserId)
+              : null;
+            return (
+              <li
+                key={task.id}
+                className={cn(
+                  "flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1",
+                  task.assigneeUserId
+                    ? "ring-emerald-200"
+                    : "ring-amber-300 bg-amber-50/30",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-slate-900">{task.label}</p>
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600">
+                      {task.type === "vaerelse" ? "Værelse" : "Lokale"}
+                    </span>
+                    {task.dueBy && (
+                      <span className="text-xs font-medium text-amber-800">
+                        Før kl. {task.dueBy}
+                      </span>
+                    )}
+                  </div>
+                  {task.note && (
+                    <p className="mt-0.5 text-sm text-slate-500">{task.note}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                    value={task.assigneeUserId}
+                    onChange={(e) => onAssign(task.id, e.target.value)}
+                  >
+                    <option value="">Ikke tildelt</option>
+                    {assistants.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  {assignee && (
+                    <span className="hidden text-xs text-slate-500 sm:inline">
+                      Tildelt: {assignee.name}
+                    </span>
+                  )}
+                  <Button
+                    className="h-8 shrink-0"
+                    variant="outline"
+                    onClick={() => onComplete(task)}
+                  >
+                    <CheckCircle2 className="mr-1 h-4 w-4" />
+                    Udført
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }

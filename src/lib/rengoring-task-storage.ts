@@ -1,4 +1,4 @@
-import type { UserRole } from "./auth-types";
+import { setLokaleKlar, setVaerelseKlar } from "./rengoring-storage";
 
 export interface RengoringTask {
   id: string;
@@ -8,10 +8,14 @@ export interface RengoringTask {
   targetKey: string;
   label: string;
   note?: string;
+  /** Composite lokale-id til klar-markering */
+  lokaleId?: string;
   completed: boolean;
-  /** Assistenter ser kun publicerede opgaver */
+  /** Assistenter ser kun publicerede opgaver med tildeling */
   published: boolean;
   publishedAt?: string;
+  source?: "auto" | "manual";
+  dueBy?: string;
   createdAt: string;
 }
 
@@ -31,7 +35,9 @@ function taskKey(date: string, type: RengoringTask["type"], targetKey: string): 
 function normalizeTask(raw: RengoringTask): RengoringTask {
   return {
     ...raw,
+    assigneeUserId: raw.assigneeUserId ?? "",
     published: raw.published ?? true,
+    source: raw.source ?? "manual",
   };
 }
 
@@ -46,7 +52,7 @@ export function loadRengoringTasks(): RengoringTask[] {
   }
 }
 
-function saveTasks(tasks: RengoringTask[]) {
+export function saveRengoringTasks(tasks: RengoringTask[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   emitUpdate();
 }
@@ -58,6 +64,7 @@ export function createRengoringTask(
 ): RengoringTask {
   const task: RengoringTask = {
     ...input,
+    assigneeUserId: input.assigneeUserId ?? "",
     id: `rt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     completed: false,
     published: input.published ?? true,
@@ -66,7 +73,7 @@ export function createRengoringTask(
   };
   const all = loadRengoringTasks();
   all.push(task);
-  saveTasks(all);
+  saveRengoringTasks(all);
   return task;
 }
 
@@ -85,8 +92,18 @@ export function upsertRengoringAssignment(input: {
 
   if (!input.assigneeUserId) {
     if (idx >= 0) {
+      if (all[idx].source === "auto") {
+        all[idx] = {
+          ...all[idx],
+          assigneeUserId: "",
+          published: false,
+          publishedAt: undefined,
+        };
+        saveRengoringTasks(all);
+        return all[idx];
+      }
       all.splice(idx, 1);
-      saveTasks(all);
+      saveRengoringTasks(all);
     }
     return;
   }
@@ -96,11 +113,12 @@ export function upsertRengoringAssignment(input: {
       ...all[idx],
       assigneeUserId: input.assigneeUserId,
       label: input.label,
+      source: all[idx].source ?? "manual",
       published: false,
       publishedAt: undefined,
       completed: false,
     };
-    saveTasks(all);
+    saveRengoringTasks(all);
     return all[idx];
   }
 
@@ -113,10 +131,11 @@ export function upsertRengoringAssignment(input: {
     label: input.label,
     completed: false,
     published: false,
+    source: "manual",
     createdAt: new Date().toISOString(),
   };
   all.push(task);
-  saveTasks(all);
+  saveRengoringTasks(all);
   return task;
 }
 
@@ -129,7 +148,7 @@ export function publishAssignmentsForDate(date: string): number {
     count += 1;
     return { ...t, published: true, publishedAt: now };
   });
-  saveTasks(all);
+  saveRengoringTasks(all);
   return count;
 }
 
@@ -163,18 +182,49 @@ export function updateRengoringTask(
   patch: Partial<
     Pick<
       RengoringTask,
-      "assigneeUserId" | "date" | "label" | "note" | "completed" | "published"
+      | "assigneeUserId"
+      | "date"
+      | "label"
+      | "note"
+      | "completed"
+      | "published"
+      | "publishedAt"
+      | "dueBy"
+      | "lokaleId"
     >
   >,
 ): void {
   const all = loadRengoringTasks().map((t) =>
     t.id === id ? { ...t, ...patch } : t,
   );
-  saveTasks(all);
+  saveRengoringTasks(all);
+}
+
+export function assignLeaderTask(taskId: string, assigneeUserId: string): void {
+  const now = new Date().toISOString();
+  const all = loadRengoringTasks().map((t) => {
+    if (t.id !== taskId) return t;
+    return {
+      ...t,
+      assigneeUserId,
+      published: Boolean(assigneeUserId),
+      publishedAt: assigneeUserId ? now : undefined,
+    };
+  });
+  saveRengoringTasks(all);
+}
+
+export function completeRengoringTask(task: RengoringTask): void {
+  updateRengoringTask(task.id, { completed: true });
+  if (task.type === "vaerelse") {
+    setVaerelseKlar(task.targetKey, task.date, true);
+  } else if (task.lokaleId) {
+    setLokaleKlar(task.lokaleId, true);
+  }
 }
 
 export function deleteRengoringTask(id: string): void {
-  saveTasks(loadRengoringTasks().filter((t) => t.id !== id));
+  saveRengoringTasks(loadRengoringTasks().filter((t) => t.id !== id));
 }
 
 export function getTasksForAssignee(userId: string, date?: string): RengoringTask[] {
@@ -188,6 +238,17 @@ export function getTasksForAssignee(userId: string, date?: string): RengoringTas
     .sort((a, b) => a.label.localeCompare(b.label, "da"));
 }
 
+export function getLeaderTasksForDate(date: string): RengoringTask[] {
+  return loadRengoringTasks()
+    .filter((t) => t.date === date && !t.completed)
+    .sort((a, b) => {
+      const aUnassigned = !a.assigneeUserId ? 0 : 1;
+      const bUnassigned = !b.assigneeUserId ? 0 : 1;
+      if (aUnassigned !== bUnassigned) return aUnassigned - bUnassigned;
+      return a.label.localeCompare(b.label, "da");
+    });
+}
+
 export function getTasksForDate(date: string): RengoringTask[] {
   return loadRengoringTasks()
     .filter((t) => t.date === date)
@@ -199,4 +260,48 @@ export function getIncompleteTasksForAssignee(
   date: string,
 ): RengoringTask[] {
   return getTasksForAssignee(userId, date).filter((t) => !t.completed);
+}
+
+export function mergeSyncedAutoTasks(tasks: RengoringTask[]): boolean {
+  const existing = loadRengoringTasks();
+  const byKey = new Map(
+    existing.map((t) => [taskKey(t.date, t.type, t.targetKey), t]),
+  );
+  let changed = false;
+
+  for (const task of tasks) {
+    const key = taskKey(task.date, task.type, task.targetKey);
+    const current = byKey.get(key);
+    if (current) {
+      if (current.completed) continue;
+      const assignee =
+        current.assigneeUserId || task.assigneeUserId || "";
+      byKey.set(key, {
+        ...current,
+        source: current.source ?? "auto",
+        dueBy: task.dueBy ?? current.dueBy,
+        label: task.label,
+        note: task.note ?? current.note,
+        lokaleId: task.lokaleId ?? current.lokaleId,
+        assigneeUserId: assignee,
+        published: Boolean(assignee),
+        publishedAt: assignee
+          ? current.publishedAt ?? task.publishedAt ?? new Date().toISOString()
+          : undefined,
+      });
+      changed = true;
+    } else {
+      byKey.set(key, task);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    saveRengoringTasks(Array.from(byKey.values()));
+  }
+  return changed;
+}
+
+export function countUnassignedLeaderTasks(date: string): number {
+  return getLeaderTasksForDate(date).filter((t) => !t.assigneeUserId).length;
 }
