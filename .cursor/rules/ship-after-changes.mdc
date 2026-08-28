@@ -9,8 +9,9 @@ Efter **hver rettelse** med kodeændringer skal du afslutte med:
 npm run ship -- "Kort beskrivelse af rettelsen"
 ```
 
-Scriptet committer, pusher til både Cursor-origin og GitHub (`main`), og forsøger Vercel-produktion.
+Scriptet committer, pusher til **GitHub først** (Vercel Git-integration) og derefter Cursor-origin, og forsøger Vercel-produktion.
 
+- **Vigtigt:** Push kun til `origin` (Cursor) deployer **ikke** til Vercel. Brug altid `npm run ship` eller `git push github main`.
 - Kør ship **før** du tester UI i browser, medmindre du stadig debugger aktivt.
 - Brug danske, beskrivende commit-beskeder.
 - Hvis Vercel CLI fejler lokalt, er push til GitHub nok — Vercel deployer automatisk ved push til `main`.
