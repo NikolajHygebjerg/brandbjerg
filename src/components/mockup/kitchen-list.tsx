@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { UtensilsCrossed } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { QuestionCountBadge } from "@/components/mockup/module-questions";
-import { KitchenWeekOverview } from "@/components/mockup/kitchen-week-overview";
+import { KitchenWeekCalendarView } from "@/components/mockup/kitchen-week-calendar-view";
 import {
   CourseListDataCell,
   CourseListDatesCell,
@@ -38,11 +38,12 @@ import {
   getBudgetAntal,
   getRealiseretAntal,
 } from "@/lib/course-enrollment-counts";
+import { ISO_WEEKS } from "@/lib/kitchen-week-calendar";
 
 export function KitchenList() {
   const [hydrated, setHydrated] = useState(false);
   const [activeYear, setActiveYear] = useState(statusarkYear);
-  const [activeWeek, setActiveWeek] = useState<number | null>(null);
+  const [activeWeek, setActiveWeek] = useState(1);
   const [years, setYears] = useState<number[]>([statusarkYear]);
 
   const [questionTick, setQuestionTick] = useState(0);
@@ -98,25 +99,17 @@ export function KitchenList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, activeYear, questionTick, kitchenTick]);
 
-  const weekNumbers = useMemo(() => {
-    const weeks = new Set(courses.map((c) => c.weekNumber));
-    return Array.from(weeks).sort((a, b) => a - b);
-  }, [courses]);
-
   useEffect(() => {
-    if (weekNumbers.length === 0) {
-      setActiveWeek(null);
-      return;
-    }
-    setActiveWeek((prev) =>
-      prev !== null && weekNumbers.includes(prev) ? prev : weekNumbers[0],
+    const weeksWithCourses = new Set(
+      courses.map((c) => c.weekNumber).filter(Boolean),
     );
-  }, [weekNumbers, activeYear]);
+    if (weeksWithCourses.size === 0) return;
+    setActiveWeek((prev) =>
+      weeksWithCourses.has(prev) ? prev : Math.min(...weeksWithCourses),
+    );
+  }, [courses, activeYear]);
 
-  const filteredCourses =
-    activeWeek === null
-      ? courses
-      : courses.filter((c) => c.weekNumber === activeWeek);
+  const filteredCourses = courses.filter((c) => c.weekNumber === activeWeek);
 
   if (!hydrated) {
     return (
@@ -131,7 +124,8 @@ export function KitchenList() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Køkken</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Forplejning og måltider fra kursusprogrammer — som i praktisk seddel
+          Madplan for hele året — kurser med godkendt forplejning vises
+          automatisk i den rigtige uge
         </p>
       </div>
 
@@ -140,9 +134,9 @@ export function KitchenList() {
           <div className="flex items-center gap-3">
             <UtensilsCrossed className="h-5 w-5 text-amber-700" />
             <div>
-              <CardTitle className="text-base">Vælg uge / år</CardTitle>
+              <CardTitle className="text-base">Vælg år</CardTitle>
               <CardDescription>
-                Se madbehov for hele ugen eller vælg enkeltkursus nedenfor
+                {ISO_WEEKS.length} uger pr. år — madplan gemmes pr. uge
               </CardDescription>
             </div>
           </div>
@@ -163,36 +157,20 @@ export function KitchenList() {
             ))}
           </div>
         </div>
-        {weekNumbers.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-            {weekNumbers.map((w) => (
-              <button
-                key={w}
-                type="button"
-                onClick={() => setActiveWeek(w)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                  activeWeek === w
-                    ? "bg-amber-100 text-amber-900 ring-1 ring-amber-300"
-                    : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {weekLabel(w)}
-              </button>
-            ))}
-          </div>
-        )}
       </Card>
 
-      {activeWeek !== null && (
-        <KitchenWeekOverview weekNumber={activeWeek} courses={courses} />
-      )}
+      <KitchenWeekCalendarView
+        year={activeYear}
+        courses={courses}
+        activeWeek={activeWeek}
+        onWeekChange={setActiveWeek}
+      />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-medium text-amber-900">
             {courses.filter((c) => c.sent).length} kurser modtaget fra kursusledere
-            i {activeYear}
-            {activeWeek !== null ? ` · ${weekLabel(activeWeek)}` : ""}
+            i {activeYear} · {weekLabel(activeWeek)}
           </p>
         </div>
         <CourseListTable minWidth="640px">
@@ -210,9 +188,9 @@ export function KitchenList() {
           <tbody>
             {filteredCourses.length === 0 ? (
               <CourseListEmptyRow colSpan={7}>
-                Ingen køkkenplaner modtaget endnu. Kursuslederen godkender
-                måltidsmoduler i modulplanen — derefter sendes planen
-                automatisk hertil.
+                Ingen kursusplaner i {weekLabel(activeWeek)} endnu. Når
+                kursuslederen godkender forplejning, dukker kurset op i
+                madplanen ovenfor.
               </CourseListEmptyRow>
             ) : (
               filteredCourses.map((c) => (
