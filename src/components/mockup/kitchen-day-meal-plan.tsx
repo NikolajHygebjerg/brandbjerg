@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Sparkles, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { KitchenEvaluationDialog } from "@/components/mockup/kitchen-evaluation-dialog";
+import { KitchenMealSuggestionDialog } from "@/components/mockup/kitchen-meal-suggestion-dialog";
 import {
   forplejningTyper,
   type ForplejningType,
@@ -27,6 +28,7 @@ import {
   saveMealEvaluation,
 } from "@/lib/kitchen-evaluation-storage";
 import type { CourseListEntry } from "@/lib/course-list";
+import { syncSlotToMealLibrary } from "@/lib/kitchen-meal-library-storage";
 import { cn } from "@/lib/utils";
 
 function newSlotId(): string {
@@ -98,6 +100,11 @@ function KitchenMealSlotEditor({
 
   function setHouseMenu(menuText: string) {
     onChange({ ...slot, menuText, appliesToAll: true });
+  }
+
+  function persistToLibrary(nextSlot: KitchenMealSlotPlan) {
+    if (!nextSlot.menuText.trim()) return;
+    syncSlotToMealLibrary(nextSlot, { year, weekNumber, date });
   }
 
   function setCourseOverride(
@@ -198,6 +205,7 @@ function KitchenMealSlotEditor({
         <textarea
           value={slot.menuText}
           onChange={(e) => setHouseMenu(e.target.value)}
+          onBlur={() => persistToLibrary(slot)}
           rows={2}
           placeholder="Fx rugbrød, ost, æg, frugt…"
           className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -314,6 +322,7 @@ export function KitchenDayMealPlanCard({
   onPlanChange: (plan: KitchenWeekMealPlan) => void;
 }) {
   const [addingSlot, setAddingSlot] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [newForplejning, setNewForplejning] =
     useState<ForplejningType>("Disp.1");
 
@@ -383,19 +392,46 @@ export function KitchenDayMealPlanCard({
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
-        <CardTitle className="text-base text-amber-950">
-          {dayPlan.dayName} ·{" "}
-          {new Date(`${dayPlan.date}T12:00:00`).toLocaleDateString("da-DK", {
-            day: "numeric",
-            month: "long",
-          })}
-        </CardTitle>
-        <CardDescription>
-          Forventet {stats.budgetTotal} kursister (budget) · {stats.enrolledTotal}{" "}
-          tilmeldte · {stats.courseCount} kursus
-          {stats.courseCount !== 1 ? "er" : ""} med forplejning
-        </CardDescription>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base text-amber-950">
+              {dayPlan.dayName} ·{" "}
+              {new Date(`${dayPlan.date}T12:00:00`).toLocaleDateString("da-DK", {
+                day: "numeric",
+                month: "long",
+              })}
+            </CardTitle>
+            <CardDescription>
+              Forventet {stats.budgetTotal} kursister (budget) ·{" "}
+              {stats.enrolledTotal} tilmeldte · {stats.courseCount} kursus
+              {stats.courseCount !== 1 ? "er" : ""} med forplejning
+            </CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-8 shrink-0 gap-1.5 text-xs"
+            onClick={() => setSuggestOpen(true)}
+          >
+            <Sparkles className="size-3.5" />
+            Lav forslag til madplan
+          </Button>
+        </div>
       </div>
+
+      <KitchenMealSuggestionDialog
+        open={suggestOpen}
+        dayLabel={`${dayPlan.dayName} · ${dayPlan.date}`}
+        slots={dayPlan.slots}
+        onClose={() => setSuggestOpen(false)}
+        onApply={(slotId, menuText) => {
+          const slot = dayPlan.slots.find((s) => s.id === slotId);
+          if (!slot) return;
+          const next = { ...slot, menuText };
+          updateSlot(slotId, next);
+          syncSlotToMealLibrary(next, { year, weekNumber, date: dayPlan.date });
+        }}
+      />
 
       <div className="space-y-3 p-4">
         {dayPlan.slots.map((slot) => (
