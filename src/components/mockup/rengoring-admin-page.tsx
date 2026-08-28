@@ -8,7 +8,7 @@ export function RengoringAdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/rengoring");
+    router.replace("/rengoring?tab=uddelegering");
   }, [router]);
 
   return null;
