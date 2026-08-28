@@ -12,6 +12,7 @@ import {
   PEDEL_NOTIFICATIONS_UPDATED_EVENT,
   type PedelNotification,
 } from "@/lib/pedel-notifications-storage";
+import { MESSAGING_UPDATED_EVENT } from "@/lib/messaging-storage";
 import { formatDateDaShort } from "@/lib/date-utils";
 
 function formatTime(iso: string): string {
@@ -27,8 +28,11 @@ export function PedelNotificationsInbox() {
       setTick((t) => t + 1);
     }
     window.addEventListener(PEDEL_NOTIFICATIONS_UPDATED_EVENT, onUpdate);
-    return () =>
+    window.addEventListener(MESSAGING_UPDATED_EVENT, onUpdate);
+    return () => {
       window.removeEventListener(PEDEL_NOTIFICATIONS_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(MESSAGING_UPDATED_EVENT, onUpdate);
+    };
   }, []);
 
   const notifications = useMemo(
@@ -61,6 +65,9 @@ export function PedelNotificationsInbox() {
                 </span>
               )}
             </CardTitle>
+            <CardDescription className="mt-1 text-blue-800/80">
+              Pedelopgaver sendt via rengøring — findes også under Beskeder
+            </CardDescription>
             <CardDescription className="text-blue-800/80">
               Pedelopgaver sendt af rengøringsmedarbejdere
             </CardDescription>

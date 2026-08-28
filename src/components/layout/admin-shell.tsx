@@ -23,9 +23,11 @@ import {
   BedDouble,
   SprayCan,
   Users,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MessagingUnreadBadge } from "@/components/mockup/beskeder-page";
 import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
 import { useCourseDetailSession } from "@/context/course-detail-session";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -157,6 +159,13 @@ const nav: NavEntry[] = [
     label: "Vagtplanlægning",
     icon: CalendarClock,
     roles: ["admin", "koekkenleder", "rengoringsleder"],
+  },
+  {
+    type: "link",
+    href: "/beskeder",
+    label: "Beskeder",
+    icon: Mail,
+    roles: "all",
   },
   {
     type: "link",
@@ -408,6 +417,8 @@ function NavItem({
   onToggleKk: () => void;
   onNavigate: () => void;
 }) {
+  const { user } = useAuth();
+
   if (item.type === "link") {
     const active = isActive(pathname, item.href);
     const Icon = item.icon;
@@ -423,7 +434,10 @@ function NavItem({
         )}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        {item.label}
+        <span className="flex-1">{item.label}</span>
+        {item.href === "/beskeder" && user && (
+          <MessagingUnreadBadge userId={user.id} role={user.role} />
+        )}
       </Link>
     );
   }

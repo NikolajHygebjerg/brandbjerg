@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, Mail } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { MessagingUnreadBadge } from "@/components/mockup/beskeder-page";
 
 export function KursistShell({
   children,
@@ -25,7 +26,17 @@ export function KursistShell({
               <p className="truncate text-xs text-slate-500">{courseTitle}</p>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/kursist/beskeder"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              <Mail className="size-4" />
+              Beskeder
+              {user && (
+                <MessagingUnreadBadge userId={user.id} role={user.role} />
+              )}
+            </Link>
             {user && (
               <span className="hidden text-sm text-slate-600 sm:inline">
                 {user.name}

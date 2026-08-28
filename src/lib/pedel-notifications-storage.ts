@@ -1,3 +1,12 @@
+import { getCurrentUser } from "./auth-storage";
+import {
+  getDepartmentMessages,
+  isMessageUnread,
+  markAllInboxRead,
+  markMessageRead,
+  MESSAGING_UPDATED_EVENT,
+  sendMessage,
+} from "./messaging-storage";
 import type { RengoringNoteTargetType } from "./rengoring-notes-storage";
 
 export interface PedelNotification {
@@ -10,11 +19,11 @@ export interface PedelNotification {
   senderName: string;
   createdAt: string;
   read: boolean;
+  messageId?: string;
 }
 
-const STORAGE_KEY = "brandbjerg-pedel-notifications";
-export const PEDEL_NOTIFICATIONS_UPDATED_EVENT =
-  "brandbjerg-pedel-notifications-updated";
+const LEGACY_STORAGE_KEY = "brandbjerg-pedel-notifications";
+export const PEDEL_NOTIFICATIONS_UPDATED_EVENT = MESSAGING_UPDATED_EVENT;
 
 function emitUpdate() {
   if (typeof window !== "undefined") {
@@ -22,21 +31,15 @@ function emitUpdate() {
   }
 }
 
-function loadAll(): PedelNotification[] {
+function loadLegacy(): PedelNotification[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return [];
     return JSON.parse(raw) as PedelNotification[];
   } catch {
     return [];
   }
-}
-
-function saveAll(notifications: PedelNotification[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-  emitUpdate();
 }
 
 export function formatPedelNotificationMessage(
@@ -65,30 +68,65 @@ export function sendPedelNotification(input: {
   const trimmed = input.text.trim();
   if (!trimmed) return null;
 
-  const notification: PedelNotification = {
-    id: `pn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    message: formatPedelNotificationMessage(
-      input.type,
-      input.targetKey,
-      trimmed,
-    ),
+  const messageBody = formatPedelNotificationMessage(
+    input.type,
+    input.targetKey,
+    trimmed,
+  );
+
+  const platformMessage = sendMessage({
+    senderId: input.senderUserId,
+    senderName: input.senderName,
+    recipientType: "department",
+    recipientDepartmentId: "pedel",
+    recipientDepartmentName: "Pedel",
+    subject: `Rengøring: ${input.targetLabel}`,
+    body: messageBody,
+    source: "rengoring-pedel",
+  });
+
+  if (!platformMessage) return null;
+
+  emitUpdate();
+
+  return {
+    id: platformMessage.id,
+    messageId: platformMessage.id,
+    message: messageBody,
     type: input.type,
     targetKey: input.targetKey,
     targetLabel: input.targetLabel,
     senderUserId: input.senderUserId,
     senderName: input.senderName,
-    createdAt: new Date().toISOString(),
+    createdAt: platformMessage.createdAt,
     read: false,
   };
-
-  const all = loadAll();
-  all.unshift(notification);
-  saveAll(all);
-  return notification;
 }
 
 export function getPedelNotifications(): PedelNotification[] {
-  return loadAll().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const user = getCurrentUser();
+  const fromMessaging = getDepartmentMessages("pedel", {
+    source: "rengoring-pedel",
+  }).map((m) => ({
+    id: m.id,
+    messageId: m.id,
+    message: m.body,
+    type: "vaerelse" as RengoringNoteTargetType,
+    targetKey: "",
+    targetLabel: m.subject.replace(/^Rengøring: /, ""),
+    senderUserId: m.senderId,
+    senderName: m.senderName,
+    createdAt: m.createdAt,
+    read: user ? !isMessageUnread(m, user.id) : m.readByUserIds.length > 0,
+  }));
+
+  const legacy = loadLegacy();
+  const ids = new Set(fromMessaging.map((n) => n.id));
+  const merged = [
+    ...fromMessaging,
+    ...legacy.filter((l) => !ids.has(l.id)),
+  ];
+  return merged.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function getUnreadPedelNotifications(): PedelNotification[] {
@@ -100,11 +138,17 @@ export function countUnreadPedelNotifications(): number {
 }
 
 export function markPedelNotificationRead(id: string): void {
-  saveAll(
-    loadAll().map((n) => (n.id === id ? { ...n, read: true } : n)),
-  );
+  const user = getCurrentUser();
+  if (user) {
+    markMessageRead(id, user.id);
+  }
+  emitUpdate();
 }
 
 export function markAllPedelNotificationsRead(): void {
-  saveAll(loadAll().map((n) => ({ ...n, read: true })));
+  const user = getCurrentUser();
+  if (user) {
+    markAllInboxRead(user.id, user.role);
+  }
+  emitUpdate();
 }

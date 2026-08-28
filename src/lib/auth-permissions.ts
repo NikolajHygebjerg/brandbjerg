@@ -16,6 +16,7 @@ const MODULE_PREFIXES: Record<string, string[]> = {
   kontor: ["/kontor"],
   kommunikation: ["/kommunikation"],
   brugere: ["/brugere"],
+  beskeder: ["/beskeder"],
   kursist: ["/kursist"],
 };
 
@@ -38,6 +39,10 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
     return canAccessAdminPortal(role);
   }
 
+  if (matchesPrefix(pathname, "/beskeder")) {
+    return canAccessAdminPortal(role);
+  }
+
   if (isCommonRoute(pathname)) {
     return roleHasCommonAccess(role);
   }
@@ -47,7 +52,10 @@ export function canAccessRoute(role: UserRole, pathname: string): boolean {
   }
 
   if (role === "hojskolelaerer") {
-    return matchesPrefix(pathname, "/vaerelsesbooking");
+    return (
+      matchesPrefix(pathname, "/vaerelsesbooking") ||
+      matchesPrefix(pathname, "/beskeder")
+    );
   }
 
   const modules = ROLE_MODULE_ACCESS[role] ?? [];
@@ -68,16 +76,16 @@ function roleHasCommonAccess(role: UserRole): boolean {
 const ROLE_MODULE_ACCESS: Record<UserRole, string[]> = {
   superadmin: [],
   admin: [],
-  kursusleder: ["kursusleder", "common"],
-  hojskolelaerer: ["vaerelsesbooking"],
-  kursist: ["kursist"],
-  koekkenleder: ["koekken", "vagtplanlaegning", "common"],
-  koekkenassistent: ["koekken", "common"],
-  rengoringsleder: ["rengoring", "vagtplanlaegning", "common"],
-  rengoringsassistent: ["rengoring", "common"],
-  pedelleder: ["pedel", "common"],
-  pedelassistent: ["pedel", "common"],
-  kontor: ["kontor", "common"],
+  kursusleder: ["kursusleder", "common", "beskeder"],
+  hojskolelaerer: ["vaerelsesbooking", "beskeder"],
+  kursist: ["kursist", "beskeder"],
+  koekkenleder: ["koekken", "vagtplanlaegning", "common", "beskeder"],
+  koekkenassistent: ["koekken", "common", "beskeder"],
+  rengoringsleder: ["rengoring", "vagtplanlaegning", "common", "beskeder"],
+  rengoringsassistent: ["rengoring", "common", "beskeder"],
+  pedelleder: ["pedel", "common", "beskeder"],
+  pedelassistent: ["pedel", "common", "beskeder"],
+  kontor: ["kontor", "common", "beskeder"],
 };
 
 export function getDefaultRouteForRole(role: UserRole): string {
