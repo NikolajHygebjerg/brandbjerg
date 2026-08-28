@@ -34,6 +34,10 @@ function isCommonRoute(pathname: string): boolean {
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
   if (hasFullPlatformAccess(role)) return true;
 
+  if (matchesPrefix(pathname, "/vaerelsesbooking")) {
+    return canAccessAdminPortal(role);
+  }
+
   if (isCommonRoute(pathname)) {
     return roleHasCommonAccess(role);
   }

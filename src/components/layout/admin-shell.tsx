@@ -133,9 +133,9 @@ const nav: NavEntry[] = [
   {
     type: "link",
     href: "/vaerelsesbooking",
-    label: "Værelsesbooking",
+    label: "Book et værelse",
     icon: BedDouble,
-    roles: ["admin", "hojskolelaerer"],
+    roles: "all",
   },
   {
     type: "link",

@@ -319,7 +319,7 @@ export function BrugerePage() {
             <strong>Kursusleder</strong> — fællessider + kursusleder
           </li>
           <li>
-            <strong>Højskolelærer</strong> — kun værelsesbooking
+            <strong>Højskolelærer</strong> — book værelse (+ ingen andre moduler)
           </li>
           <li>
             <strong>Kursist</strong> — kun kursist-app

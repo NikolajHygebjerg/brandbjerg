@@ -151,7 +151,7 @@ export function AnsatVaerelseBookingPage() {
       <div>
         <div className="flex flex-wrap items-center gap-3">
           <BedDouble className="h-6 w-6 text-teal-700" />
-          <h1 className="text-2xl font-bold text-slate-900">Værelsesbooking</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Book et værelse</h1>
         </div>
         <p className="mt-1 text-sm text-slate-500">
           Book ledige værelser til overnatning — viser ledige værelser på alle
