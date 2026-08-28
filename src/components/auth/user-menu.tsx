@@ -6,7 +6,8 @@ import { LogOut, Pencil, Trash2, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { userRoleLabels, type UserRole } from "@/lib/auth-types";
-import { isBrandbjergEmail, isStaffRole } from "@/lib/auth-types";
+import { isAdminRole, requiresBrandbjergEmail } from "@/lib/auth-types";
+import { getDefaultRouteForRole } from "@/lib/auth-permissions";
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -136,7 +137,7 @@ function ProfileDialog({ onClose }: { onClose: () => void }) {
     const result = updateProfile({
       name,
       email,
-      role,
+      ...(user && isAdminRole(user.role) ? { role } : {}),
       password: password.trim() || undefined,
     });
     setSaving(false);
@@ -144,12 +145,8 @@ function ProfileDialog({ onClose }: { onClose: () => void }) {
       setError(result.error);
       return;
     }
-    if (!isStaffRole(result.user.role)) {
-      onClose();
-      router.replace("/ingen-adgang");
-      return;
-    }
     onClose();
+    router.replace(getDefaultRouteForRole(result.user.role));
   }
 
   function handleDelete() {
@@ -170,7 +167,7 @@ function ProfileDialog({ onClose }: { onClose: () => void }) {
     router.replace("/login");
   }
 
-  const staffSelected = isStaffRole(role);
+  const canEditRole = isAdminRole(user.role);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -208,24 +205,29 @@ function ProfileDialog({ onClose }: { onClose: () => void }) {
             />
           </Field>
 
-          <Field label="Brugertype">
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            >
-              {(Object.keys(userRoleLabels) as UserRole[]).map((r) => (
-                <option key={r} value={r}>
-                  {userRoleLabels[r]}
-                </option>
-              ))}
-            </select>
-            {staffSelected && !isBrandbjergEmail(email) && (
-              <p className="mt-1 text-xs text-amber-700">
-                Højskolelærer, TAP og Kontor kræver @brandbjerg.dk-mail
+          {canEditRole && (
+            <Field label="Brugertype">
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              >
+                {(Object.keys(userRoleLabels) as UserRole[]).map((r) => (
+                  <option key={r} value={r}>
+                    {userRoleLabels[r]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
+          {!canEditRole && (
+            <Field label="Brugertype">
+              <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {userRoleLabels[user.role]}
               </p>
-            )}
-          </Field>
+            </Field>
+          )}
 
           <Field label="Ny adgangskode (valgfri)">
             <input

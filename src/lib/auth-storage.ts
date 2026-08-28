@@ -1,10 +1,10 @@
 import type { User, UserRole } from "./auth-types";
 import {
-  canAccessStaffPages,
+  canAccessAdminPortal,
   isBrandbjergEmail,
-  isStaffRole,
+  requiresBrandbjergEmail,
 } from "./auth-types";
-import { SEED_PASSWORD, SEED_USERS } from "./auth-seed";
+import { SEED_PASSWORD, SEED_USERS, normalizeStoredRole } from "./auth-seed";
 
 const USERS_KEY = "brandbjerg-auth-users";
 const SESSION_KEY = "brandbjerg-auth-session";
@@ -26,7 +26,11 @@ function loadUsers(): Record<string, StoredUserRecord> {
   try {
     const raw = localStorage.getItem(USERS_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, StoredUserRecord>;
+    const parsed = JSON.parse(raw) as Record<string, StoredUserRecord>;
+    for (const record of Object.values(parsed)) {
+      record.user.role = normalizeStoredRole(record.user.role as string);
+    }
+    return parsed;
   } catch {
     return {};
   }
@@ -36,6 +40,10 @@ function saveUsers(users: Record<string, StoredUserRecord>) {
   if (typeof window === "undefined") return;
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
   notifyAuthUpdated();
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 /** Opret/opdater foruddefinerede Brandbjerg-brugere */
@@ -78,11 +86,15 @@ export function listAllUsers(): User[] {
 }
 
 export function listStaffUsers(): User[] {
-  return listAllUsers().filter((u) => isStaffRole(u.role));
+  return listAllUsers().filter((u) => canAccessAdminPortal(u.role));
 }
 
 export function listCourseLeaderCandidates(): User[] {
-  return listStaffUsers().filter((u) => u.role === "hojskolelaerer");
+  return listAllUsers().filter((u) => u.role === "kursusleder");
+}
+
+export function listUsersByRole(role: UserRole): User[] {
+  return listAllUsers().filter((u) => u.role === role);
 }
 
 export function getUserById(userId: string): User | null {
@@ -98,22 +110,19 @@ export function findUserByEmail(email: string): User | null {
   return loadUsers()[normalizeEmail(email)]?.user ?? null;
 }
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
 export function validateRoleEmail(role: UserRole, email: string): string | null {
-  if (isStaffRole(role) && !isBrandbjergEmail(email)) {
-    return "Højskolelærer, TAP og Kontor skal bruge en @brandbjerg.dk-mail.";
+  if (requiresBrandbjergEmail(role) && !isBrandbjergEmail(email)) {
+    return "Medarbejdere skal bruge en @brandbjerg.dk-mail.";
   }
   return null;
 }
 
-export function registerUser(input: {
+function createUserRecord(input: {
   email: string;
   password: string;
   name: string;
   role: UserRole;
+  autoLogin?: boolean;
 }): { ok: true; user: User } | { ok: false; error: string } {
   const email = normalizeEmail(input.email);
   const name = input.name.trim();
@@ -135,7 +144,7 @@ export function registerUser(input: {
   }
 
   const user: User = {
-    id: `user-${Date.now()}`,
+    id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     email,
     name,
     role: input.role,
@@ -144,14 +153,38 @@ export function registerUser(input: {
 
   users[email] = { user, password };
   saveUsers(users);
-  setSessionUserId(user.id);
+
+  if (input.autoLogin !== false) {
+    setSessionUserId(user.id);
+  }
+
   return { ok: true, user };
+}
+
+export function registerUser(input: {
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+}): { ok: true; user: User } | { ok: false; error: string } {
+  return createUserRecord({ ...input, autoLogin: true });
+}
+
+/** Opret bruger uden at logge ind — til admin-brugersiden */
+export function adminCreateUser(input: {
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+}): { ok: true; user: User } | { ok: false; error: string } {
+  return createUserRecord({ ...input, autoLogin: false });
 }
 
 export function loginUser(
   email: string,
   password: string,
 ): { ok: true; user: User } | { ok: false; error: string } {
+  ensureSeedUsers();
   const normalized = normalizeEmail(email);
   const record = loadUsers()[normalized];
   if (!record || record.password !== password) {
@@ -179,6 +212,7 @@ export function getSessionUserId(): string | null {
 }
 
 export function getCurrentUser(): User | null {
+  ensureSeedUsers();
   const sessionId = getSessionUserId();
   if (!sessionId) return null;
   const users = loadUsers();
@@ -250,7 +284,9 @@ export function updateUser(
   return { ok: true, user: updatedUser };
 }
 
-export function deleteUser(userId: string): { ok: true } | { ok: false; error: string } {
+export function adminDeleteUser(
+  userId: string,
+): { ok: true } | { ok: false; error: string } {
   const users = loadUsers();
   let emailToDelete: string | null = null;
 
@@ -267,8 +303,17 @@ export function deleteUser(userId: string): { ok: true } | { ok: false; error: s
 
   delete users[emailToDelete];
   saveUsers(users);
-  logoutUser();
+
+  const sessionId = getSessionUserId();
+  if (sessionId === userId) {
+    logoutUser();
+  }
+
   return { ok: true };
 }
 
-export { canAccessStaffPages };
+export function deleteUser(userId: string): { ok: true } | { ok: false; error: string } {
+  return adminDeleteUser(userId);
+}
+
+export { canAccessAdminPortal as canAccessStaffPages };

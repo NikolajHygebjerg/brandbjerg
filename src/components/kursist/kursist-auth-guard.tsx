@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import { canAccessKursistPages, canAccessStaffPages } from "@/lib/auth-types";
+import { canAccessKursistPages } from "@/lib/auth-types";
+import { canAccessAdminPortal, getDefaultRouteForRole } from "@/lib/auth-permissions";
 
 export function KursistAuthGuard({ children }: { children: React.ReactNode }) {
   const { user, hydrated } = useAuth();
@@ -15,8 +16,8 @@ export function KursistAuthGuard({ children }: { children: React.ReactNode }) {
       router.replace("/login?portal=kursist");
       return;
     }
-    if (canAccessStaffPages(user.role)) {
-      router.replace("/planlaegning/statusark");
+    if (canAccessAdminPortal(user.role)) {
+      router.replace(getDefaultRouteForRole(user.role));
       return;
     }
     if (!canAccessKursistPages(user.role)) {

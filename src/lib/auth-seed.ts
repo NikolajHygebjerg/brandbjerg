@@ -12,34 +12,40 @@ export interface SeedUser {
 /** Forudoprettede Brandbjerg-brugere til demo */
 export const SEED_USERS: SeedUser[] = [
   {
+    id: "user-admin",
+    name: "Platform Admin",
+    email: "admin@brandbjerg.dk",
+    role: "admin",
+  },
+  {
     id: "user-nh",
     name: "Nikolaj Hygebjerg",
     email: "nh@brandbjerg.dk",
-    role: "hojskolelaerer",
+    role: "kursusleder",
   },
   {
     id: "user-kalc",
     name: "Kristian-Alberto Lykke Cobos",
     email: "kalc@brandbjerg.dk",
-    role: "hojskolelaerer",
+    role: "kursusleder",
   },
   {
     id: "user-ml",
     name: "Maria Lya Leerbeck",
     email: "ml@brandbjerg.dk",
-    role: "hojskolelaerer",
+    role: "kursusleder",
   },
   {
     id: "user-czj",
     name: "Charlotte Zeberg",
     email: "czj@brandbjerg.dk",
-    role: "hojskolelaerer",
+    role: "kursusleder",
   },
   {
     id: "user-ag",
     name: "Annette Grønhøj",
     email: "ag@brandbjerg.dk",
-    role: "hojskolelaerer",
+    role: "kursusleder",
   },
   {
     id: "user-tj",
@@ -52,6 +58,12 @@ export const SEED_USERS: SeedUser[] = [
     name: "Jesper Winther",
     email: "jw@brandbjerg.dk",
     role: "kontor",
+  },
+  {
+    id: "user-hl",
+    name: "Henrik Larsen",
+    email: "hl@brandbjerg.dk",
+    role: "hojskolelaerer",
   },
   {
     id: "user-kursist-demo",
@@ -71,3 +83,15 @@ export const LEADER_ID_BY_INITIALS: Record<string, string> = {
   CZJ: "user-czj",
   AG: "user-ag",
 };
+
+/** Migrér gamle roller fra tidligere versioner */
+const LEGACY_ROLE_MAP: Record<string, UserRole> = {
+  tap: "kontor",
+};
+
+export function normalizeStoredRole(role: string): UserRole {
+  if (role in LEGACY_ROLE_MAP) {
+    return LEGACY_ROLE_MAP[role];
+  }
+  return role as UserRole;
+}

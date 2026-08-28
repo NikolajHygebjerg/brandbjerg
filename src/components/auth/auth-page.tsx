@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 import {
-  isBrandbjergEmail,
-  isStaffRole,
-  userRoleLabels,
   canAccessKursistPages,
+  isBrandbjergEmail,
+  userRoleLabels,
   type UserRole,
 } from "@/lib/auth-types";
-import { canAccessStaffPages } from "@/lib/auth-storage";
+import { getDefaultRouteForRole } from "@/lib/auth-permissions";
 import { SEED_PASSWORD } from "@/lib/auth-seed";
 
 type Mode = "login" | "register";
@@ -26,19 +25,13 @@ export function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("hojskolelaerer");
+  const [role, setRole] = useState<UserRole>("kursist");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!hydrated || !user) return;
-    router.replace(
-      canAccessStaffPages(user.role)
-        ? "/planlaegning/statusark"
-        : canAccessKursistPages(user.role)
-          ? "/kursist"
-          : "/ingen-adgang",
-    );
+    router.replace(getDefaultRouteForRole(user.role));
   }, [hydrated, user, router]);
 
   if (!hydrated) {
@@ -74,16 +67,10 @@ export function AuthPage() {
       return;
     }
 
-    router.push(
-      canAccessStaffPages(result.user.role)
-        ? "/planlaegning/statusark"
-        : canAccessKursistPages(result.user.role)
-          ? "/kursist"
-          : "/ingen-adgang",
-    );
+    router.push(getDefaultRouteForRole(result.user.role));
   }
 
-  const staffRoleSelected = mode === "register" && isStaffRole(role);
+  const staffRoleSelected = false;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-950 via-emerald-900 to-slate-900 px-4 py-12">
@@ -138,7 +125,7 @@ export function AuthPage() {
                     onChange={(e) => setRole(e.target.value as UserRole)}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   >
-                    {(Object.keys(userRoleLabels) as UserRole[]).map((r) => (
+                    {( ["kursist"] as UserRole[]).map((r) => (
                       <option key={r} value={r}>
                         {userRoleLabels[r]}
                       </option>
@@ -146,7 +133,7 @@ export function AuthPage() {
                   </select>
                   {staffRoleSelected && (
                     <p className="mt-1 text-xs text-slate-500">
-                      Højskolelærer, TAP og Kontor skal bruge @brandbjerg.dk-mail
+                      Medarbejdere oprettes af admin under Brugere
                     </p>
                   )}
                   {role === "kursist" && (
@@ -170,11 +157,6 @@ export function AuthPage() {
                 }
                 required
               />
-              {staffRoleSelected && !isBrandbjergEmail(email) && email.includes("@") && (
-                <p className="mt-1 text-xs text-amber-700">
-                  Skal slutte på @brandbjerg.dk
-                </p>
-              )}
             </AuthField>
 
             <AuthField label="Adgangskode">

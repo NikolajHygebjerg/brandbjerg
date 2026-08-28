@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/context/auth-context";
+import { isRengoringsassistent } from "@/lib/auth-permissions";
 import { cn } from "@/lib/utils";
 import {
   todayIso,
@@ -27,6 +31,12 @@ import {
 } from "@/lib/rengoring-lokale-utils";
 import { KONTOR_UPDATED_EVENT } from "@/lib/kontor-storage";
 import { ANSAT_VAERELSE_BOOKING_UPDATED_EVENT } from "@/lib/ansat-vaerelse-booking-storage";
+import {
+  getIncompleteTasksForAssignee,
+  getTasksForAssignee,
+  RENGORING_TASKS_UPDATED_EVENT,
+  updateRengoringTask,
+} from "@/lib/rengoring-task-storage";
 
 type Tab = "vaerelser" | "lokaler";
 type VaerelseFilter = "all" | "klar" | "needs_cleaning";
@@ -53,7 +63,124 @@ function buildMonthGrid(year: number, month: number): (string | null)[][] {
 const WEEKDAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
 export function RengoringPage() {
+  const { user } = useAuth();
   const today = todayIso();
+
+  if (user && isRengoringsassistent(user.role)) {
+    return <RengoringAssistantView userId={user.id} today={today} />;
+  }
+
+  return <RengoringLeaderView today={today} />;
+}
+
+function RengoringAssistantView({
+  userId,
+  today,
+}: {
+  userId: string;
+  today: string;
+}) {
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    function onUpdate() {
+      reload();
+    }
+    window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
+    return () =>
+      window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
+  }, [reload]);
+
+  const dagensTasks = useMemo(
+    () => getIncompleteTasksForAssignee(userId, today),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, today, tick],
+  );
+
+  const allMine = useMemo(
+    () => getTasksForAssignee(userId).filter((t) => !t.completed && t.date >= today),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, today, tick],
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Rengøring</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Dine tildelte opgaver
+        </p>
+      </div>
+
+      <Card className="border-emerald-200 bg-emerald-50/60">
+        <CardTitle className="text-base text-emerald-900">Dagens opgaver</CardTitle>
+        <CardDescription className="mt-1">
+          {formatDateDa(today)} · {dagensTasks.length}{" "}
+          {dagensTasks.length === 1 ? "opgave" : "opgaver"}
+        </CardDescription>
+
+        {dagensTasks.length === 0 ? (
+          <p className="mt-4 text-sm text-emerald-800">
+            Ingen opgaver tildelt i dag.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {dagensTasks.map((task) => (
+              <li
+                key={task.id}
+                className="flex items-center justify-between rounded-lg bg-white px-4 py-3 ring-1 ring-emerald-200"
+              >
+                <div>
+                  <p className="font-medium text-slate-900">{task.label}</p>
+                  {task.note && (
+                    <p className="text-sm text-slate-500">{task.note}</p>
+                  )}
+                </div>
+                <Button
+                  className="h-8 shrink-0"
+                  onClick={() => {
+                    updateRengoringTask(task.id, { completed: true });
+                    reload();
+                  }}
+                >
+                  <CheckCircle2 className="mr-1 h-4 w-4" />
+                  Udført
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {allMine.length > dagensTasks.length && (
+        <Card>
+          <CardTitle className="text-base">Kommende opgaver</CardTitle>
+          <ul className="mt-3 divide-y divide-slate-100">
+            {allMine
+              .filter((t) => t.date !== today)
+              .map((task) => (
+                <li
+                  key={task.id}
+                  className="flex items-center justify-between py-3 text-sm"
+                >
+                  <span>
+                    <span className="font-medium">{task.label}</span>
+                    <span className="text-slate-500">
+                      {" "}
+                      · {formatDateDaShort(task.date)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function RengoringLeaderView({ today }: { today: string }) {
   const [selectedDate, setSelectedDate] = useState(today);
   const [activeTab, setActiveTab] = useState<Tab>("vaerelser");
   const [vaerelseFilter, setVaerelseFilter] = useState<VaerelseFilter>("all");

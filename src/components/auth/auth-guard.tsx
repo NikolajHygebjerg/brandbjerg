@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import { canAccessStaffPages } from "@/lib/auth-storage";
+import {
+  canAccessAdminPortal,
+  canAccessRoute,
+  getDefaultRouteForRole,
+} from "@/lib/auth-permissions";
 
 type AuthGuardProps = {
   children: React.ReactNode;
@@ -13,6 +17,7 @@ type AuthGuardProps = {
 export function AuthGuard({ children, staffOnly = true }: AuthGuardProps) {
   const { user, hydrated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!hydrated) return;
@@ -20,10 +25,14 @@ export function AuthGuard({ children, staffOnly = true }: AuthGuardProps) {
       router.replace("/login");
       return;
     }
-    if (staffOnly && !canAccessStaffPages(user.role)) {
+    if (staffOnly && !canAccessAdminPortal(user.role)) {
       router.replace("/ingen-adgang");
+      return;
     }
-  }, [hydrated, user, staffOnly, router]);
+    if (staffOnly && !canAccessRoute(user.role, pathname)) {
+      router.replace(getDefaultRouteForRole(user.role));
+    }
+  }, [hydrated, user, staffOnly, pathname, router]);
 
   if (!hydrated) {
     return (
@@ -34,7 +43,8 @@ export function AuthGuard({ children, staffOnly = true }: AuthGuardProps) {
   }
 
   if (!user) return null;
-  if (staffOnly && !canAccessStaffPages(user.role)) return null;
+  if (staffOnly && !canAccessAdminPortal(user.role)) return null;
+  if (staffOnly && !canAccessRoute(user.role, pathname)) return null;
 
   return <>{children}</>;
 }

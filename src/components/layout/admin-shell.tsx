@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Briefcase,
   Building2,
@@ -20,17 +20,22 @@ import {
   UtensilsCrossed,
   BedDouble,
   SprayCan,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CourseChecklistPanel } from "@/components/mockup/course-checklist";
 import { useCourseDetailSession } from "@/context/course-detail-session";
 import { UserMenu } from "@/components/auth/user-menu";
+import { useAuth } from "@/context/auth-context";
+import { navEntryVisible } from "@/lib/auth-permissions";
+import type { UserRole } from "@/lib/auth-types";
 
 type NavLink = {
   href: string;
   label: string;
   icon: LucideIcon;
+  roles: UserRole[] | "all";
 };
 
 type NavEntry =
@@ -39,6 +44,7 @@ type NavEntry =
       type: "group";
       label: string;
       icon: LucideIcon;
+      roles: UserRole[] | "all";
       children: NavLink[];
     };
 
@@ -48,36 +54,115 @@ const nav: NavEntry[] = [
     href: "/planlaegning/statusark",
     label: "Årsoversigt",
     icon: ClipboardCheck,
+    roles: ["admin"],
   },
   {
     type: "group",
     label: "KK afdelingen",
     icon: Briefcase,
+    roles: ["admin"],
     children: [
-      { href: "/planlaegning/arshjul", label: "Årshjul", icon: CalendarDays },
-      { href: "/planlaegning/kurser", label: "Kurser", icon: ClipboardList },
-      { href: "/skabeloner", label: "Skabeloner", icon: LayoutTemplate },
+      {
+        href: "/planlaegning/arshjul",
+        label: "Årshjul",
+        icon: CalendarDays,
+        roles: ["admin"],
+      },
+      {
+        href: "/planlaegning/kurser",
+        label: "Kurser",
+        icon: ClipboardList,
+        roles: ["admin"],
+      },
+      {
+        href: "/skabeloner",
+        label: "Skabeloner",
+        icon: LayoutTemplate,
+        roles: ["admin"],
+      },
     ],
   },
-  { type: "link", href: "/kursusleder", label: "Kursusleder", icon: GraduationCap },
+  {
+    type: "link",
+    href: "/kursusleder",
+    label: "Kursusleder",
+    icon: GraduationCap,
+    roles: ["admin", "kursusleder"],
+  },
   {
     type: "link",
     href: "/kursusleder/evaluering",
     label: "Evaluering",
     icon: ClipboardList,
+    roles: ["admin", "kursusleder"],
   },
   {
     type: "link",
     href: "/kursusleder/kontrakter",
     label: "Kontrakter",
     icon: FileSignature,
+    roles: ["admin", "kursusleder"],
   },
-  { type: "link", href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
-  { type: "link", href: "/pedel", label: "Pedel", icon: Sparkles },
-  { type: "link", href: "/rengoring", label: "Rengøring", icon: SprayCan },
-  { type: "link", href: "/vaerelsesbooking", label: "Værelsesbooking", icon: BedDouble },
-  { type: "link", href: "/kontor", label: "Kontor", icon: Building2 },
-  { type: "link", href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
+  {
+    type: "link",
+    href: "/koekken",
+    label: "Køkken",
+    icon: UtensilsCrossed,
+    roles: ["admin", "koekkenleder", "koekkenassistent"],
+  },
+  {
+    type: "link",
+    href: "/pedel",
+    label: "Pedel",
+    icon: Sparkles,
+    roles: ["admin", "pedelleder", "pedelassistent"],
+  },
+  {
+    type: "link",
+    href: "/rengoring",
+    label: "Rengøring",
+    icon: SprayCan,
+    roles: [
+      "admin",
+      "rengoringsleder",
+      "rengoringsassistent",
+    ],
+  },
+  {
+    type: "link",
+    href: "/rengoring/admin",
+    label: "Rengøringsadmin",
+    icon: ClipboardList,
+    roles: ["admin", "rengoringsleder"],
+  },
+  {
+    type: "link",
+    href: "/vaerelsesbooking",
+    label: "Værelsesbooking",
+    icon: BedDouble,
+    roles: ["admin", "hojskolelaerer"],
+  },
+  {
+    type: "link",
+    href: "/kontor",
+    label: "Kontor",
+    icon: Building2,
+    roles: ["admin", "kontor"],
+  },
+  {
+    type: "link",
+    href: "/kommunikation",
+    label: "Kommunikation",
+    icon: Megaphone,
+    roles: ["admin"],
+  },
+  {
+    type: "link",
+    href: "/brugere",
+    label: "Brugere",
+    icon: Users,
+    roles: ["admin"],
+  },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -90,14 +175,47 @@ function isKkGroupActive(pathname: string, item: Extract<NavEntry, { type: "grou
   return item.children.some((child) => isActive(pathname, child.href));
 }
 
+function filterNav(entries: NavEntry[], role: UserRole): NavEntry[] {
+  return entries
+    .filter((item) => navEntryVisible(item.roles, role))
+    .map((item) => {
+      if (item.type === "group") {
+        const children = item.children.filter((c) =>
+          navEntryVisible(c.roles, role),
+        );
+        if (children.length === 0) return null;
+        return { ...item, children };
+      }
+      return item;
+    })
+    .filter((item): item is NavEntry => item !== null);
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const role = user?.role ?? "kursist";
+  const visibleNav = useMemo(() => filterNav(nav, role), [role]);
   const { session } = useCourseDetailSession();
-  const kkGroup = nav.find(
+  const kkGroup = visibleNav.find(
     (item): item is Extract<NavEntry, { type: "group" }> =>
       item.type === "group" && item.label === KK_GROUP_LABEL,
   );
   const [kkExpanded, setKkExpanded] = useState(false);
+
+  const showCommonFooter = role !== "hojskolelaerer";
+  const showOverblik =
+    role === "admin" ||
+    [
+      "kursusleder",
+      "koekkenleder",
+      "koekkenassistent",
+      "rengoringsleder",
+      "rengoringsassistent",
+      "pedelleder",
+      "pedelassistent",
+      "kontor",
+    ].includes(role);
 
   useEffect(() => {
     if (kkGroup && !isKkGroupActive(pathname, kkGroup)) {
@@ -123,7 +241,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="space-y-1 p-3">
-          {nav.map((item) => {
+          {visibleNav.map((item) => {
             if (item.type === "link") {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;
@@ -204,7 +322,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {session ? (
+        {session && role === "admin" ? (
           <div className="flex min-h-0 flex-1 flex-col border-t-2 border-slate-300">
             <div className="flex-1 overflow-y-auto p-3">
               <CourseChecklistPanel
@@ -233,22 +351,29 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1" />
         )}
 
-        <div className="border-t border-slate-200 p-4">
-          <Link
-            href="/overblik"
-            className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200"
-          >
-            <Network className="h-4 w-4" />
-            Ledelsesoverblik
-          </Link>
-          <Link
-            href="/katalog"
-            className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
-          >
-            <Home className="h-4 w-4" />
-            Offentligt katalog
-          </Link>
-        </div>
+        {showCommonFooter && (
+          <div className="border-t border-slate-200 p-4">
+            {showOverblik && (
+              <Link
+                href="/overblik"
+                className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200"
+              >
+                <Network className="h-4 w-4" />
+                Ledelsesoverblik
+              </Link>
+            )}
+            <Link
+              href="/katalog"
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100",
+                showOverblik ? "mt-2" : "",
+              )}
+            >
+              <Home className="h-4 w-4" />
+              Offentligt katalog
+            </Link>
+          </div>
+        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
