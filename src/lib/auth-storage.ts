@@ -54,6 +54,15 @@ export function ensureSeedUsers(): void {
 
   for (const seed of SEED_USERS) {
     const email = normalizeEmail(seed.email);
+
+    // Flyt seed-bruger tilbage til korrekt e-mail hvis den er ændret i profilen
+    for (const [storedEmail, record] of Object.entries({ ...users })) {
+      if (record.user.id === seed.id && storedEmail !== email) {
+        delete users[storedEmail];
+        changed = true;
+      }
+    }
+
     const existing = users[email];
     const user: User = {
       id: seed.id,
