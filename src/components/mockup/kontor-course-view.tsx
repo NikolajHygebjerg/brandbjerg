@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Building2, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { ParticipantDetailDialog } from "@/components/mockup/participant-detail-dialog";
+import { PaymentReminderMailButton } from "@/components/mockup/payment-reminder-mail-button";
 import { getCourseDetailById } from "@/lib/course-list";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { formatDate, type Course } from "@/lib/mock-data";
@@ -22,6 +23,7 @@ import {
 import {
   checkLabels,
   deriveParticipantChecks,
+  isActiveParticipant,
   type KontorParticipant,
 } from "@/lib/kontor-types";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
@@ -219,11 +221,29 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
                         </td>
                         {(Object.keys(checkLabels) as (keyof typeof checkLabels)[]).map(
                           (key) => (
-                            <td key={key} className="px-2 py-3 text-center">
-                              <CheckCell
-                                done={checks[key]}
-                                warn={key === "saerligeHensyn" && checks[key]}
-                              />
+                            <td
+                              key={key}
+                              className="px-2 py-3 text-center"
+                              onClick={
+                                key === "betalt"
+                                  ? (e) => e.stopPropagation()
+                                  : undefined
+                              }
+                            >
+                              {key === "betalt" &&
+                              !checks.betalt &&
+                              isActiveParticipant(p) ? (
+                                <PaymentReminderMailButton
+                                  participant={p}
+                                  courseTitle={course.title}
+                                  courseId={courseId}
+                                />
+                              ) : (
+                                <CheckCell
+                                  done={checks[key]}
+                                  warn={key === "saerligeHensyn" && checks[key]}
+                                />
+                              )}
                             </td>
                           ),
                         )}
