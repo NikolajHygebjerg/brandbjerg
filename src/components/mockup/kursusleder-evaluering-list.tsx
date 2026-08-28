@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ClipboardList, FileSignature, GraduationCap } from "lucide-react";
+import { ClipboardList, GraduationCap } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   CourseListDataCell,
@@ -22,12 +22,17 @@ import {
 } from "@/lib/course-list";
 import { statusarkYear } from "@/lib/brandbjerg-statusark";
 import { getKursuslederCoursesForUser } from "@/lib/kursusleder-utils";
+import {
+  countSurveyResponses,
+  KURSUSLEDER_SURVEY_UPDATED_EVENT,
+} from "@/lib/kursusleder-survey-storage";
 
-export function KursuslederList() {
+export function KursuslederEvalueringList() {
   const { user } = useAuth();
   const [hydrated, setHydrated] = useState(false);
   const [activeYear, setActiveYear] = useState(statusarkYear);
   const [years, setYears] = useState<number[]>([statusarkYear]);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     setYears(getAvailableCourseYears());
@@ -35,53 +40,58 @@ export function KursuslederList() {
     setHydrated(true);
   }, []);
 
+  useEffect(() => {
+    function refresh() {
+      setTick((t) => t + 1);
+    }
+    window.addEventListener(KURSUSLEDER_SURVEY_UPDATED_EVENT, refresh);
+    return () =>
+      window.removeEventListener(KURSUSLEDER_SURVEY_UPDATED_EVENT, refresh);
+  }, []);
+
   const courses = useMemo(() => {
     if (!hydrated || !user) return [];
-    return getKursuslederCoursesForUser(user, activeYear);
-  }, [hydrated, user, activeYear]);
+    return getKursuslederCoursesForUser(user, activeYear).map((c) => ({
+      ...c,
+      responseCount: countSurveyResponses(c.id),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, user, activeYear, tick]);
 
   if (!hydrated || !user) {
     return (
       <Card>
-        <CardDescription>Indlæser kursuslederoversigt…</CardDescription>
+        <CardDescription>Indlæser evalueringer…</CardDescription>
       </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kursusleder</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Kurser hvor du er kursusleder, vært eller underviser — {user.name}
-          </p>
+      <div>
+        <Link
+          href="/kursusleder"
+          className="text-sm text-teal-700 hover:underline"
+        >
+          ← Tilbage til kursusleder
+        </Link>
+        <div className="mt-2 flex items-center gap-3">
+          <ClipboardList className="h-6 w-6 text-teal-700" />
+          <h1 className="text-2xl font-bold text-slate-900">Evaluering</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/kursusleder/evaluering"
-            className="inline-flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-900 hover:bg-teal-100"
-          >
-            <ClipboardList className="h-4 w-4" />
-            Evaluering
-          </Link>
-          <Link
-            href="/kursusleder/kontrakter"
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
-          >
-            <FileSignature className="h-4 w-4" />
-            Kontrakter
-          </Link>
-        </div>
+        <p className="mt-1 text-sm text-slate-500">
+          Kursusevalueringer baseret på Brandbjerg/Players 1st-skemaet —
+          tilret spørgsmål og del link med kursister
+        </p>
       </div>
 
       <Card>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <GraduationCap className="h-5 w-5 text-teal-700" />
             <div>
-              <CardTitle className="text-base">Vælg uge / år</CardTitle>
-              <CardDescription>Dine kurser i {activeYear}</CardDescription>
+              <CardTitle className="text-base">Vælg år</CardTitle>
+              <CardDescription>Dine kurser med evalueringsmodul</CardDescription>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -104,26 +114,19 @@ export function KursuslederList() {
       </Card>
 
       <Card className="overflow-hidden p-0">
-        <div className="border-b border-slate-200 bg-teal-50 px-4 py-3">
-          <p className="text-sm font-medium text-teal-900">
-            {courses.length} kursus{courses.length !== 1 ? "er" : ""} i {activeYear}
-          </p>
-        </div>
-        <CourseListTable minWidth="720px">
+        <CourseListTable minWidth="640px">
           <CourseListThead
             trailingHeaders={
               <>
                 <CourseListHeaderCell>Datoer</CourseListHeaderCell>
-                <CourseListHeaderCell>Deltagere</CourseListHeaderCell>
-                <CourseListHeaderCell>Din rolle</CourseListHeaderCell>
+                <CourseListHeaderCell>Svar</CourseListHeaderCell>
               </>
             }
           />
           <tbody>
             {courses.length === 0 ? (
-              <CourseListEmptyRow colSpan={5}>
-                Ingen kurser fundet hvor du er kursusleder eller underviser i{" "}
-                {activeYear}.
+              <CourseListEmptyRow colSpan={4}>
+                Ingen kurser fundet for {activeYear}.
               </CourseListEmptyRow>
             ) : (
               courses.map((c) => (
@@ -131,26 +134,22 @@ export function KursuslederList() {
                   <CourseListWeekCell weekNumber={c.weekNumber} />
                   <CourseListTitleCell
                     title={c.title}
-                    href={`/kursusleder/${c.id}`}
+                    href={`/kursusleder/evaluering/${c.id}`}
                     accent="teal"
                   />
                   <CourseListDatesCell
                     startDate={c.startDate}
                     endDate={c.endDate}
                   />
-                  <CourseListDataCell>{c.enrolled}</CourseListDataCell>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {c.roles.map((role) => (
-                        <span
-                          key={role}
-                          className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-900"
-                        >
-                          {role}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
+                  <CourseListDataCell>
+                    {c.responseCount > 0 ? (
+                      <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-900">
+                        {c.responseCount} svar
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">Ingen endnu</span>
+                    )}
+                  </CourseListDataCell>
                 </CourseListRow>
               ))
             )}

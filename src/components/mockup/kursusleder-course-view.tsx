@@ -251,6 +251,13 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
             <Button
               variant="secondary"
               className="justify-start gap-2"
+              href={`/kursusleder/evaluering/${courseId}`}
+            >
+              Evaluering
+            </Button>
+            <Button
+              variant="secondary"
+              className="justify-start gap-2"
               href={`/planlaegning/kurser/${courseId}`}
             >
               Rediger kursus

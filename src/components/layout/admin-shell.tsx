@@ -60,6 +60,12 @@ const nav: NavEntry[] = [
   { type: "link", href: "/kursusleder", label: "Kursusleder", icon: GraduationCap },
   {
     type: "link",
+    href: "/kursusleder/evaluering",
+    label: "Evaluering",
+    icon: ClipboardList,
+  },
+  {
+    type: "link",
     href: "/kursusleder/kontrakter",
     label: "Kontrakter",
     icon: FileSignature,
