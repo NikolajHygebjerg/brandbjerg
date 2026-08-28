@@ -35,7 +35,12 @@ export function getOccupancyForWeek(
 
   for (const [key, cell] of Object.entries(grid)) {
     if (!key.endsWith(`-${year}-${week}`)) continue;
-    if (cell.status === "lukket" || cell.status === "andet") {
+    if (
+      cell.status === "lukket" ||
+      cell.status === "andet" ||
+      cell.status === "buffer" ||
+      cell.status === "ansatte"
+    ) {
       occupancy.set(key, ["__blocked__"]);
     }
     if (cell.status === "optaget" && cell.courseId && cell.courseId !== excludeCourseId) {
@@ -67,7 +72,13 @@ export function isRoomAvailable(
   const key = roomWeekKey(roomNumber, year, week);
   const grid = loadRoomGrid(year);
   const cell = grid[key];
-  if (cell?.status === "lukket") return false;
+  if (
+    cell?.status === "lukket" ||
+    cell?.status === "buffer" ||
+    cell?.status === "ansatte"
+  ) {
+    return false;
+  }
   if (cell?.status === "andet" && cell.note?.toLowerCase().includes("lukket")) {
     return false;
   }

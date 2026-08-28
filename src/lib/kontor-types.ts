@@ -1,4 +1,10 @@
-export type RoomWeekStatusType = "ledigt" | "optaget" | "andet" | "lukket";
+export type RoomWeekStatusType =
+  | "ledigt"
+  | "optaget"
+  | "andet"
+  | "lukket"
+  | "buffer"
+  | "ansatte";
 
 export interface RoomWeekCell {
   status: RoomWeekStatusType;
@@ -125,6 +131,8 @@ export const roomStatusLabels: Record<RoomWeekStatusType, string> = {
   optaget: "Optaget",
   andet: "Andet",
   lukket: "Lukket",
+  buffer: "Buffer",
+  ansatte: "Ansatte",
 };
 
 export const preferenceLabels: Record<RoomPreferenceType, string> = {

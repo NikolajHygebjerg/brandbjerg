@@ -31,6 +31,8 @@ const STATUS_COLORS: Record<RoomWeekStatusType, string> = {
   optaget: "bg-violet-400 hover:bg-violet-500",
   andet: "bg-amber-300 hover:bg-amber-400",
   lukket: "bg-red-400 hover:bg-red-500",
+  buffer: "bg-sky-300 hover:bg-sky-400",
+  ansatte: "bg-orange-300 hover:bg-orange-400",
 };
 
 const WEEKS_VISIBLE = 16;
@@ -251,11 +253,16 @@ export function RoomOverview() {
               >
                 <option value="optaget">Optaget</option>
                 <option value="ledigt">Ledigt</option>
+                <option value="buffer">Buffer</option>
+                <option value="ansatte">Ansatte</option>
                 <option value="andet">Andet</option>
                 <option value="lukket">Lukket (flytter kursister automatisk)</option>
               </select>
             </label>
-            {(statusChoice === "andet" || statusChoice === "lukket") && (
+            {(statusChoice === "andet" ||
+              statusChoice === "lukket" ||
+              statusChoice === "buffer" ||
+              statusChoice === "ansatte") && (
               <label className="min-w-[200px] flex-1 text-sm">
                 <span className="mb-1 block text-xs font-medium text-slate-600">
                   Note

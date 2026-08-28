@@ -271,6 +271,16 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
                       Lukket
                     </span>
                   )}
+                  {cell?.status === "buffer" && (
+                    <span className="text-xs font-medium text-sky-700">
+                      Buffer
+                    </span>
+                  )}
+                  {cell?.status === "ansatte" && (
+                    <span className="text-xs font-medium text-orange-700">
+                      Ansatte
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

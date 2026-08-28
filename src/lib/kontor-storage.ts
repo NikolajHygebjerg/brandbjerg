@@ -150,7 +150,11 @@ export function syncCourseRoomOccupancy(
   for (const room of roomsUsed) {
     const key = roomWeekKey(room, year, courseWeek);
     const existing = grid[key];
-    if (!existing || existing.status === "ledigt" || existing.courseId === courseId) {
+    if (
+      !existing ||
+      existing.status === "ledigt" ||
+      (existing.courseId === courseId && existing.status === "optaget")
+    ) {
       grid[key] = { status: "optaget", courseId };
     }
   }
