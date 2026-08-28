@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import { StickyNote } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { hasRengoringNote } from "@/lib/rengoring-notes-storage";
 import {
   formatDateDaShort,
   parseIsoDate,
@@ -194,10 +196,14 @@ function StatusCheckbox({
 function RoomCell({
   row,
   onToggleKlar,
+  onRoomClick,
 }: {
   row: RengoringVaerelseRow;
   onToggleKlar: (room: string, klar: boolean) => void;
+  onRoomClick: (room: string) => void;
 }) {
+  const hasNote = hasRengoringNote("vaerelse", row.roomNumber);
+
   return (
     <div
       className={cn(
@@ -206,9 +212,21 @@ function RoomCell({
         row.needsCleaning && !row.klar && "border-amber-300 bg-amber-50/50",
       )}
     >
-      <p className="text-sm font-bold tabular-nums text-slate-900">
-        {row.roomNumber}
-      </p>
+      <button
+        type="button"
+        onClick={() => onRoomClick(row.roomNumber)}
+        className="flex w-full items-center justify-center gap-1 rounded py-0.5 transition hover:bg-emerald-50"
+      >
+        <p className="text-sm font-bold tabular-nums text-slate-900">
+          {row.roomNumber}
+        </p>
+        {hasNote && (
+          <StickyNote
+            className="size-3 shrink-0 text-emerald-600"
+            aria-label="Har gemt notat"
+          />
+        )}
+      </button>
       <div className="mt-1 space-y-0.5">
         <StatusCheckbox checked={row.inUse} disabled label="I brug" />
         <StatusCheckbox
@@ -235,6 +253,7 @@ export function RengoringVaerelserTab({
   onYearChange,
   onFilterChange,
   onToggleKlar,
+  onRoomClick,
 }: {
   selectedDate: string;
   today: string;
@@ -249,6 +268,7 @@ export function RengoringVaerelserTab({
   onYearChange: (year: number) => void;
   onFilterChange: (f: VaerelseFilter) => void;
   onToggleKlar: (room: string, klar: boolean) => void;
+  onRoomClick: (room: string) => void;
 }) {
   const rowByRoom = useMemo(() => {
     const map = new Map<string, RengoringVaerelseRow>();
@@ -309,6 +329,7 @@ export function RengoringVaerelserTab({
                 rowByRoom={rowByRoom}
                 filter={vaerelseFilter}
                 onToggleKlar={onToggleKlar}
+                onRoomClick={onRoomClick}
               />
             ))}
           </div>
@@ -338,12 +359,14 @@ function BuildingColumn({
   rowByRoom,
   filter,
   onToggleKlar,
+  onRoomClick,
 }: {
   column: (typeof ROOM_BUILDING_COLUMNS)[number];
   roomNumbers: string[];
   rowByRoom: Map<string, RengoringVaerelseRow>;
   filter: VaerelseFilter;
   onToggleKlar: (room: string, klar: boolean) => void;
+  onRoomClick: (room: string) => void;
 }) {
   const visibleRooms = roomNumbers.filter((room) => {
     const row = rowByRoom.get(room);
@@ -380,6 +403,7 @@ function BuildingColumn({
                 key={room}
                 row={row}
                 onToggleKlar={onToggleKlar}
+                onRoomClick={onRoomClick}
               />
             );
           })

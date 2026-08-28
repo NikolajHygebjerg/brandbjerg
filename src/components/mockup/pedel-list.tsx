@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/context/auth-context";
+import { hasFullPlatformAccess } from "@/lib/auth-types";
 import { QuestionCountBadge } from "@/components/mockup/module-questions";
+import { PedelNotificationsInbox } from "@/components/mockup/pedel-notifications-inbox";
 import {
   CourseListDataCell,
   CourseListDatesCell,
@@ -34,6 +37,7 @@ import {
 } from "@/lib/course-enrollment-counts";
 
 export function PedelList() {
+  const { user } = useAuth();
   const [hydrated, setHydrated] = useState(false);
   const [activeYear, setActiveYear] = useState(statusarkYear);
   const [years, setYears] = useState<number[]>([statusarkYear]);
@@ -71,6 +75,12 @@ export function PedelList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, activeYear, questionTick]);
 
+  const showRengoringInbox =
+    user &&
+    (hasFullPlatformAccess(user.role) ||
+      user.role === "pedelleder" ||
+      user.role === "pedelassistent");
+
   if (!hydrated) {
     return (
       <Card>
@@ -87,6 +97,8 @@ export function PedelList() {
           Lokalespecifikationer fra kursusprogrammer — som i Pedel-arket
         </p>
       </div>
+
+      {showRengoringInbox && <PedelNotificationsInbox />}
 
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
@@ -42,6 +42,12 @@ import {
   type RengoringTask,
 } from "@/lib/rengoring-task-storage";
 import { RengoringDelegationTab } from "@/components/mockup/rengoring-delegation-tab";
+import { RengoringTargetDialog } from "@/components/mockup/rengoring-target-dialog";
+import {
+  hasRengoringNote,
+  RENGORING_NOTES_UPDATED_EVENT,
+} from "@/lib/rengoring-notes-storage";
+import { lokaleTargetKey } from "@/lib/rengoring-delegation-utils";
 
 type Tab = "vaerelser" | "lokaler";
 type MainTab = "oversigt" | "uddelegering";
@@ -77,6 +83,12 @@ export function RengoringPage() {
   return <RengoringLeaderView today={today} />;
 }
 
+type TargetSelection = {
+  type: "vaerelse" | "lokale";
+  targetKey: string;
+  label: string;
+};
+
 function RengoringAssistantView({
   userId,
   today,
@@ -84,7 +96,11 @@ function RengoringAssistantView({
   userId: string;
   today: string;
 }) {
+  const { user } = useAuth();
   const [tick, setTick] = useState(0);
+  const [selectedTarget, setSelectedTarget] = useState<TargetSelection | null>(
+    null,
+  );
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
@@ -96,6 +112,7 @@ function RengoringAssistantView({
     window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
     window.addEventListener(KONTOR_UPDATED_EVENT, onUpdate);
     window.addEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
+    window.addEventListener(RENGORING_NOTES_UPDATED_EVENT, reload);
     return () => {
       window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
       window.removeEventListener(KONTOR_UPDATED_EVENT, onUpdate);
@@ -103,6 +120,7 @@ function RengoringAssistantView({
         ANSAT_VAERELSE_BOOKING_UPDATED_EVENT,
         onUpdate,
       );
+      window.removeEventListener(RENGORING_NOTES_UPDATED_EVENT, reload);
     };
   }, [reload, today]);
 
@@ -143,10 +161,28 @@ function RengoringAssistantView({
             {dagensTasks.map((task) => (
               <li
                 key={task.id}
-                className="flex items-center justify-between rounded-lg bg-white px-4 py-3 ring-1 ring-emerald-200"
+                className="flex items-center justify-between gap-2 rounded-lg bg-white px-4 py-3 ring-1 ring-emerald-200"
               >
-                <div>
-                  <p className="font-medium text-slate-900">{task.label}</p>
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() =>
+                    setSelectedTarget({
+                      type: task.type,
+                      targetKey: task.targetKey,
+                      label: task.label,
+                    })
+                  }
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-slate-900">{task.label}</p>
+                    {hasRengoringNote(task.type, task.targetKey) && (
+                      <StickyNote
+                        className="size-3.5 shrink-0 text-emerald-600"
+                        aria-label="Har gemt notat"
+                      />
+                    )}
+                  </div>
                   {task.dueBy && (
                     <p className="text-xs font-medium text-amber-800">
                       Før kl. {task.dueBy}
@@ -155,7 +191,10 @@ function RengoringAssistantView({
                   {task.note && (
                     <p className="text-sm text-slate-500">{task.note}</p>
                   )}
-                </div>
+                  <p className="mt-0.5 text-xs text-emerald-700">
+                    Tryk for notat og pedelopgaver
+                  </p>
+                </button>
                 <Button
                   className="h-8 shrink-0"
                   onClick={() => {
@@ -195,12 +234,27 @@ function RengoringAssistantView({
           </ul>
         </Card>
       )}
+
+      {selectedTarget && user && (
+        <RengoringTargetDialog
+          open
+          onClose={() => setSelectedTarget(null)}
+          type={selectedTarget.type}
+          targetKey={selectedTarget.targetKey}
+          label={selectedTarget.label}
+          userId={userId}
+          userName={user.name}
+        />
+      )}
     </div>
   );
 }
 
 function RengoringLeaderView({ today }: { today: string }) {
   const { user } = useAuth();
+  const [selectedTarget, setSelectedTarget] = useState<TargetSelection | null>(
+    null,
+  );
   const showDelegation = user && canAccessRengoringAdmin(user.role);
   const [mainTab, setMainTab] = useState<MainTab>("oversigt");
   const [selectedDate, setSelectedDate] = useState(today);
@@ -237,11 +291,13 @@ function RengoringLeaderView({ today }: { today: string }) {
     window.addEventListener(KONTOR_UPDATED_EVENT, onUpdate);
     window.addEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
     window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
+    window.addEventListener(RENGORING_NOTES_UPDATED_EVENT, reload);
     return () => {
       window.removeEventListener(RENGORING_UPDATED_EVENT, onUpdate);
       window.removeEventListener(KONTOR_UPDATED_EVENT, onUpdate);
       window.removeEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
       window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(RENGORING_NOTES_UPDATED_EVENT, reload);
     };
   }, [reload, today]);
 
@@ -348,6 +404,13 @@ function RengoringLeaderView({ today }: { today: string }) {
           completeRengoringTask(task);
           reload();
         }}
+        onTaskClick={(task) =>
+          setSelectedTarget({
+            type: task.type,
+            targetKey: task.targetKey,
+            label: task.label,
+          })
+        }
       />
 
       <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
@@ -383,6 +446,13 @@ function RengoringLeaderView({ today }: { today: string }) {
             setVaerelseKlar(room, selectedDate, klar);
             reload();
           }}
+          onRoomClick={(room) =>
+            setSelectedTarget({
+              type: "vaerelse",
+              targetKey: room,
+              label: `Værelse ${room}`,
+            })
+          }
         />
       ) : (
         <LokalerTab
@@ -394,9 +464,28 @@ function RengoringLeaderView({ today }: { today: string }) {
             setLokaleKlar(id, klar);
             reload();
           }}
+          onLokaleClick={(l) =>
+            setSelectedTarget({
+              type: "lokale",
+              targetKey: lokaleTargetKey(l.lokale),
+              label: l.lokale,
+            })
+          }
         />
       )}
         </>
+      )}
+
+      {selectedTarget && user && (
+        <RengoringTargetDialog
+          open
+          onClose={() => setSelectedTarget(null)}
+          type={selectedTarget.type}
+          targetKey={selectedTarget.targetKey}
+          label={selectedTarget.label}
+          userId={user.id}
+          userName={user.name}
+        />
       )}
     </div>
   );
@@ -433,12 +522,14 @@ function LokalerTab({
   lokaler,
   onSelectDate,
   onToggleKlar,
+  onLokaleClick,
 }: {
   selectedDate: string;
   today: string;
   lokaler: RengoringLokaleRow[];
   onSelectDate: (d: string) => void;
   onToggleKlar: (id: string, klar: boolean) => void;
+  onLokaleClick: (l: RengoringLokaleRow) => void;
 }) {
   const needsCleaning = lokaler.filter((l) => !l.klar);
 
@@ -498,13 +589,28 @@ function LokalerTab({
                 key={l.id}
                 className="flex flex-wrap items-center justify-between gap-3 py-3"
               >
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900">{l.lokale}</p>
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => onLokaleClick(l)}
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-slate-900">{l.lokale}</p>
+                    {hasRengoringNote("lokale", lokaleTargetKey(l.lokale)) && (
+                      <StickyNote
+                        className="size-3.5 shrink-0 text-emerald-600"
+                        aria-label="Har gemt notat"
+                      />
+                    )}
+                  </div>
                   <p className="text-sm text-slate-500">
                     {l.courseTitle}
                     {l.timeSpan ? ` · ${l.timeSpan}` : ""}
                   </p>
-                </div>
+                  <p className="mt-0.5 text-xs text-emerald-700">
+                    Tryk for notat og pedelopgaver
+                  </p>
+                </button>
                 <StatusCheckbox
                   checked={l.klar}
                   label="Klar"
@@ -584,6 +690,7 @@ function LeaderDagensOpgaverCard({
   totalCount,
   onAssign,
   onComplete,
+  onTaskClick,
 }: {
   today: string;
   tasks: RengoringTask[];
@@ -591,6 +698,7 @@ function LeaderDagensOpgaverCard({
   totalCount: number;
   onAssign: (taskId: string, assigneeUserId: string) => void;
   onComplete: (task: RengoringTask) => void;
+  onTaskClick: (task: RengoringTask) => void;
 }) {
   const unassignedCount = tasks.filter((t) => !t.assigneeUserId).length;
 
@@ -625,9 +733,19 @@ function LeaderDagensOpgaverCard({
                     : "ring-amber-300 bg-amber-50/30",
                 )}
               >
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => onTaskClick(task)}
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-slate-900">{task.label}</p>
+                    {hasRengoringNote(task.type, task.targetKey) && (
+                      <StickyNote
+                        className="size-3.5 shrink-0 text-emerald-600"
+                        aria-label="Har gemt notat"
+                      />
+                    )}
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600">
                       {task.type === "vaerelse" ? "Værelse" : "Lokale"}
                     </span>
@@ -640,7 +758,10 @@ function LeaderDagensOpgaverCard({
                   {task.note && (
                     <p className="mt-0.5 text-sm text-slate-500">{task.note}</p>
                   )}
-                </div>
+                  <p className="mt-0.5 text-xs text-emerald-700">
+                    Tryk for notat og pedelopgaver
+                  </p>
+                </button>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <select
