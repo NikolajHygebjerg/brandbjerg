@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { KitchenEvaluationDialog } from "@/components/mockup/kitchen-evaluation-dialog";
 import {
   forplejningTyper,
   type ForplejningType,
@@ -19,7 +20,14 @@ import {
   type KitchenWeekMealPlan,
   updateKitchenWeekMealPlan,
 } from "@/lib/kitchen-meal-plan-storage";
+import {
+  findEvaluation,
+  hasEvaluation,
+  KITCHEN_EVALUATION_UPDATED_EVENT,
+  saveMealEvaluation,
+} from "@/lib/kitchen-evaluation-storage";
 import type { CourseListEntry } from "@/lib/course-list";
+import { cn } from "@/lib/utils";
 
 function newSlotId(): string {
   return `slot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -29,6 +37,11 @@ function KitchenMealSlotEditor({
   slot,
   courseMeals,
   courses,
+  year,
+  weekNumber,
+  date,
+  dayName,
+  weekStats,
   onChange,
   onRemove,
   canRemove,
@@ -36,12 +49,45 @@ function KitchenMealSlotEditor({
   slot: KitchenMealSlotPlan;
   courseMeals: KitchenWeekMealRow[];
   courses: CourseListEntry[];
+  year: number;
+  weekNumber: number;
+  date: string;
+  dayName: string;
+  weekStats: {
+    budgetTotal: number;
+    enrolledTotal: number;
+    staffOnDuty: number;
+    courseCount: number;
+    mealCount: number;
+  };
   onChange: (next: KitchenMealSlotPlan) => void;
   onRemove?: () => void;
   canRemove: boolean;
 }) {
+  const [evalOpen, setEvalOpen] = useState(false);
+  const [evalTick, setEvalTick] = useState(0);
+
+  useEffect(() => {
+    function refresh() {
+      setEvalTick((t) => t + 1);
+    }
+    window.addEventListener(KITCHEN_EVALUATION_UPDATED_EVENT, refresh);
+    return () =>
+      window.removeEventListener(KITCHEN_EVALUATION_UPDATED_EVENT, refresh);
+  }, []);
+
   const matchingMeals = courseMeals.filter((m) =>
     slotMatchesForplejning(slot.forplejning, m.forplejning),
+  );
+
+  const hasEva = useMemo(
+    () => hasEvaluation("meal", year, weekNumber, date, slot.id),
+    [year, weekNumber, date, slot.id, evalTick],
+  );
+
+  const existingEval = useMemo(
+    () => findEvaluation("meal", year, weekNumber, date, slot.id),
+    [year, weekNumber, date, slot.id, evalTick],
   );
 
   const courseTitles = new Map(courses.map((c) => [c.id, c.title]));
@@ -91,17 +137,59 @@ function KitchenMealSlotEditor({
           <p className="font-medium text-slate-900">{slot.label}</p>
           <p className="text-xs text-slate-500">{slot.forplejning}</p>
         </div>
-        {canRemove && onRemove && (
-          <button
+        <div className="flex items-center gap-1">
+          <Button
             type="button"
-            onClick={onRemove}
-            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-            aria-label="Fjern måltid"
+            variant="secondary"
+            className={cn(
+              "h-7 px-2 text-xs",
+              hasEva && "ring-1 ring-emerald-400",
+            )}
+            onClick={() => setEvalOpen(true)}
           >
-            <Trash2 className="size-4" />
-          </button>
-        )}
+            Eva
+          </Button>
+          {canRemove && onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+              aria-label="Fjern måltid"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
+        </div>
       </div>
+
+      <KitchenEvaluationDialog
+        open={evalOpen}
+        title={`Eva — ${slot.label}`}
+        subtitle={`${dayName} · ${date}`}
+        initialText={existingEval?.text ?? ""}
+        contextLines={[
+          `${weekStats.enrolledTotal} tilmeldte / ${weekStats.budgetTotal} budget i ugen`,
+          slot.menuText ? `Madplan: ${slot.menuText}` : "Ingen madplan udfyldt endnu",
+          ...matchingMeals.map(
+            (m) =>
+              `${m.courseTitle}: ${m.antalPersoner} pers. · ${m.specifikation}`,
+          ),
+        ]}
+        onClose={() => setEvalOpen(false)}
+        onSave={(text) => {
+          saveMealEvaluation({
+            year,
+            weekNumber,
+            date,
+            dayName,
+            slot,
+            text,
+            courses,
+            weekStats,
+            matchingMeals,
+          });
+        }}
+      />
 
       <label className="mt-3 block">
         <span className="text-xs font-medium text-slate-600">
@@ -202,6 +290,7 @@ export function KitchenDayMealPlanCard({
   weekNumber,
   dayDefs,
   stats,
+  weekStats,
   onPlanChange,
 }: {
   dayPlan: KitchenDayMealPlan;
@@ -214,6 +303,13 @@ export function KitchenDayMealPlanCard({
     budgetTotal: number;
     enrolledTotal: number;
     courseCount: number;
+  };
+  weekStats: {
+    budgetTotal: number;
+    enrolledTotal: number;
+    staffOnDuty: number;
+    courseCount: number;
+    mealCount: number;
   };
   onPlanChange: (plan: KitchenWeekMealPlan) => void;
 }) {
@@ -308,6 +404,11 @@ export function KitchenDayMealPlanCard({
             slot={slot}
             courseMeals={flatMeals}
             courses={courses}
+            year={year}
+            weekNumber={weekNumber}
+            date={dayPlan.date}
+            dayName={dayPlan.dayName}
+            weekStats={weekStats}
             canRemove={!defaultSlotIds.has(slot.id)}
             onChange={(next) => updateSlot(slot.id, next)}
             onRemove={() => removeSlot(slot.id)}

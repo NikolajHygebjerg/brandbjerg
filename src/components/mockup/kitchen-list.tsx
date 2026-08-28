@@ -5,6 +5,7 @@ import { UtensilsCrossed } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { QuestionCountBadge } from "@/components/mockup/module-questions";
 import { KitchenWeekCalendarView } from "@/components/mockup/kitchen-week-calendar-view";
+import { KitchenEvaluationHistory } from "@/components/mockup/kitchen-evaluation-history";
 import {
   CourseListDataCell,
   CourseListDatesCell,
@@ -165,6 +166,8 @@ export function KitchenList() {
         activeWeek={activeWeek}
         onWeekChange={setActiveWeek}
       />
+
+      <KitchenEvaluationHistory activeYear={activeYear} />
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-200 bg-amber-50 px-4 py-3">

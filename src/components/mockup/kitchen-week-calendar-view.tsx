@@ -1,17 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ClipboardList } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   KitchenDayMealPlanCard,
   KitchenWeekStaffEditor,
 } from "@/components/mockup/kitchen-day-meal-plan";
+import { KitchenEvaluationDialog } from "@/components/mockup/kitchen-evaluation-dialog";
 import type { CourseListEntry } from "@/lib/course-list";
 import {
   loadKitchenWeekMealPlan,
   type KitchenWeekMealPlan,
 } from "@/lib/kitchen-meal-plan-storage";
+import {
+  findEvaluation,
+  hasEvaluation,
+  KITCHEN_EVALUATION_UPDATED_EVENT,
+  saveWeekEvaluation,
+} from "@/lib/kitchen-evaluation-storage";
 import {
   collectApprovedWeekMeals,
   getIsoWeekDays,
@@ -34,6 +42,17 @@ export function KitchenWeekCalendarView({
   onWeekChange: (week: number) => void;
 }) {
   const [plan, setPlan] = useState<KitchenWeekMealPlan | null>(null);
+  const [weekEvalOpen, setWeekEvalOpen] = useState(false);
+  const [evalTick, setEvalTick] = useState(0);
+
+  useEffect(() => {
+    function refresh() {
+      setEvalTick((t) => t + 1);
+    }
+    window.addEventListener(KITCHEN_EVALUATION_UPDATED_EVENT, refresh);
+    return () =>
+      window.removeEventListener(KITCHEN_EVALUATION_UPDATED_EVENT, refresh);
+  }, []);
 
   const dayDefs = useMemo(
     () => getIsoWeekDays(year, activeWeek),
@@ -77,6 +96,27 @@ export function KitchenWeekCalendarView({
 
   const staffCount = plan.staffOnDuty ?? defaultStaff;
 
+  const weekStatsFull = useMemo(
+    () => ({
+      budgetTotal: weekStats.budgetTotal,
+      enrolledTotal: weekStats.enrolledTotal,
+      staffOnDuty: staffCount,
+      courseCount: weekStats.courseCount,
+      mealCount: weekStats.mealCount,
+    }),
+    [weekStats, staffCount],
+  );
+
+  const hasWeekEval = useMemo(
+    () => hasEvaluation("week", year, activeWeek),
+    [year, activeWeek, evalTick],
+  );
+
+  const existingWeekEval = useMemo(
+    () => findEvaluation("week", year, activeWeek),
+    [year, activeWeek, evalTick],
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -117,9 +157,46 @@ export function KitchenWeekCalendarView({
       </Card>
 
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-slate-900">
-          {weekLabel(activeWeek)} · {year}
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-slate-900">
+            {weekLabel(activeWeek)} · {year}
+          </h2>
+          <Button
+            type="button"
+            variant="secondary"
+            className={cn("gap-2", hasWeekEval && "ring-1 ring-emerald-400")}
+            onClick={() => setWeekEvalOpen(true)}
+          >
+            <ClipboardList className="size-4" />
+            Evaluering
+          </Button>
+        </div>
+
+        <KitchenEvaluationDialog
+          open={weekEvalOpen}
+          title={`Ugeevaluering — ${weekLabel(activeWeek)} ${year}`}
+          subtitle="Samlet evaluering af ugen"
+          initialText={existingWeekEval?.text ?? ""}
+          contextLines={[
+            `${weekStatsFull.enrolledTotal} tilmeldte / ${weekStatsFull.budgetTotal} budget`,
+            `${weekStatsFull.courseCount} kurser · ${weekStatsFull.mealCount} serveringer`,
+            `${weekStatsFull.staffOnDuty} medarbejdere på arbejde`,
+            ...courses
+              .filter((c) => c.weekNumber === activeWeek)
+              .slice(0, 6)
+              .map((c) => c.title),
+          ]}
+          onClose={() => setWeekEvalOpen(false)}
+          onSave={(text) => {
+            saveWeekEvaluation({
+              year,
+              weekNumber: activeWeek,
+              text,
+              courses,
+              weekStats: weekStatsFull,
+            });
+          }}
+        />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-amber-100 bg-amber-50/40">
             <CardDescription>Budget kursister</CardDescription>
@@ -171,6 +248,7 @@ export function KitchenWeekCalendarView({
               weekNumber={activeWeek}
               dayDefs={dayDefs}
               stats={stats}
+              weekStats={weekStatsFull}
               onPlanChange={setPlan}
             />
           );
