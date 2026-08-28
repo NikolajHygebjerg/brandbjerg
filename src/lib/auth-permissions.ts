@@ -127,6 +127,14 @@ export function isRengoringsassistent(role: UserRole): boolean {
   return role === "rengoringsassistent";
 }
 
+export function canAccessPedelAdmin(role: UserRole): boolean {
+  return hasFullPlatformAccess(role) || role === "pedelleder";
+}
+
+export function isPedelassistent(role: UserRole): boolean {
+  return role === "pedelassistent";
+}
+
 export function navEntryVisible(
   roles: UserRole[] | "all",
   userRole: UserRole,

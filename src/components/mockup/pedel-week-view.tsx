@@ -14,10 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { LokaleSetupDialog } from "@/components/mockup/lokale-setup-dialog";
 import { PedelEvaluationDialog } from "@/components/mockup/pedel-evaluation-dialog";
-import { PedelNotificationsInbox } from "@/components/mockup/pedel-notifications-inbox";
+import { PedelDagensOpgaverCard } from "@/components/mockup/pedel-dagens-opgaver-card";
+import { PedelDelegationTab } from "@/components/mockup/pedel-delegation-tab";
 import { PedelEvaluationHistory } from "@/components/mockup/pedel-evaluation-history";
 import { useAuth } from "@/context/auth-context";
-import { hasFullPlatformAccess } from "@/lib/auth-types";
+import {
+  canAccessPedelAdmin,
+  isPedelassistent,
+} from "@/lib/auth-permissions";
+import { listUsersByRole } from "@/lib/auth-storage";
 import {
   getCourseDetailById,
   getCoursesForYear,
@@ -27,9 +32,11 @@ import {
   getRealiseretAntal,
 } from "@/lib/course-enrollment-counts";
 import { mergeCoursePlan } from "@/lib/course-plan-storage";
+import { addDaysIso, todayIso } from "@/lib/date-utils";
 import { getIsoWeekForDate } from "@/lib/kitchen-active-meal";
 import { getIsoWeekDays } from "@/lib/kitchen-week-calendar";
 import { formatDate, weekLabel } from "@/lib/mock-data";
+import { syncAllPedelDagensOpgaver } from "@/lib/pedel-auto-tasks";
 import {
   buildRoomContextLines,
   findPedelEvaluation,
@@ -37,10 +44,19 @@ import {
   PEDEL_EVALUATION_UPDATED_EVENT,
   savePedelEvaluation,
 } from "@/lib/pedel-evaluation-storage";
+import { PEDEL_NOTIFICATIONS_UPDATED_EVENT } from "@/lib/pedel-notifications-storage";
 import {
   listPhotosForRoom,
   PEDEL_SETUP_PHOTO_UPDATED_EVENT,
 } from "@/lib/pedel-setup-photo-storage";
+import {
+  assignPedelLeaderTask,
+  completePedelTask,
+  getIncompletePedelTasksForAssignee,
+  getLeaderPedelDagensOpgaver,
+  PEDEL_TASKS_UPDATED_EVENT,
+  type PedelTask,
+} from "@/lib/pedel-task-storage";
 import {
   formatLokaleFlags,
   getPedelWeekRoomsForCourse,
@@ -49,6 +65,8 @@ import {
   type PedelWeekRoom,
 } from "@/lib/pedel-utils";
 import { cn } from "@/lib/utils";
+
+type MainTab = "oversigt" | "uddelegering";
 
 type DayGroup = {
   label: string;
@@ -64,6 +82,55 @@ function pedelWeekPath(year: number, weekNumber: number): string {
   return `/pedel/uge/${year}/${weekNumber}`;
 }
 
+function roomFromTask(
+  task: PedelTask,
+  weekRooms: PedelWeekRoom[],
+): PedelWeekRoom | null {
+  if (task.type !== "lokale") return null;
+  const found = weekRooms.find(
+    (r) =>
+      r.courseId === task.courseId &&
+      `${r.courseId}|${r.dayDate}|${r.lokale}` === task.targetKey,
+  );
+  if (found) return found;
+
+  const [courseId, dayDate, lokale] = task.targetKey.split("|");
+  if (!courseId || !dayDate || !lokale) return null;
+  const detail = getCourseDetailById(courseId);
+  if (!detail) return null;
+  const course = mergeCoursePlan(detail);
+  return (
+    getPedelWeekRoomsForCourse(courseId, course).find(
+      (r) => r.dayDate === dayDate && r.lokale === lokale,
+    ) ?? null
+  );
+}
+
+function PedelTabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-md px-4 py-2 text-sm font-medium transition",
+        active
+          ? "bg-blue-700 text-white shadow-sm"
+          : "text-blue-900 hover:bg-blue-100",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function PedelWeekView({
   year,
   weekNumber,
@@ -73,15 +140,46 @@ export function PedelWeekView({
 }) {
   const router = useRouter();
   const { user } = useAuth();
+  const today = todayIso();
+  const tomorrow = addDaysIso(today, 1);
   const [hydrated, setHydrated] = useState(false);
+  const [mainTab, setMainTab] = useState<MainTab>("oversigt");
+  const [taskTick, setTaskTick] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<PedelWeekRoom | null>(null);
   const [evalTarget, setEvalTarget] = useState<EvalTarget | null>(null);
   const [evalTick, setEvalTick] = useState(0);
   const [photoTick, setPhotoTick] = useState(0);
 
+  const reloadTasks = useCallback(() => setTaskTick((t) => t + 1), []);
+
+  const showDelegation = user && canAccessPedelAdmin(user.role);
+  const isAssistant = user && isPedelassistent(user.role);
+
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "uddelegering" && user && canAccessPedelAdmin(user.role)) {
+      setMainTab("uddelegering");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    function onTaskUpdate() {
+      syncAllPedelDagensOpgaver(today);
+      reloadTasks();
+    }
+    syncAllPedelDagensOpgaver(today);
+    window.addEventListener(PEDEL_TASKS_UPDATED_EVENT, onTaskUpdate);
+    window.addEventListener(PEDEL_NOTIFICATIONS_UPDATED_EVENT, onTaskUpdate);
+    return () => {
+      window.removeEventListener(PEDEL_TASKS_UPDATED_EVENT, onTaskUpdate);
+      window.removeEventListener(PEDEL_NOTIFICATIONS_UPDATED_EVENT, onTaskUpdate);
+    };
+  }, [reloadTasks, today]);
 
   useEffect(() => {
     function refreshEval() {
@@ -154,11 +252,28 @@ export function PedelWeekView({
     router.push(pedelWeekPath(current.year, current.weekNumber));
   }, [router]);
 
-  const showRengoringInbox =
-    user &&
-    (hasFullPlatformAccess(user.role) ||
-      user.role === "pedelleder" ||
-      user.role === "pedelassistent");
+  const dagensTasks = useMemo(() => {
+    if (!hydrated || !user) return [];
+    if (isAssistant) {
+      return getIncompletePedelTasksForAssignee(user.id, today, tomorrow);
+    }
+    return getLeaderPedelDagensOpgaver(today, tomorrow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, user, isAssistant, today, tomorrow, taskTick]);
+
+  const assistants = useMemo(
+    () => listUsersByRole("pedelassistent"),
+    [taskTick],
+  );
+
+  const handleTaskClick = useCallback(
+    (task: PedelTask) => {
+      if (task.type !== "lokale") return;
+      const room = roomFromTask(task, weekRooms);
+      if (room) setSelectedRoom(room);
+    },
+    [weekRooms],
+  );
 
   const evalDialogProps = (() => {
     if (!evalTarget) return null;
@@ -243,12 +358,51 @@ export function PedelWeekView({
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Pedel</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Alle lokaler og ønsker samlet pr. uge — på tværs af kurser
+          Dagens opgaver og lokaler samlet pr. uge — på tværs af kurser
         </p>
       </div>
 
-      {showRengoringInbox && <PedelNotificationsInbox />}
+      <PedelDagensOpgaverCard
+        today={today}
+        tasks={dagensTasks}
+        assistants={showDelegation ? assistants : undefined}
+        showAssign={Boolean(showDelegation)}
+        onAssign={
+          showDelegation
+            ? (taskId, assigneeUserId) => {
+                assignPedelLeaderTask(taskId, assigneeUserId);
+                reloadTasks();
+              }
+            : undefined
+        }
+        onComplete={(task) => {
+          completePedelTask(task);
+          reloadTasks();
+        }}
+        onTaskClick={handleTaskClick}
+      />
 
+      {showDelegation && (
+        <div className="flex gap-1 rounded-lg border border-blue-200 bg-blue-50/50 p-1">
+          <PedelTabButton
+            active={mainTab === "oversigt"}
+            onClick={() => setMainTab("oversigt")}
+          >
+            Ugeoversigt
+          </PedelTabButton>
+          <PedelTabButton
+            active={mainTab === "uddelegering"}
+            onClick={() => setMainTab("uddelegering")}
+          >
+            Uddelegering
+          </PedelTabButton>
+        </div>
+      )}
+
+      {mainTab === "uddelegering" && showDelegation ? (
+        <PedelDelegationTab today={today} />
+      ) : (
+        <>
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -369,6 +523,8 @@ export function PedelWeekView({
       )}
 
       <PedelEvaluationHistory />
+        </>
+      )}
     </div>
   );
 }

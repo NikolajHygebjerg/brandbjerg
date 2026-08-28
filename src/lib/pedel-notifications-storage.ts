@@ -87,6 +87,12 @@ export function sendPedelNotification(input: {
 
   if (!platformMessage) return null;
 
+  if (typeof window !== "undefined") {
+    void import("./pedel-auto-tasks").then(({ syncPedelNotificationTasks }) => {
+      syncPedelNotificationTasks();
+    });
+  }
+
   emitUpdate();
 
   return {
