@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Users } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -12,17 +12,28 @@ import {
   formatDateDaShort,
   parseIsoDate,
   toIsoDate,
-  todayIso,
 } from "@/lib/date-utils";
 import {
   getAllLokalerForDelegation,
-  getAllVaerelserForDelegation,
-  getDatesInIsoWeek,
   isLokaleActiveDuringWeek,
   isVaerelseActiveDuringWeek,
   lokaleTargetKey,
   vaerelseTargetKey,
 } from "@/lib/rengoring-delegation-utils";
+import {
+  getAllVaerelserGridForDate,
+  type RengoringVaerelseRow,
+} from "@/lib/rengoring-room-utils";
+import {
+  getLokalerForRengoringDate,
+} from "@/lib/rengoring-lokale-utils";
+import {
+  getAllRoomsByBuildingColumn,
+  ROOM_BUILDING_COLUMNS,
+} from "@/lib/room-utils";
+import { CompactMonthCalendar } from "@/components/mockup/rengoring-vaerelser-tab";
+import { KONTOR_UPDATED_EVENT } from "@/lib/kontor-storage";
+import { ANSAT_VAERELSE_BOOKING_UPDATED_EVENT } from "@/lib/ansat-vaerelse-booking-storage";
 import {
   countUnpublishedAssignments,
   getAssignmentForTarget,
@@ -50,8 +61,6 @@ function buildMonthGrid(year: number, month: number): (string | null)[][] {
   return weeks;
 }
 
-const WEEKDAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
-
 export function RengoringDelegationTab({ today }: { today: string }) {
   const [selectedDate, setSelectedDate] = useState(today);
   const [section, setSection] = useState<DelegationSection>("vaerelser");
@@ -75,8 +84,16 @@ export function RengoringDelegationTab({ today }: { today: string }) {
       reload();
     }
     window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
-    return () =>
+    window.addEventListener(KONTOR_UPDATED_EVENT, onUpdate);
+    window.addEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
+    return () => {
       window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(KONTOR_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(
+        ANSAT_VAERELSE_BOOKING_UPDATED_EVENT,
+        onUpdate,
+      );
+    };
   }, [reload]);
 
   useEffect(() => {
@@ -110,27 +127,51 @@ export function RengoringDelegationTab({ today }: { today: string }) {
     { month: "long", year: "numeric" },
   );
 
-  const weekDates = useMemo(
-    () => getDatesInIsoWeek(selectedDate),
+  const vaerelser = useMemo(
+    () => getAllVaerelserGridForDate(selectedDate),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedDate, tick],
   );
 
-  const allVaerelser = useMemo(() => getAllVaerelserForDelegation(), []);
-  const allLokaler = useMemo(() => getAllLokalerForDelegation(), []);
+  const rowByRoom = useMemo(() => {
+    const map = new Map<string, RengoringVaerelseRow>();
+    for (const row of vaerelser) {
+      map.set(row.roomNumber, row);
+    }
+    return map;
+  }, [vaerelser]);
 
-  const visibleVaerelser = useMemo(() => {
-    if (!weekFilter) return allVaerelser;
-    return allVaerelser.filter((r) =>
-      isVaerelseActiveDuringWeek(r, selectedDate),
-    );
-  }, [allVaerelser, weekFilter, selectedDate, tick]);
+  const allByColumn = useMemo(() => getAllRoomsByBuildingColumn(), []);
+
+  const lokaler = useMemo(
+    () => getLokalerForRengoringDate(selectedDate),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedDate, tick],
+  );
+
+  const allSchoolLokaler = useMemo(() => getAllLokalerForDelegation(), []);
 
   const visibleLokaler = useMemo(() => {
-    if (!weekFilter) return allLokaler;
-    return allLokaler.filter((l) =>
-      isLokaleActiveDuringWeek(l, selectedDate),
-    );
-  }, [allLokaler, weekFilter, selectedDate, tick]);
+    if (weekFilter) {
+      return allSchoolLokaler
+        .filter((name) => isLokaleActiveDuringWeek(name, selectedDate))
+        .map((name) => {
+          const fromCourse = lokaler.find((l) => l.lokale === name);
+          return (
+            fromCourse ?? {
+              id: name,
+              lokale: name,
+              courseTitle: "—",
+              courseId: "",
+              dayDate: selectedDate,
+              timeSpan: "",
+              klar: false,
+            }
+          );
+        });
+    }
+    return lokaler;
+  }, [allSchoolLokaler, lokaler, weekFilter, selectedDate, tick]);
 
   const unpublishedCount = useMemo(
     () => countUnpublishedAssignments(selectedDate),
@@ -212,97 +253,36 @@ export function RengoringDelegationTab({ today }: { today: string }) {
     reload();
   }
 
+  function roomVisibleInWeek(room: string): boolean {
+    if (!weekFilter) return true;
+    return isVaerelseActiveDuringWeek(room, selectedDate);
+  }
+
+  const visibleRoomCount = useMemo(() => {
+    let count = 0;
+    for (const rooms of Object.values(allByColumn)) {
+      for (const room of rooms) {
+        if (roomVisibleInWeek(room)) count += 1;
+      }
+    }
+    return count;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allByColumn, weekFilter, selectedDate, tick]);
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Users className="h-4 w-4 text-emerald-700" />
-          Uddelegering · {formatDateDaShort(selectedDate)}
-        </CardTitle>
-        <CardDescription className="mt-1">
-          Vælg dato, tildel værelser og lokaler til rengøringsassistenter, og
-          godkend når planen er klar
-        </CardDescription>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={prevMonth}
-              className="rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              ←
-            </button>
-            <span className="text-sm font-medium capitalize text-slate-800">
-              {monthLabel}
-            </span>
-            <button
-              type="button"
-              onClick={nextMonth}
-              className="rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              →
-            </button>
-          </div>
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={weekFilter}
-              onChange={(e) => setWeekFilter(e.target.checked)}
-              className="size-4 rounded border-slate-300 text-emerald-600"
-            />
-            Kun i brug denne uge
-          </label>
-        </div>
-
-        <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
-          {WEEKDAY_LABELS.map((d) => (
-            <div key={d}>{d}</div>
-          ))}
-        </div>
-        <div className="mt-1 grid grid-cols-7 gap-1">
-          {monthGrid.flat().map((date, idx) => {
-            if (!date) {
-              return <div key={`e-${idx}`} className="aspect-square" />;
-            }
-            const isSelected = date === selectedDate;
-            const isToday = date === today;
-            const inWeek = weekDates.includes(date);
-            return (
-              <button
-                key={date}
-                type="button"
-                onClick={() => setSelectedDate(date)}
-                className={cn(
-                  "aspect-square rounded-lg text-sm font-medium transition",
-                  isSelected
-                    ? "bg-emerald-600 text-white ring-2 ring-emerald-300"
-                    : isToday
-                      ? "bg-emerald-100 text-emerald-900"
-                      : inWeek
-                        ? "bg-emerald-50/80 text-slate-700 hover:bg-emerald-100"
-                        : "text-slate-600 hover:bg-slate-100",
-                )}
-              >
-                {parseIsoDate(date).getDate()}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
       <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
         <SectionTab
           active={section === "vaerelser"}
           onClick={() => setSection("vaerelser")}
         >
-          Værelser ({visibleVaerelser.length})
+          Værelser
         </SectionTab>
         <SectionTab
           active={section === "lokaler"}
           onClick={() => setSection("lokaler")}
         >
-          Lokaler ({visibleLokaler.length})
+          Lokaler
         </SectionTab>
       </div>
 
@@ -314,121 +294,148 @@ export function RengoringDelegationTab({ today }: { today: string }) {
 
       {section === "vaerelser" ? (
         <Card>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-base">Værelser</CardTitle>
-            {selectedRooms.size > 0 && (
-              <BatchAssignBar
-                assistants={assistants}
-                count={selectedRooms.size}
-                onAssign={batchAssignVaerelser}
-              />
-            )}
-          </div>
-          <CardDescription className="mt-1">
-            Træk hen over værelser for at vælge flere — tildel derefter én
-            assistent til alle valgte
-          </CardDescription>
-          <div className="mt-4 overflow-x-auto pb-2">
-            <div className="flex min-w-max gap-2">
-              {visibleVaerelser.map((room) => {
-                const assignment = getAssignmentForTarget(
-                  selectedDate,
-                  "vaerelse",
-                  vaerelseTargetKey(room),
-                );
-                const isSelected = selectedRooms.has(room);
-                return (
-                  <div
-                    key={room}
-                    className={cn(
-                      "w-28 shrink-0 rounded-lg border p-2 transition select-none",
-                      isSelected
-                        ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200"
-                        : "border-slate-200 bg-white hover:border-emerald-300",
-                      assignment && !assignment.published && "border-amber-300",
-                    )}
-                    onMouseDown={() => handleRoomMouseDown(room)}
-                    onMouseEnter={() => handleRoomMouseEnter(room)}
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle className="text-base">
+                    Værelser · {formatDateDaShort(selectedDate)}
+                  </CardTitle>
+                  <CardDescription>
+                    6 kolonner efter fløj og etage — træk for at vælge flere
+                    værelser
+                    {selectedDate === today ? " i dag" : ""}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedRooms.size > 0 && (
+                    <BatchAssignBar
+                      assistants={assistants}
+                      count={selectedRooms.size}
+                      onAssign={batchAssignVaerelser}
+                    />
+                  )}
+                  <FilterButton
+                    active={weekFilter}
+                    onClick={() => setWeekFilter((v) => !v)}
                   >
-                    <p className="text-center text-sm font-bold tabular-nums text-slate-900">
-                      {room}
-                    </p>
-                    <select
-                      className="mt-2 w-full rounded border border-slate-200 px-1 py-1 text-[11px]"
-                      value={assignment?.assigneeUserId ?? ""}
-                      disabled={assistants.length === 0}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onChange={(e) => assignVaerelse(room, e.target.value)}
-                    >
-                      <option value="">—</option>
-                      {assistants.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name.split(" ")[0]}
-                        </option>
-                      ))}
-                    </select>
-                    {assignment?.published && (
-                      <p className="mt-1 text-center text-[10px] text-emerald-700">
-                        Godkendt
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                    Kun i brug denne uge
+                  </FilterButton>
+                </div>
+              </div>
+
+              <p className="mt-2 text-xs text-slate-500">
+                {visibleRoomCount} værelser vist · klik og træk for batchvalg
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                {ROOM_BUILDING_COLUMNS.map((col) => (
+                  <DelegationBuildingColumn
+                    key={col.id}
+                    column={col}
+                    roomNumbers={allByColumn[col.id].filter(roomVisibleInWeek)}
+                    rowByRoom={rowByRoom}
+                    selectedDate={selectedDate}
+                    selectedRooms={selectedRooms}
+                    assistants={assistants}
+                    onRoomMouseDown={handleRoomMouseDown}
+                    onRoomMouseEnter={handleRoomMouseEnter}
+                    onAssign={assignVaerelse}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full shrink-0 xl:w-[168px]">
+              <CompactMonthCalendar
+                selectedDate={selectedDate}
+                today={today}
+                monthLabel={monthLabel}
+                monthGrid={monthGrid}
+                onSelectDate={setSelectedDate}
+                onPrevMonth={prevMonth}
+                onNextMonth={nextMonth}
+              />
             </div>
           </div>
         </Card>
       ) : (
         <Card>
-          <CardTitle className="text-base">Lokaler</CardTitle>
-          <CardDescription className="mt-1">
-            Alle lokaler på skolen — tildel ansvarlig assistent pr. lokale
-          </CardDescription>
-          <div className="mt-4 overflow-x-auto pb-2">
-            <div className="flex min-w-max gap-2">
-              {visibleLokaler.map((lokale) => {
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">
+                Lokaler · {formatDateDaShort(selectedDate)}
+              </CardTitle>
+              <CardDescription>
+                Tildel ansvarlig assistent pr. lokale
+                {selectedDate === today ? " i dag" : ""}
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterButton
+                active={weekFilter}
+                onClick={() => setWeekFilter((v) => !v)}
+              >
+                Kun i brug denne uge
+              </FilterButton>
+              <DateNav
+                selectedDate={selectedDate}
+                today={today}
+                onSelectDate={setSelectedDate}
+              />
+            </div>
+          </div>
+
+          {visibleLokaler.length === 0 ? (
+            <p className="mt-6 text-sm text-slate-500">
+              Ingen lokaler med aktivitet på den valgte dato.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-slate-100">
+              {visibleLokaler.map((l) => {
                 const assignment = getAssignmentForTarget(
                   selectedDate,
                   "lokale",
-                  lokaleTargetKey(lokale),
+                  lokaleTargetKey(l.lokale),
                 );
                 return (
-                  <div
-                    key={lokale}
+                  <li
+                    key={l.lokale}
                     className={cn(
-                      "w-36 shrink-0 rounded-lg border border-slate-200 bg-white p-2",
-                      assignment && !assignment.published && "border-amber-300",
+                      "flex flex-wrap items-center justify-between gap-3 py-3",
+                      assignment && !assignment.published && "bg-amber-50/40",
                     )}
                   >
-                    <p
-                      className="truncate text-center text-xs font-semibold text-slate-900"
-                      title={lokale}
-                    >
-                      {lokale}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900">{l.lokale}</p>
+                      {"courseTitle" in l && l.courseTitle && l.courseTitle !== "—" && (
+                        <p className="text-sm text-slate-500">
+                          {l.courseTitle}
+                          {l.timeSpan ? ` · ${l.timeSpan}` : ""}
+                        </p>
+                      )}
+                      {assignment?.published && (
+                        <p className="text-xs text-emerald-700">Godkendt</p>
+                      )}
+                    </div>
                     <select
-                      className="mt-2 w-full rounded border border-slate-200 px-1 py-1 text-[11px]"
+                      className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
                       value={assignment?.assigneeUserId ?? ""}
                       disabled={assistants.length === 0}
-                      onChange={(e) => assignLokale(lokale, e.target.value)}
+                      onChange={(e) => assignLokale(l.lokale, e.target.value)}
                     >
-                      <option value="">—</option>
+                      <option value="">Ikke tildelt</option>
                       {assistants.map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.name}
                         </option>
                       ))}
                     </select>
-                    {assignment?.published && (
-                      <p className="mt-1 text-center text-[10px] text-emerald-700">
-                        Godkendt
-                      </p>
-                    )}
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-          </div>
+            </ul>
+          )}
         </Card>
       )}
 
@@ -461,6 +468,146 @@ export function RengoringDelegationTab({ today }: { today: string }) {
   );
 }
 
+function DelegationBuildingColumn({
+  column,
+  roomNumbers,
+  rowByRoom,
+  selectedDate,
+  selectedRooms,
+  assistants,
+  onRoomMouseDown,
+  onRoomMouseEnter,
+  onAssign,
+}: {
+  column: (typeof ROOM_BUILDING_COLUMNS)[number];
+  roomNumbers: string[];
+  rowByRoom: Map<string, RengoringVaerelseRow>;
+  selectedDate: string;
+  selectedRooms: Set<string>;
+  assistants: { id: string; name: string }[];
+  onRoomMouseDown: (room: string) => void;
+  onRoomMouseEnter: (room: string) => void;
+  onAssign: (room: string, assigneeUserId: string) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-col rounded-lg border",
+        column.columnClass,
+      )}
+    >
+      <div
+        className={cn(
+          "rounded-t-lg px-2 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide",
+          column.headerClass,
+        )}
+      >
+        {column.label}
+      </div>
+      <div className="flex flex-col gap-1 p-1">
+        {roomNumbers.length === 0 ? (
+          <p className="px-1 py-4 text-center text-[10px] text-slate-400">—</p>
+        ) : (
+          roomNumbers.map((room) => {
+            const row = rowByRoom.get(room);
+            const assignment = getAssignmentForTarget(
+              selectedDate,
+              "vaerelse",
+              vaerelseTargetKey(room),
+            );
+            const isSelected = selectedRooms.has(room);
+            return (
+              <div
+                key={room}
+                className={cn(
+                  "select-none rounded border border-slate-200/80 bg-white px-1.5 py-1.5 text-center transition",
+                  isSelected &&
+                    "border-violet-500 bg-violet-50 ring-2 ring-violet-200",
+                  row?.inUse && !isSelected && "ring-1 ring-amber-300",
+                  row?.needsCleaning &&
+                    !row.klar &&
+                    !isSelected &&
+                    "border-amber-300 bg-amber-50/50",
+                  assignment &&
+                    !assignment.published &&
+                    !isSelected &&
+                    "border-amber-300",
+                )}
+                onMouseDown={() => onRoomMouseDown(room)}
+                onMouseEnter={() => onRoomMouseEnter(room)}
+              >
+                <p className="text-sm font-bold tabular-nums text-slate-900">
+                  {room}
+                </p>
+                {row && (
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    {row.inUse ? "I brug" : "Ledig"}
+                  </p>
+                )}
+                <select
+                  className="mt-1.5 w-full rounded border border-slate-200 px-0.5 py-0.5 text-[10px]"
+                  value={assignment?.assigneeUserId ?? ""}
+                  disabled={assistants.length === 0}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onChange={(e) => onAssign(room, e.target.value)}
+                >
+                  <option value="">—</option>
+                  {assistants.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name.split(" ")[0]}
+                    </option>
+                  ))}
+                </select>
+                {assignment?.published && (
+                  <p className="mt-0.5 text-[10px] text-emerald-700">
+                    Godkendt
+                  </p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DateNav({
+  selectedDate,
+  today,
+  onSelectDate,
+}: {
+  selectedDate: string;
+  today: string;
+  onSelectDate: (d: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => onSelectDate(addDaysIso(selectedDate, -1))}
+        className="rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+      >
+        ←
+      </button>
+      <button
+        type="button"
+        onClick={() => onSelectDate(today)}
+        className="rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+      >
+        I dag
+      </button>
+      <button
+        type="button"
+        onClick={() => onSelectDate(addDaysIso(selectedDate, 1))}
+        className="rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+      >
+        →
+      </button>
+    </div>
+  );
+}
+
 function SectionTab({
   active,
   onClick,
@@ -479,6 +626,31 @@ function SectionTab({
         active
           ? "bg-white text-emerald-900 shadow-sm"
           : "text-slate-600 hover:text-slate-900",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-lg px-3 py-1.5 text-sm font-medium transition",
+        active
+          ? "bg-emerald-700 text-white"
+          : "bg-slate-100 text-slate-700 hover:bg-slate-200",
       )}
     >
       {children}

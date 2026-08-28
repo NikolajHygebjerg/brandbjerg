@@ -17,7 +17,7 @@ type VaerelseFilter = "all" | "klar" | "needs_cleaning";
 
 const WEEKDAY_LABELS = ["M", "T", "O", "T", "F", "L", "S"];
 
-function CompactMonthCalendar({
+export function CompactMonthCalendar({
   selectedDate,
   today,
   monthLabel,
