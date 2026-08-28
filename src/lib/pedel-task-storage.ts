@@ -180,14 +180,111 @@ export function assignPedelLeaderTask(
   savePedelTasks(all);
 }
 
-export function completePedelTask(task: PedelTask): void {
+export function updatePedelTask(
+  id: string,
+  patch: Partial<Pick<PedelTask, "completed" | "assigneeUserId" | "published" | "publishedAt">>,
+): void {
   const all = loadPedelTasks().map((t) =>
-    t.id === task.id ? { ...t, completed: true } : t,
+    t.id === id ? { ...t, ...patch } : t,
   );
   savePedelTasks(all);
-  if (task.notificationId) {
+}
+
+export function pedelLokaleTargetKey(
+  courseId: string,
+  dayDate: string,
+  lokale: string,
+): string {
+  return `${courseId}|${dayDate}|${lokale}`;
+}
+
+export function isPedelLokaleCompleted(
+  courseId: string,
+  dayDate: string,
+  lokale: string,
+): boolean {
+  const targetKey = pedelLokaleTargetKey(courseId, dayDate, lokale);
+  const task = getPedelAssignmentForTarget(dayDate, "lokale", targetKey);
+  return task?.completed ?? false;
+}
+
+export function setPedelLokaleCompleted(input: {
+  courseId: string;
+  dayDate: string;
+  lokale: string;
+  courseTitle: string;
+  label?: string;
+  dueBy?: string;
+  completed: boolean;
+}): void {
+  const targetKey = pedelLokaleTargetKey(
+    input.courseId,
+    input.dayDate,
+    input.lokale,
+  );
+  const label =
+    input.label ?? `${input.lokale} — ${input.courseTitle}`;
+  const existing = getPedelAssignmentForTarget(
+    input.dayDate,
+    "lokale",
+    targetKey,
+  );
+
+  if (existing) {
+    updatePedelTask(existing.id, { completed: input.completed });
+    if (input.completed && existing.notificationId) {
+      markPedelNotificationRead(existing.notificationId);
+    }
+    return;
+  }
+
+  if (!input.completed) return;
+
+  const now = new Date().toISOString();
+  const all = loadPedelTasks();
+  all.push({
+    id: `pt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    assigneeUserId: "",
+    date: input.dayDate,
+    type: "lokale",
+    targetKey,
+    label,
+    courseId: input.courseId,
+    courseTitle: input.courseTitle,
+    dueBy: input.dueBy,
+    completed: true,
+    published: true,
+    publishedAt: now,
+    source: "auto",
+    createdAt: now,
+  });
+  savePedelTasks(all);
+}
+
+export type PedelCompletionFilter = "all" | "pending" | "completed";
+
+function matchesCompletionFilter(
+  completed: boolean,
+  filter: PedelCompletionFilter,
+): boolean {
+  if (filter === "pending") return !completed;
+  if (filter === "completed") return completed;
+  return true;
+}
+
+export function setPedelTaskCompleted(task: PedelTask, completed: boolean): void {
+  updatePedelTask(task.id, { completed });
+  if (completed && task.notificationId) {
     markPedelNotificationRead(task.notificationId);
   }
+}
+
+export function completePedelTask(task: PedelTask): void {
+  setPedelTaskCompleted(task, true);
+}
+
+export function togglePedelTaskCompleted(task: PedelTask): void {
+  setPedelTaskCompleted(task, !task.completed);
 }
 
 export function getPedelTasksForAssignee(
@@ -208,17 +305,18 @@ export function getIncompletePedelTasksForAssignee(
   userId: string,
   today: string,
   tomorrow: string,
+  filter: PedelCompletionFilter = "pending",
 ): PedelTask[] {
   return loadPedelTasks()
-    .filter(
-      (t) =>
-        t.assigneeUserId === userId &&
-        t.published &&
-        !t.completed &&
-        (t.date === today ||
-          t.date === tomorrow ||
-          t.source === "afdeling"),
-    )
+    .filter((t) => {
+      if (t.assigneeUserId !== userId || !t.published) return false;
+      const inScope =
+        t.date === today ||
+        t.date === tomorrow ||
+        t.source === "afdeling";
+      if (!inScope) return false;
+      return matchesCompletionFilter(t.completed, filter);
+    })
     .sort((a, b) => {
       const dateCmp = a.date.localeCompare(b.date);
       if (dateCmp !== 0) return dateCmp;
@@ -229,14 +327,16 @@ export function getIncompletePedelTasksForAssignee(
 export function getLeaderPedelDagensOpgaver(
   today: string,
   tomorrow: string,
+  filter: PedelCompletionFilter = "pending",
 ): PedelTask[] {
   return loadPedelTasks()
-    .filter(
-      (t) =>
-        !t.completed &&
-        ((t.type === "lokale" && (t.date === today || t.date === tomorrow)) ||
-          t.source === "afdeling"),
-    )
+    .filter((t) => {
+      const inScope =
+        (t.type === "lokale" && (t.date === today || t.date === tomorrow)) ||
+        t.source === "afdeling";
+      if (!inScope) return false;
+      return matchesCompletionFilter(t.completed, filter);
+    })
     .sort((a, b) => {
       const aUnassigned = !a.assigneeUserId ? 0 : 1;
       const bUnassigned = !b.assigneeUserId ? 0 : 1;

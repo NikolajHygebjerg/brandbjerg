@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -16,6 +17,10 @@ import { LokaleSetupDialog } from "@/components/mockup/lokale-setup-dialog";
 import { PedelEvaluationDialog } from "@/components/mockup/pedel-evaluation-dialog";
 import { PedelDagensOpgaverCard } from "@/components/mockup/pedel-dagens-opgaver-card";
 import { PedelDelegationTab } from "@/components/mockup/pedel-delegation-tab";
+import {
+  PedelCompletionFilterBar,
+  PedelStatusBadge,
+} from "@/components/mockup/pedel-completion-filter";
 import { PedelEvaluationHistory } from "@/components/mockup/pedel-evaluation-history";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -36,7 +41,7 @@ import { addDaysIso, todayIso } from "@/lib/date-utils";
 import { getIsoWeekForDate } from "@/lib/kitchen-active-meal";
 import { getIsoWeekDays } from "@/lib/kitchen-week-calendar";
 import { formatDate, weekLabel } from "@/lib/mock-data";
-import { syncAllPedelDagensOpgaver } from "@/lib/pedel-auto-tasks";
+import { syncAllPedelDagensOpgaver, syncAutoPedelTasksForWeek } from "@/lib/pedel-auto-tasks";
 import {
   buildRoomContextLines,
   findPedelEvaluation,
@@ -51,10 +56,13 @@ import {
 } from "@/lib/pedel-setup-photo-storage";
 import {
   assignPedelLeaderTask,
-  completePedelTask,
   getIncompletePedelTasksForAssignee,
   getLeaderPedelDagensOpgaver,
+  isPedelLokaleCompleted,
   PEDEL_TASKS_UPDATED_EVENT,
+  setPedelLokaleCompleted,
+  togglePedelTaskCompleted,
+  type PedelCompletionFilter,
   type PedelTask,
 } from "@/lib/pedel-task-storage";
 import {
@@ -145,6 +153,8 @@ export function PedelWeekView({
   const [hydrated, setHydrated] = useState(false);
   const [mainTab, setMainTab] = useState<MainTab>("oversigt");
   const [taskTick, setTaskTick] = useState(0);
+  const [completionFilter, setCompletionFilter] =
+    useState<PedelCompletionFilter>("pending");
   const [selectedRoom, setSelectedRoom] = useState<PedelWeekRoom | null>(null);
   const [evalTarget, setEvalTarget] = useState<EvalTarget | null>(null);
   const [evalTick, setEvalTick] = useState(0);
@@ -170,16 +180,18 @@ export function PedelWeekView({
   useEffect(() => {
     function onTaskUpdate() {
       syncAllPedelDagensOpgaver(today);
+      syncAutoPedelTasksForWeek(year, weekNumber);
       reloadTasks();
     }
     syncAllPedelDagensOpgaver(today);
+    syncAutoPedelTasksForWeek(year, weekNumber);
     window.addEventListener(PEDEL_TASKS_UPDATED_EVENT, onTaskUpdate);
     window.addEventListener(PEDEL_NOTIFICATIONS_UPDATED_EVENT, onTaskUpdate);
     return () => {
       window.removeEventListener(PEDEL_TASKS_UPDATED_EVENT, onTaskUpdate);
       window.removeEventListener(PEDEL_NOTIFICATIONS_UPDATED_EVENT, onTaskUpdate);
     };
-  }, [reloadTasks, today]);
+  }, [reloadTasks, today, year, weekNumber]);
 
   useEffect(() => {
     function refreshEval() {
@@ -232,6 +244,60 @@ export function PedelWeekView({
     [weekRooms],
   );
 
+  const filteredByDay = useMemo(() => {
+    return byDay
+      .map((day) => ({
+        ...day,
+        rooms: day.rooms.filter((room) => {
+          const completed = isPedelLokaleCompleted(
+            room.courseId,
+            room.dayDate,
+            room.lokale,
+          );
+          if (completionFilter === "pending") return !completed;
+          if (completionFilter === "completed") return completed;
+          return true;
+        }),
+      }))
+      .filter((day) => day.rooms.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [byDay, completionFilter, taskTick]);
+
+  const weekCompletionCounts = useMemo(() => {
+    let pending = 0;
+    let completed = 0;
+    for (const room of weekRooms) {
+      if (
+        isPedelLokaleCompleted(room.courseId, room.dayDate, room.lokale)
+      ) {
+        completed += 1;
+      } else {
+        pending += 1;
+      }
+    }
+    return {
+      all: weekRooms.length,
+      pending,
+      completed,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekRooms, taskTick]);
+
+  const dagensCompletionCounts = useMemo(() => {
+    if (!hydrated || !user) {
+      return { all: 0, pending: 0, completed: 0 };
+    }
+    const all = isAssistant
+      ? getIncompletePedelTasksForAssignee(user.id, today, tomorrow, "all")
+      : getLeaderPedelDagensOpgaver(today, tomorrow, "all");
+    return {
+      all: all.length,
+      pending: all.filter((t) => !t.completed).length,
+      completed: all.filter((t) => t.completed).length,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, user, isAssistant, today, tomorrow, taskTick]);
+
   const coursesWithNotes = weekCourses.filter(({ course }) =>
     course.pedelGenerelleNoter?.trim(),
   );
@@ -255,15 +321,41 @@ export function PedelWeekView({
   const dagensTasks = useMemo(() => {
     if (!hydrated || !user) return [];
     if (isAssistant) {
-      return getIncompletePedelTasksForAssignee(user.id, today, tomorrow);
+      return getIncompletePedelTasksForAssignee(
+        user.id,
+        today,
+        tomorrow,
+        completionFilter,
+      );
     }
-    return getLeaderPedelDagensOpgaver(today, tomorrow);
+    return getLeaderPedelDagensOpgaver(today, tomorrow, completionFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, user, isAssistant, today, tomorrow, taskTick]);
+  }, [hydrated, user, isAssistant, today, tomorrow, completionFilter, taskTick]);
 
   const assistants = useMemo(
     () => listUsersByRole("pedelassistent"),
     [taskTick],
+  );
+
+  const handleToggleRoomComplete = useCallback(
+    (room: PedelWeekRoom) => {
+      const completed = isPedelLokaleCompleted(
+        room.courseId,
+        room.dayDate,
+        room.lokale,
+      );
+      setPedelLokaleCompleted({
+        courseId: room.courseId,
+        dayDate: room.dayDate,
+        lokale: room.lokale,
+        courseTitle: room.courseTitle,
+        label: `${room.lokale} — ${room.courseTitle}`,
+        dueBy: timeSpanForRoom(room.entries).split("–")[0]?.trim(),
+        completed: !completed,
+      });
+      reloadTasks();
+    },
+    [reloadTasks],
   );
 
   const handleTaskClick = useCallback(
@@ -365,6 +457,9 @@ export function PedelWeekView({
       <PedelDagensOpgaverCard
         today={today}
         tasks={dagensTasks}
+        completionFilter={completionFilter}
+        onCompletionFilterChange={setCompletionFilter}
+        completionCounts={dagensCompletionCounts}
         assistants={showDelegation ? assistants : undefined}
         showAssign={Boolean(showDelegation)}
         onAssign={
@@ -375,8 +470,8 @@ export function PedelWeekView({
               }
             : undefined
         }
-        onComplete={(task) => {
-          completePedelTask(task);
+        onToggleComplete={(task) => {
+          togglePedelTaskCompleted(task);
           reloadTasks();
         }}
         onTaskClick={handleTaskClick}
@@ -414,7 +509,8 @@ export function PedelWeekView({
               <CardDescription>
                 {weekCourses.length} kursus
                 {weekCourses.length !== 1 ? "er" : ""} · {weekRooms.length}{" "}
-                lokale-dage
+                lokale-dage · {weekCompletionCounts.completed} udført ·{" "}
+                {weekCompletionCounts.pending} mangler
               </CardDescription>
             </div>
           </div>
@@ -445,6 +541,13 @@ export function PedelWeekView({
               </button>
             )}
           </div>
+        </div>
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <PedelCompletionFilterBar
+            value={completionFilter}
+            onChange={setCompletionFilter}
+            counts={weekCompletionCounts}
+          />
         </div>
       </Card>
 
@@ -491,15 +594,26 @@ export function PedelWeekView({
               : "Kursuslederne skal vælge lokale under Oversigt & økonomi eller udfylde lokalespecifikation i Modulplan."}
           </CardDescription>
         </Card>
+      ) : filteredByDay.length === 0 ? (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardTitle className="text-base text-blue-900">
+            Ingen lokaler matcher filteret
+          </CardTitle>
+          <CardDescription className="text-blue-800">
+            Prøv at vælge et andet filter for at se flere opgaver.
+          </CardDescription>
+        </Card>
       ) : (
-        byDay.map((day) => (
+        filteredByDay.map((day) => (
           <DayCard
             key={day.date}
             day={day}
             evalTick={evalTick}
             photoTick={photoTick}
+            taskTick={taskTick}
             onOpenSetup={setSelectedRoom}
             onOpenEval={(target) => setEvalTarget(target)}
+            onToggleComplete={handleToggleRoomComplete}
           />
         ))
       )}
@@ -536,19 +650,26 @@ function DayCard({
   day,
   evalTick,
   photoTick,
+  taskTick,
   onOpenSetup,
   onOpenEval,
+  onToggleComplete,
 }: {
   day: DayGroup;
   evalTick: number;
   photoTick: number;
+  taskTick: number;
   onOpenSetup: (room: PedelWeekRoom) => void;
   onOpenEval: (target: EvalTarget) => void;
+  onToggleComplete: (room: PedelWeekRoom) => void;
 }) {
   const courseIds = [...new Set(day.rooms.map((r) => r.courseId))];
   const hasDayEval = courseIds.some((courseId) =>
     hasPedelEvaluation("day", courseId, day.date),
   );
+  const completedCount = day.rooms.filter((room) =>
+    isPedelLokaleCompleted(room.courseId, room.dayDate, room.lokale),
+  ).length;
 
   return (
     <Card className="overflow-hidden p-0">
@@ -560,8 +681,9 @@ function DayCard({
             </CardTitle>
             <CardDescription>
               {day.rooms.length} lokale{day.rooms.length !== 1 ? "r" : ""} fra{" "}
-              {courseIds.length} kursus{courseIds.length !== 1 ? "er" : ""} —
-              klik for opsætning
+              {courseIds.length} kursus{courseIds.length !== 1 ? "er" : ""} ·{" "}
+              {completedCount} udført · {day.rooms.length - completedCount}{" "}
+              mangler
             </CardDescription>
           </div>
           <Button
@@ -585,8 +707,10 @@ function DayCard({
             room={room}
             evalTick={evalTick}
             photoTick={photoTick}
+            taskTick={taskTick}
             onOpenSetup={() => onOpenSetup(room)}
             onOpenEval={() => onOpenEval({ kind: "room", room })}
+            onToggleComplete={() => onToggleComplete(room)}
           />
         ))}
       </ul>
@@ -598,18 +722,28 @@ function RoomTile({
   room,
   evalTick,
   photoTick,
+  taskTick,
   onOpenSetup,
   onOpenEval,
+  onToggleComplete,
 }: {
   room: PedelWeekRoom;
   evalTick: number;
   photoTick: number;
+  taskTick: number;
   onOpenSetup: () => void;
   onOpenEval: () => void;
+  onToggleComplete: () => void;
 }) {
   const flags = formatLokaleFlags(room.entries[0].spec);
   const personer = Math.max(
     ...room.entries.map((e) => e.spec.antalPersoner),
+  );
+
+  const completed = useMemo(
+    () =>
+      isPedelLokaleCompleted(room.courseId, room.dayDate, room.lokale),
+    [room.courseId, room.dayDate, room.lokale, taskTick],
   );
 
   const hasRoomEval = useMemo(
@@ -625,20 +759,37 @@ function RoomTile({
 
   return (
     <li>
-      <div className="flex w-full flex-col rounded-xl border border-blue-200 bg-white transition hover:border-blue-400 hover:shadow-sm">
+      <div
+        className={cn(
+          "flex w-full flex-col rounded-xl border bg-white transition hover:shadow-sm",
+          completed
+            ? "border-emerald-300 bg-emerald-50/40"
+            : "border-blue-200 hover:border-blue-400",
+        )}
+      >
         <button
           type="button"
           onClick={onOpenSetup}
           className="flex w-full flex-col p-4 text-left hover:bg-blue-50/50"
         >
-          <p className="mb-2 text-xs font-medium text-blue-800">
-            {room.courseTitle}
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-blue-800">
+              {room.courseTitle}
+            </p>
+            <PedelStatusBadge completed={completed} />
+          </div>
           <div className="flex items-start gap-2">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold text-slate-900">{room.lokale}</p>
+                <p
+                  className={cn(
+                    "font-semibold text-slate-900",
+                    completed && "text-slate-600 line-through",
+                  )}
+                >
+                  {room.lokale}
+                </p>
                 {photoCount > 0 && (
                   <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">
                     <Camera className="size-3" />
@@ -678,7 +829,16 @@ function RoomTile({
             Se opsætning →
           </p>
         </button>
-        <div className="flex justify-end border-t border-blue-100 px-3 py-2">
+        <div className="flex items-center justify-between gap-2 border-t border-blue-100 px-3 py-2">
+          <Button
+            type="button"
+            variant={completed ? "outline" : "primary"}
+            className="h-7 px-2 text-xs"
+            onClick={onToggleComplete}
+          >
+            <CheckCircle2 className="mr-1 size-3.5" />
+            {completed ? "Fortryd" : "Udført"}
+          </Button>
           <Button
             type="button"
             variant="secondary"

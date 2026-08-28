@@ -1,4 +1,5 @@
 import { addDaysIso, todayIso } from "./date-utils";
+import { getIsoWeekDays } from "./kitchen-week-calendar";
 import { getLokalerForRengoringDate } from "./rengoring-lokale-utils";
 import { getPedelNotifications } from "./pedel-notifications-storage";
 import {
@@ -136,6 +137,16 @@ export function syncPedelNotificationTasks(): number {
 
 export function syncAllPedelDagensOpgaver(today?: string): number {
   const setup = syncPedelTasksForTodayAndTomorrow(today);
+  const beskeder = syncPedelNotificationTasks();
+  return setup + beskeder;
+}
+
+export function syncAutoPedelTasksForWeek(
+  year: number,
+  weekNumber: number,
+): number {
+  const dates = getIsoWeekDays(year, weekNumber).map((d) => d.date);
+  const setup = syncAutoPedelTasksForDates(dates);
   const beskeder = syncPedelNotificationTasks();
   return setup + beskeder;
 }
