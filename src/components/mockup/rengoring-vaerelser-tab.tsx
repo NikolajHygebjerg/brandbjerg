@@ -17,25 +17,66 @@ type VaerelseFilter = "all" | "klar" | "needs_cleaning";
 
 const WEEKDAY_LABELS = ["M", "T", "O", "T", "F", "L", "S"];
 
+function buildYearOptions(
+  calendarYear: number,
+  selectedDate: string,
+  today: string,
+): number[] {
+  const years = new Set<number>();
+  for (let y = calendarYear - 3; y <= calendarYear + 3; y++) {
+    years.add(y);
+  }
+  years.add(parseInt(selectedDate.slice(0, 4), 10));
+  years.add(parseInt(today.slice(0, 4), 10));
+  return [...years].sort((a, b) => a - b);
+}
+
 export function CompactMonthCalendar({
   selectedDate,
   today,
-  monthLabel,
+  calendarYear,
+  calendarMonth,
   monthGrid,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
+  onYearChange,
 }: {
   selectedDate: string;
   today: string;
-  monthLabel: string;
+  calendarYear: number;
+  calendarMonth: number;
   monthGrid: (string | null)[][];
   onSelectDate: (d: string) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onYearChange: (year: number) => void;
 }) {
+  const monthLabel = new Date(calendarYear, calendarMonth, 1).toLocaleDateString(
+    "da-DK",
+    { month: "long" },
+  );
+
+  const yearOptions = useMemo(
+    () => buildYearOptions(calendarYear, selectedDate, today),
+    [calendarYear, selectedDate, today],
+  );
+
   return (
     <div className="shrink-0 rounded-lg border border-slate-200 bg-white p-2">
+      <select
+        value={calendarYear}
+        onChange={(e) => onYearChange(Number(e.target.value))}
+        className="mb-1.5 w-full rounded border border-slate-200 bg-white px-1 py-1 text-center text-[11px] font-semibold text-slate-800"
+        aria-label="Vælg år"
+      >
+        {yearOptions.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+
       <div className="flex items-center justify-between gap-1">
         <button
           type="button"
@@ -183,25 +224,29 @@ function RoomCell({
 export function RengoringVaerelserTab({
   selectedDate,
   today,
-  monthLabel,
+  calendarYear,
+  calendarMonth,
   monthGrid,
   vaerelser,
   vaerelseFilter,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
+  onYearChange,
   onFilterChange,
   onToggleKlar,
 }: {
   selectedDate: string;
   today: string;
-  monthLabel: string;
+  calendarYear: number;
+  calendarMonth: number;
   monthGrid: (string | null)[][];
   vaerelser: RengoringVaerelseRow[];
   vaerelseFilter: VaerelseFilter;
   onSelectDate: (d: string) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onYearChange: (year: number) => void;
   onFilterChange: (f: VaerelseFilter) => void;
   onToggleKlar: (room: string, klar: boolean) => void;
 }) {
@@ -273,11 +318,13 @@ export function RengoringVaerelserTab({
           <CompactMonthCalendar
             selectedDate={selectedDate}
             today={today}
-            monthLabel={monthLabel}
+            calendarYear={calendarYear}
+            calendarMonth={calendarMonth}
             monthGrid={monthGrid}
             onSelectDate={onSelectDate}
             onPrevMonth={onPrevMonth}
             onNextMonth={onNextMonth}
+            onYearChange={onYearChange}
           />
         </div>
       </div>

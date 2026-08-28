@@ -122,11 +122,6 @@ export function RengoringDelegationTab({ today }: { today: string }) {
     [calendarYear, calendarMonth],
   );
 
-  const monthLabel = new Date(calendarYear, calendarMonth, 1).toLocaleDateString(
-    "da-DK",
-    { month: "long", year: "numeric" },
-  );
-
   const vaerelser = useMemo(
     () => getAllVaerelserGridForDate(selectedDate),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,6 +184,10 @@ export function RengoringDelegationTab({ today }: { today: string }) {
     const d = new Date(calendarYear, calendarMonth + 1, 1);
     setCalendarYear(d.getFullYear());
     setCalendarMonth(d.getMonth());
+  }
+
+  function handleYearChange(year: number) {
+    setCalendarYear(year);
   }
 
   function assignVaerelse(roomNumber: string, assigneeUserId: string) {
@@ -350,11 +349,13 @@ export function RengoringDelegationTab({ today }: { today: string }) {
               <CompactMonthCalendar
                 selectedDate={selectedDate}
                 today={today}
-                monthLabel={monthLabel}
+                calendarYear={calendarYear}
+                calendarMonth={calendarMonth}
                 monthGrid={monthGrid}
                 onSelectDate={setSelectedDate}
                 onPrevMonth={prevMonth}
                 onNextMonth={nextMonth}
+                onYearChange={handleYearChange}
               />
             </div>
           </div>

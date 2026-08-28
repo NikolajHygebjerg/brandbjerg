@@ -279,11 +279,6 @@ function RengoringLeaderView({ today }: { today: string }) {
     [calendarYear, calendarMonth],
   );
 
-  const monthLabel = new Date(calendarYear, calendarMonth, 1).toLocaleDateString(
-    "da-DK",
-    { month: "long", year: "numeric" },
-  );
-
   function prevMonth() {
     const d = new Date(calendarYear, calendarMonth - 1, 1);
     setCalendarYear(d.getFullYear());
@@ -294,6 +289,10 @@ function RengoringLeaderView({ today }: { today: string }) {
     const d = new Date(calendarYear, calendarMonth + 1, 1);
     setCalendarYear(d.getFullYear());
     setCalendarMonth(d.getMonth());
+  }
+
+  function handleYearChange(year: number) {
+    setCalendarYear(year);
   }
 
   if (!hydrated) {
@@ -370,13 +369,15 @@ function RengoringLeaderView({ today }: { today: string }) {
         <RengoringVaerelserTab
           selectedDate={selectedDate}
           today={today}
-          monthLabel={monthLabel}
+          calendarYear={calendarYear}
+          calendarMonth={calendarMonth}
           monthGrid={monthGrid}
           vaerelser={vaerelser}
           vaerelseFilter={vaerelseFilter}
           onSelectDate={setSelectedDate}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
+          onYearChange={handleYearChange}
           onFilterChange={setVaerelseFilter}
           onToggleKlar={(room, klar) => {
             setVaerelseKlar(room, selectedDate, klar);
