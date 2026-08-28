@@ -86,15 +86,7 @@ export function KitchenWeekCalendarView({
     return set;
   }, [courses]);
 
-  if (!plan) {
-    return (
-      <Card>
-        <CardDescription>Indlæser ugeplan…</CardDescription>
-      </Card>
-    );
-  }
-
-  const staffCount = plan.staffOnDuty ?? defaultStaff;
+  const staffCount = plan?.staffOnDuty ?? defaultStaff;
 
   const weekStatsFull = useMemo(
     () => ({
@@ -116,6 +108,14 @@ export function KitchenWeekCalendarView({
     () => findEvaluation("week", year, activeWeek),
     [year, activeWeek, evalTick],
   );
+
+  if (!plan) {
+    return (
+      <Card>
+        <CardDescription>Indlæser ugeplan…</CardDescription>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
