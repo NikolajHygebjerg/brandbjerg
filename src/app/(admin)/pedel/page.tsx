@@ -1,5 +1,7 @@
-import { PedelList } from "@/components/mockup/pedel-list";
+import { redirect } from "next/navigation";
+import { getIsoWeekForDate } from "@/lib/kitchen-active-meal";
 
 export default function PedelPage() {
-  return <PedelList />;
+  const { year, weekNumber } = getIsoWeekForDate(new Date());
+  redirect(`/pedel/uge/${year}/${weekNumber}`);
 }

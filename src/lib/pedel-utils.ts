@@ -229,3 +229,50 @@ export function timeSpanForRoom(entries: PedelLokaleRow[]): string {
   );
   return `${fra}–${til}`;
 }
+
+/** Et lokale på en given dag — med kursustilhørshed til ugevis oversigt */
+export interface PedelWeekRoom extends PedelDayRoom {
+  courseId: string;
+  courseTitle: string;
+}
+
+export function getPedelWeekRoomsForCourse(
+  courseId: string,
+  course: Course,
+): PedelWeekRoom[] {
+  return getPedelDayRooms(course).map((room) => ({
+    ...room,
+    courseId,
+    courseTitle: course.title,
+  }));
+}
+
+export function groupPedelWeekRoomsByDate(
+  rooms: PedelWeekRoom[],
+): { label: string; date: string; rooms: PedelWeekRoom[] }[] {
+  const byDate = new Map<
+    string,
+    { label: string; date: string; rooms: PedelWeekRoom[] }
+  >();
+  for (const room of rooms) {
+    const key = room.dayDate;
+    if (!byDate.has(key)) {
+      byDate.set(key, {
+        label: room.dayLabel,
+        date: room.dayDate,
+        rooms: [],
+      });
+    }
+    byDate.get(key)!.rooms.push(room);
+  }
+  for (const group of byDate.values()) {
+    group.rooms.sort(
+      (a, b) =>
+        a.lokale.localeCompare(b.lokale, "da") ||
+        a.courseTitle.localeCompare(b.courseTitle, "da"),
+    );
+  }
+  return Array.from(byDate.values()).sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+}
