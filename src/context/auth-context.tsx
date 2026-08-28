@@ -19,7 +19,7 @@ import {
   registerUser,
   updateUser,
 } from "@/lib/auth-storage";
-import { ensureWeek3DemoData } from "@/lib/demo-seed-week3";
+import { ensureAllDemoWeekData } from "@/lib/demo-seed-week";
 
 type AuthContextValue = {
   user: User | null;
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     ensureSeedUsers();
-    ensureWeek3DemoData();
+    ensureAllDemoWeekData();
     refresh();
     setHydrated(true);
 
