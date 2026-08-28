@@ -231,6 +231,29 @@ export function changeParticipantRoom(
   return { ok: true };
 }
 
+export function clearParticipantRoom(
+  courseId: string,
+  participantId: string,
+): { ok: boolean; error?: string } {
+  const participants = loadParticipantsForCourse(courseId);
+  if (!participants.some((x) => x.id === participantId)) {
+    return { ok: false, error: "Deltager ikke fundet" };
+  }
+
+  const next = participants.map((x) => {
+    if (x.id !== participantId) {
+      if (x.roomMateId === participantId) {
+        return { ...x, roomMateId: null };
+      }
+      return x;
+    }
+    return { ...x, roomNumber: null, roomMateId: null };
+  });
+
+  saveParticipantsForCourse(courseId, next);
+  return { ok: true };
+}
+
 /** Flyt deltagere væk fra lukket værelse */
 export function relocateFromClosedRoom(
   roomNumber: string,

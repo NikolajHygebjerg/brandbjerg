@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Building2, CheckCircle2, AlertTriangle, ExternalLink, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { ParticipantDetailDialog } from "@/components/mockup/participant-detail-dialog";
 import { PaymentReminderMailButton } from "@/components/mockup/payment-reminder-mail-button";
+import { KontorRoomDistributionDialog } from "@/components/mockup/kontor-room-distribution-dialog";
 import { getCourseDetailById } from "@/lib/course-list";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { formatDate, type Course } from "@/lib/mock-data";
@@ -38,6 +40,7 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
   const [participants, setParticipants] = useState<KontorParticipant[]>([]);
   const [selected, setSelected] = useState<KontorParticipant | null>(null);
+  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [missing, setMissing] = useState(false);
   const [tick, setTick] = useState(0);
 
@@ -261,15 +264,28 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
 
         <Card className="overflow-hidden p-0">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-            <CardTitle className="text-base">
-              Værelser denne uge (uge {courseWeek})
-            </CardTitle>
-            <CardDescription>
-              {roomSummary.length} værelser i brug ·{" "}
-              <Link href="/kontor/vaerelser" className="text-violet-700 hover:underline">
-                Åbn fuld værelsesoversigt
-              </Link>
-            </CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">
+                  Værelser denne uge (uge {courseWeek})
+                </CardTitle>
+                <CardDescription>
+                  {roomSummary.length} værelser i brug ·{" "}
+                  <Link href="/kontor/vaerelser" className="text-violet-700 hover:underline">
+                    Åbn fuld værelsesoversigt
+                  </Link>
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-9 shrink-0 gap-1.5"
+                onClick={() => setRoomDialogOpen(true)}
+              >
+                <Pencil className="size-4" />
+                Rediger værelsesfordeling
+              </Button>
+            </div>
           </div>
           {weekRoomCells.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate-500">
@@ -362,6 +378,20 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
           onUpdated={(p) => {
             setParticipants(loadParticipantsForCourse(courseId));
             setSelected(p);
+          }}
+        />
+      )}
+
+      {roomDialogOpen && (
+        <KontorRoomDistributionDialog
+          courseId={courseId}
+          courseTitle={course.title}
+          courseWeek={courseWeek}
+          participants={participants}
+          onClose={() => setRoomDialogOpen(false)}
+          onUpdated={() => {
+            setParticipants(loadParticipantsForCourse(courseId));
+            setTick((t) => t + 1);
           }}
         />
       )}
