@@ -19,6 +19,7 @@ import {
   Sparkles,
   UtensilsCrossed,
   BedDouble,
+  SprayCan,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,8 @@ const nav: NavEntry[] = [
     icon: FileSignature,
   },
   { type: "link", href: "/koekken", label: "Køkken", icon: UtensilsCrossed },
-  { type: "link", href: "/pedel", label: "Pedel og rengøring", icon: Sparkles },
+  { type: "link", href: "/pedel", label: "Pedel", icon: Sparkles },
+  { type: "link", href: "/rengoring", label: "Rengøring", icon: SprayCan },
   { type: "link", href: "/vaerelsesbooking", label: "Værelsesbooking", icon: BedDouble },
   { type: "link", href: "/kontor", label: "Kontor", icon: Building2 },
   { type: "link", href: "/kommunikation", label: "Kommunikation", icon: Megaphone },
