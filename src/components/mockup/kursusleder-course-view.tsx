@@ -13,7 +13,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { KursuslederEvaluationHistory } from "@/components/mockup/kursusleder-evaluation-history";
 import { KursuslederPrintAreas } from "@/components/mockup/kursusleder-print-areas";
+import {
+  KursuslederCourseEvalButton,
+  KursuslederProgramBoard,
+} from "@/components/mockup/kursusleder-program-board";
 import { triggerKursuslederPrint } from "@/components/mockup/kursusleder-print-trigger";
 import { WelcomeLetterPanel } from "@/components/mockup/welcome-letter-panel";
 import { WorkshopsOverviewPanel } from "@/components/mockup/workshops-overview-panel";
@@ -173,17 +178,20 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         >
           ← Tilbage til mine kurser
         </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <GraduationCap className="h-6 w-6 text-teal-700" />
-          <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
-          {roles.map((role) => (
-            <span
-              key={role}
-              className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-900"
-            >
-              {role}
-            </span>
-          ))}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <GraduationCap className="h-6 w-6 text-teal-700" />
+            <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
+            {roles.map((role) => (
+              <span
+                key={role}
+                className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-900"
+              >
+                {role}
+              </span>
+            ))}
+          </div>
+          <KursuslederCourseEvalButton course={course} />
         </div>
         <p className="mt-1 text-sm text-slate-500">
           Uge {courseWeek} · {formatDate(course.startDate)} –{" "}
@@ -250,6 +258,19 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardTitle className="text-base">Kursusprogram</CardTitle>
+        <CardDescription className="mt-1">
+          Dag for dag — klik på et punkt for alle detaljer. Brug Eva til
+          evaluering af enkelte punkter.
+        </CardDescription>
+        <div className="mt-4">
+          <KursuslederProgramBoard course={course} />
+        </div>
+      </Card>
+
+      <KursuslederEvaluationHistory courseId={courseId} />
 
       {checklist && (
         <Card>
