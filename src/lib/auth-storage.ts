@@ -122,6 +122,7 @@ function createUserRecord(input: {
   password: string;
   name: string;
   role: UserRole;
+  phone?: string;
   autoLogin?: boolean;
 }): { ok: true; user: User } | { ok: false; error: string } {
   const email = normalizeEmail(input.email);
@@ -148,6 +149,7 @@ function createUserRecord(input: {
     email,
     name,
     role: input.role,
+    phone: input.phone?.trim() || undefined,
     createdAt: new Date().toISOString(),
   };
 
@@ -176,8 +178,70 @@ export function adminCreateUser(input: {
   password: string;
   name: string;
   role: UserRole;
+  phone?: string;
 }): { ok: true; user: User } | { ok: false; error: string } {
   return createUserRecord({ ...input, autoLogin: false });
+}
+
+export interface BatchCreateUserInput {
+  rowNumber: number;
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  phone?: string;
+}
+
+export interface BatchCreateUsersResult {
+  created: number;
+  skipped: number;
+  errors: { rowNumber: number; email: string; message: string }[];
+}
+
+export function adminBatchCreateUsers(
+  rows: BatchCreateUserInput[],
+): BatchCreateUsersResult {
+  const result: BatchCreateUsersResult = {
+    created: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  for (const row of rows) {
+    const existing = findUserByEmail(row.email);
+    if (existing) {
+      result.skipped += 1;
+      result.errors.push({
+        rowNumber: row.rowNumber,
+        email: row.email,
+        message: "E-mail findes allerede — række sprunget over.",
+      });
+      continue;
+    }
+
+    const created = createUserRecord({
+      email: row.email,
+      password: row.password,
+      name: row.name,
+      role: row.role,
+      phone: row.phone,
+      autoLogin: false,
+    });
+
+    if (!created.ok) {
+      result.skipped += 1;
+      result.errors.push({
+        rowNumber: row.rowNumber,
+        email: row.email,
+        message: created.error,
+      });
+      continue;
+    }
+
+    result.created += 1;
+  }
+
+  return result;
 }
 
 export function loginUser(
@@ -229,6 +293,7 @@ export function updateUser(
     email?: string;
     role?: UserRole;
     password?: string;
+    phone?: string;
   },
 ): { ok: true; user: User } | { ok: false; error: string } {
   const users = loadUsers();
@@ -250,6 +315,8 @@ export function updateUser(
   const nextEmail = patch.email ? normalizeEmail(patch.email) : currentEmail;
   const nextRole = patch.role ?? record.user.role;
   const nextName = patch.name?.trim() ?? record.user.name;
+  const nextPhone =
+    patch.phone !== undefined ? patch.phone.trim() || undefined : record.user.phone;
 
   if (!nextName) {
     return { ok: false, error: "Navn skal udfyldes." };
@@ -271,6 +338,7 @@ export function updateUser(
     name: nextName,
     email: nextEmail,
     role: nextRole,
+    phone: nextPhone,
   };
 
   const updatedRecord: StoredUserRecord = {
