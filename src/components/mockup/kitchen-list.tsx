@@ -128,6 +128,18 @@ export function KitchenList() {
           Madplan for hele året — kurser med godkendt forplejning vises
           automatisk i den rigtige uge
         </p>
+        <p className="mt-2 text-xs text-amber-800">
+          iPad i spisesal:{" "}
+          <a
+            href="/koekken/spisesal"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium underline"
+          >
+            /koekken/spisesal
+          </a>{" "}
+          (ingen menu — kun smiley-evaluering)
+        </p>
       </div>
 
       <Card>

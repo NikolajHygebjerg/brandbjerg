@@ -13,6 +13,15 @@ export const KITCHEN_EVALUATION_UPDATED_EVENT = "brandbjerg-kitchen-evaluation-u
 
 export type KitchenEvaluationKind = "week" | "meal";
 
+export type GuestSmileyScore = 1 | 2 | 3 | 4 | 5;
+
+export interface KitchenGuestSmileyRating {
+  id: string;
+  score: GuestSmileyScore;
+  createdAt: string;
+  source: "spisesal";
+}
+
 export interface KitchenEvaluationCourseContext {
   courseId: string;
   courseTitle: string;
@@ -58,6 +67,8 @@ export interface KitchenEvaluationRecord {
     mealCount: number;
   } | null;
   mealCourses: KitchenEvaluationMealCourseRow[] | null;
+  /** Smiley-evalueringer fra gæster i spisesalen (iPad) */
+  guestRatings?: KitchenGuestSmileyRating[];
 }
 
 function safeParse<T>(raw: string | null): T | null {
@@ -254,7 +265,9 @@ export function listKitchenEvaluations(filters?: {
   weekNumber?: number;
   kind?: KitchenEvaluationKind;
 }): KitchenEvaluationRecord[] {
-  let records = loadRecords().filter((r) => r.text.trim().length > 0);
+  let records = loadRecords().filter(
+    (r) => r.text.trim().length > 0 || (r.guestRatings?.length ?? 0) > 0,
+  );
   if (filters?.year != null) {
     records = records.filter((r) => r.year === filters.year);
   }
@@ -271,4 +284,86 @@ export function listKitchenEvaluations(filters?: {
 
 export function deleteKitchenEvaluation(id: string): void {
   saveRecords(loadRecords().filter((r) => r.id !== id));
+}
+
+export function guestRatingAverage(
+  ratings: KitchenGuestSmileyRating[] | undefined,
+): number | null {
+  if (!ratings?.length) return null;
+  const sum = ratings.reduce((s, r) => s + r.score, 0);
+  return Math.round((sum / ratings.length) * 10) / 10;
+}
+
+export interface SaveGuestSmileyInput {
+  year: number;
+  weekNumber: number;
+  date: string;
+  dayName: string;
+  slot: KitchenMealSlotPlan;
+  score: GuestSmileyScore;
+  courses: CourseListEntry[];
+  weekStats: NonNullable<KitchenEvaluationRecord["weekStats"]>;
+  matchingMeals: KitchenWeekMealRow[];
+}
+
+export function saveGuestSmileyRating(
+  input: SaveGuestSmileyInput,
+): KitchenEvaluationRecord {
+  const now = new Date().toISOString();
+  const existing = findEvaluation(
+    "meal",
+    input.year,
+    input.weekNumber,
+    input.date,
+    input.slot.id,
+  );
+
+  const rating: KitchenGuestSmileyRating = {
+    id: `kgr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    score: input.score,
+    createdAt: now,
+    source: "spisesal",
+  };
+
+  const record: KitchenEvaluationRecord = {
+    id: existing?.id ?? `kev-${Date.now()}`,
+    kind: "meal",
+    text: existing?.text ?? "",
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    year: input.year,
+    weekNumber: input.weekNumber,
+    date: input.date,
+    dayName: input.dayName,
+    slotId: input.slot.id,
+    forplejning: input.slot.forplejning,
+    slotLabel: input.slot.label,
+    plannedMenu: input.slot.menuText || null,
+    courses: buildEvaluationCourseContexts(input.courses, input.weekNumber),
+    weekStats: input.weekStats,
+    mealCourses:
+      existing?.mealCourses ??
+      input.matchingMeals.map((m) => ({
+        courseId: m.courseId,
+        courseTitle: m.courseTitle,
+        moduleId: m.moduleId,
+        antalPersoner: m.antalPersoner,
+        specifikation: m.specifikation,
+        lokale: m.lokale,
+        note: m.note,
+      })),
+    guestRatings: [...(existing?.guestRatings ?? []), rating],
+  };
+
+  upsertRecord(record);
+  return record;
+}
+
+export function listGuestRatingsForMeal(
+  year: number,
+  weekNumber: number,
+  date: string,
+  slotId: string,
+): KitchenGuestSmileyRating[] {
+  return findEvaluation("meal", year, weekNumber, date, slotId)?.guestRatings ?? [];
 }

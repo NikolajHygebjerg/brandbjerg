@@ -6,6 +6,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   KITCHEN_EVALUATION_UPDATED_EVENT,
+  guestRatingAverage,
   listKitchenEvaluations,
   type KitchenEvaluationRecord,
 } from "@/lib/kitchen-evaluation-storage";
@@ -30,6 +31,9 @@ function EvaluationCard({ record }: { record: KitchenEvaluationRecord }) {
       ? `${weekLabel(record.weekNumber)} ${record.year} — ugeevaluering`
       : `${record.dayName} ${record.date?.slice(5).replace("-", "/")} · ${record.slotLabel}`;
 
+  const guestAvg = guestRatingAverage(record.guestRatings);
+  const guestCount = record.guestRatings?.length ?? 0;
+
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -40,6 +44,14 @@ function EvaluationCard({ record }: { record: KitchenEvaluationRecord }) {
             {record.kind === "meal" && record.forplejning
               ? ` · ${record.forplejning}`
               : ""}
+            {guestCount > 0 && (
+              <>
+                {" "}
+                · {guestCount} gæste-smiley
+                {guestCount !== 1 ? "s" : ""}
+                {guestAvg != null ? ` (snit ${guestAvg})` : ""}
+              </>
+            )}
           </p>
         </div>
         <button
@@ -102,6 +114,12 @@ function EvaluationCard({ record }: { record: KitchenEvaluationRecord }) {
                 ))}
               </ul>
             </div>
+          )}
+          {guestCount > 0 && (
+            <p>
+              <span className="font-medium">Gæste-smileys:</span> {guestCount}{" "}
+              svar — snit {guestAvg}/5 fra spisesalen
+            </p>
           )}
         </div>
       )}
