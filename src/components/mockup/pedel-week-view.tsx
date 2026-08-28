@@ -469,8 +469,11 @@ export function PedelWeekView({
       {coursesWithNotes.map(({ entry, course }) => (
         <Card key={entry.id} className="border-blue-200 bg-blue-50">
           <CardTitle className="text-base text-blue-900">
-            Noter — {course.title}
+            Generelle noter til pedel
           </CardTitle>
+          <p className="mt-1 text-sm font-medium text-blue-800">
+            Kursus: {course.title}
+          </p>
           <CardDescription className="mt-2 whitespace-pre-wrap text-blue-950">
             {course.pedelGenerelleNoter}
           </CardDescription>

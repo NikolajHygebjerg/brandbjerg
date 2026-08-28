@@ -161,7 +161,7 @@ export interface Course {
   checklist: CourseChecklist;
   /** Standard lokalespec for alle ikke-køkken-moduler i programmet */
   courseLokaleSpec?: LokaleSpecifikation;
-  /** Generelle noter til pedel/rengøring for hele kurset */
+  /** Generelle noter til pedel for hele kurset */
   pedelGenerelleNoter?: string;
   /** Kursets hovedsigte — UBAK_beskriv arket */
   kursetsHovedsigte?: string;

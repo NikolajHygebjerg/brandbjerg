@@ -78,7 +78,7 @@ export function CourseLokaleSpecPanel({
 
       <div className="mt-4">
         <FieldTextarea
-          label="Generelle noter til pedel/rengøring"
+          label="Generelle noter til pedel"
           value={course.pedelGenerelleNoter ?? ""}
           onChange={(v) => onUpdate({ pedelGenerelleNoter: v })}
           rows={3}
