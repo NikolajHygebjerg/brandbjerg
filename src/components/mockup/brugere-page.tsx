@@ -15,6 +15,7 @@ import {
   adminBatchCreateUsers,
   adminCreateUser,
   adminDeleteUser,
+  isSeedUser,
   listAllUsers,
   updateUser,
 } from "@/lib/auth-storage";
@@ -276,6 +277,11 @@ export function BrugerePage() {
                         (dig)
                       </span>
                     )}
+                    {isSeedUser(u.id) && (
+                      <span className="ml-2 text-xs font-normal text-slate-400">
+                        demo
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{u.email}</td>
                   <td className="px-4 py-3 text-slate-500">{u.phone ?? "—"}</td>
@@ -366,7 +372,14 @@ export function BrugerePage() {
           onDelete={
             editing.id !== user.id
               ? () => {
-                  adminDeleteUser(editing.id);
+                  const result = adminDeleteUser(editing.id);
+                  if (!result.ok) {
+                    setImportMessage(null);
+                    setImportErrors([
+                      { rowNumber: 0, message: result.error },
+                    ]);
+                    return;
+                  }
                   reload();
                   setEditing(null);
                 }

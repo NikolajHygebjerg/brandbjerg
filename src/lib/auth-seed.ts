@@ -66,9 +66,9 @@ export const SEED_USERS: SeedUser[] = [
     role: "hojskolelaerer",
   },
   {
-    id: "user-rgl",
-    name: "Rita Grøn",
-    email: "rita@brandbjerg.dk",
+    id: "user-hlu",
+    name: "Hanne Lund",
+    email: "hlu@brandbjerg.dk",
     role: "rengoringsleder",
   },
   {

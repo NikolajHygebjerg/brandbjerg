@@ -195,7 +195,7 @@ export function AuthPage() {
             Kursist-demo: deltager0@example.dk · Adgangskode {SEED_PASSWORD}
           </p>
           <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-950">
-            Rengøringsleder: rita@brandbjerg.dk · Superadmin: nh@brandbjerg.dk ·
+            Rengøringsleder: hlu@brandbjerg.dk · Superadmin: nh@brandbjerg.dk ·
             Adgangskode {SEED_PASSWORD}
           </p>
         </Card>

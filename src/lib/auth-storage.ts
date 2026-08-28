@@ -8,6 +8,7 @@ import { SEED_PASSWORD, SEED_USERS, normalizeStoredRole } from "./auth-seed";
 
 const USERS_KEY = "brandbjerg-auth-users";
 const SESSION_KEY = "brandbjerg-auth-session";
+const DISABLED_SEEDS_KEY = "brandbjerg-auth-disabled-seed-ids";
 export const AUTH_UPDATED_EVENT = "brandbjerg-auth-updated";
 
 interface StoredUserRecord {
@@ -46,13 +47,46 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function normalizePassword(password: string): string {
+  return password.trim();
+}
+
+function loadDisabledSeedIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(DISABLED_SEEDS_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDisabledSeedIds(ids: Set<string>): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DISABLED_SEEDS_KEY, JSON.stringify([...ids]));
+}
+
+export function isSeedUser(userId: string): boolean {
+  return SEED_USERS.some((seed) => seed.id === userId);
+}
+
+export function disableSeedUser(userId: string): void {
+  if (!isSeedUser(userId)) return;
+  const ids = loadDisabledSeedIds();
+  ids.add(userId);
+  saveDisabledSeedIds(ids);
+}
+
 /** Opret/opdater foruddefinerede Brandbjerg-brugere */
 export function ensureSeedUsers(): void {
   if (typeof window === "undefined") return;
   const users = loadUsers();
+  const disabledSeedIds = loadDisabledSeedIds();
   let changed = false;
 
   for (const seed of SEED_USERS) {
+    if (disabledSeedIds.has(seed.id)) continue;
     const email = normalizeEmail(seed.email);
 
     // Flyt seed-bruger tilbage til korrekt e-mail hvis den er ændret i profilen
@@ -136,7 +170,7 @@ function createUserRecord(input: {
 }): { ok: true; user: User } | { ok: false; error: string } {
   const email = normalizeEmail(input.email);
   const name = input.name.trim();
-  const password = input.password;
+  const password = normalizePassword(input.password);
 
   if (!email || !password || !name) {
     return { ok: false, error: "Udfyld navn, e-mail og adgangskode." };
@@ -260,7 +294,7 @@ export function loginUser(
   ensureSeedUsers();
   const normalized = normalizeEmail(email);
   const record = loadUsers()[normalized];
-  if (!record || record.password !== password) {
+  if (!record || record.password !== normalizePassword(password)) {
     return { ok: false, error: "Forkert e-mail eller adgangskode." };
   }
   setSessionUserId(record.user.id);
@@ -338,7 +372,7 @@ export function updateUser(
     return { ok: false, error: "E-mailen er allerede i brug." };
   }
 
-  if (patch.password && patch.password.length < 6) {
+  if (patch.password && normalizePassword(patch.password).length < 6) {
     return { ok: false, error: "Adgangskoden skal være mindst 6 tegn." };
   }
 
@@ -352,7 +386,9 @@ export function updateUser(
 
   const updatedRecord: StoredUserRecord = {
     user: updatedUser,
-    password: patch.password ?? record.password,
+    password: patch.password
+      ? normalizePassword(patch.password)
+      : record.password,
   };
 
   delete users[currentEmail];
@@ -376,6 +412,10 @@ export function adminDeleteUser(
 
   if (!emailToDelete) {
     return { ok: false, error: "Bruger ikke fundet." };
+  }
+
+  if (isSeedUser(userId)) {
+    disableSeedUser(userId);
   }
 
   delete users[emailToDelete];
