@@ -27,6 +27,7 @@ import {
   QUESTIONS_UPDATED_EVENT,
 } from "@/lib/module-questions-storage";
 import { countPedelLokaler } from "@/lib/pedel-utils";
+import { PedelEvaluationHistory } from "@/components/mockup/pedel-evaluation-history";
 import {
   getBudgetAntal,
   getRealiseretAntal,
@@ -180,6 +181,8 @@ export function PedelList() {
           </tbody>
         </CourseListTable>
       </Card>
+
+      <PedelEvaluationHistory />
     </div>
   );
 }

@@ -1,24 +1,41 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AskQuestionButton } from "@/components/mockup/module-questions";
+import { PedelEvaluationDialog } from "@/components/mockup/pedel-evaluation-dialog";
+import { PedelSetupPhotoPanel } from "@/components/mockup/pedel-setup-photo-panel";
 import { formatDate } from "@/lib/mock-data";
+import {
+  getBudgetAntal,
+  getRealiseretAntal,
+} from "@/lib/course-enrollment-counts";
+import {
+  buildEntryContextLines,
+  findPedelEvaluation,
+  hasPedelEvaluation,
+  PEDEL_EVALUATION_UPDATED_EVENT,
+  savePedelEvaluation,
+} from "@/lib/pedel-evaluation-storage";
 import {
   formatLokaleFlags,
   type PedelDayRoom,
   type PedelLokaleRow,
 } from "@/lib/pedel-utils";
+import { cn } from "@/lib/utils";
 
 type LokaleSetupDialogProps = {
   room: PedelDayRoom;
   courseId: string;
+  courseTitle: string;
   onClose: () => void;
 };
 
 export function LokaleSetupDialog({
   room,
   courseId,
+  courseTitle,
   onClose,
 }: LokaleSetupDialogProps) {
   return (
@@ -49,11 +66,19 @@ export function LokaleSetupDialog({
         </div>
 
         <div className="space-y-4 px-5 py-4">
+          <PedelSetupPhotoPanel
+            courseId={courseId}
+            courseTitle={courseTitle}
+            room={room}
+          />
+
           {room.entries.map((entry, index) => (
             <SetupBlock
               key={entry.moduleId}
               entry={entry}
+              room={room}
               courseId={courseId}
+              courseTitle={courseTitle}
               showDivider={index > 0}
             />
           ))}
@@ -71,13 +96,46 @@ export function LokaleSetupDialog({
 
 function SetupBlock({
   entry,
+  room,
   courseId,
+  courseTitle,
   showDivider,
 }: {
   entry: PedelLokaleRow;
+  room: PedelDayRoom;
   courseId: string;
+  courseTitle: string;
   showDivider: boolean;
 }) {
+  const [evalOpen, setEvalOpen] = useState(false);
+  const [evalTick, setEvalTick] = useState(0);
+
+  useEffect(() => {
+    function refresh() {
+      setEvalTick((t) => t + 1);
+    }
+    window.addEventListener(PEDEL_EVALUATION_UPDATED_EVENT, refresh);
+    return () =>
+      window.removeEventListener(PEDEL_EVALUATION_UPDATED_EVENT, refresh);
+  }, []);
+
+  const hasEva = useMemo(
+    () => hasPedelEvaluation("entry", courseId, room.dayDate, room.lokale, entry.moduleId),
+    [courseId, room.dayDate, room.lokale, entry.moduleId, evalTick],
+  );
+
+  const existingEval = useMemo(
+    () =>
+      findPedelEvaluation(
+        "entry",
+        courseId,
+        room.dayDate,
+        room.lokale,
+        entry.moduleId,
+      ),
+    [courseId, room.dayDate, room.lokale, entry.moduleId, evalTick],
+  );
+
   const spec = entry.spec;
   const flags = formatLokaleFlags(spec);
 
@@ -86,15 +144,49 @@ function SetupBlock({
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-slate-800">
           Kl. {entry.tidFra}–{entry.tidTil}
+          {entry.overskrift ? ` · ${entry.overskrift}` : ""}
         </p>
-        <AskQuestionButton
-          courseId={courseId}
-          moduleId={entry.moduleId}
-          department="pedel"
-          moduleLabel={entry.spec.lokale}
-          compact
-        />
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="secondary"
+            className={cn("h-7 px-2 text-xs", hasEva && "ring-1 ring-emerald-400")}
+            onClick={() => setEvalOpen(true)}
+          >
+            Eva
+          </Button>
+          <AskQuestionButton
+            courseId={courseId}
+            moduleId={entry.moduleId}
+            department="pedel"
+            moduleLabel={entry.spec.lokale}
+            compact
+          />
+        </div>
       </div>
+
+      <PedelEvaluationDialog
+        open={evalOpen}
+        title={`Eva — ${room.lokale}`}
+        subtitle={`${entry.tidFra}–${entry.tidTil} · ${room.dayLabel}`}
+        initialText={existingEval?.text ?? ""}
+        contextLines={buildEntryContextLines(entry)}
+        onClose={() => setEvalOpen(false)}
+        onSave={(text) => {
+          savePedelEvaluation({
+            kind: "entry",
+            courseId,
+            courseTitle,
+            text,
+            date: room.dayDate,
+            dayLabel: room.dayLabel,
+            lokale: room.lokale,
+            moduleId: entry.moduleId,
+            entry,
+            room,
+          });
+        }}
+      />
 
       <dl className="mt-3 grid gap-2 text-sm">
         <SpecRow label="Antal personer" value={spec.antalPersoner || "—"} />

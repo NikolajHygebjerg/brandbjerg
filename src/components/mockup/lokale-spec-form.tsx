@@ -6,6 +6,7 @@ import {
   ugedage,
 } from "@/lib/lokale-spec-options";
 import type { LokaleSpecifikation } from "@/lib/mock-data";
+import { LokaleSetupReferencePhotos } from "@/components/mockup/lokale-setup-reference-photos";
 
 type LokaleSpecFormProps = {
   spec: LokaleSpecifikation;
@@ -42,6 +43,13 @@ export function LokaleSpecForm({
         onChange={(v) => onChange({ bordopstilling: v })}
         options={bordopstillinger.map((b) => ({ value: b, label: b }))}
       />
+
+      {spec.lokale.trim() && (
+        <div className="sm:col-span-2">
+          <LokaleSetupReferencePhotos spec={spec} />
+        </div>
+      )}
+
       <label className="flex items-center gap-2 text-sm sm:col-span-2">
         <input
           type="checkbox"
