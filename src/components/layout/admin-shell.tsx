@@ -7,6 +7,7 @@ import {
   Briefcase,
   Building2,
   CalendarDays,
+  CalendarClock,
   ChevronDown,
   ClipboardCheck,
   ClipboardList,
@@ -155,6 +156,13 @@ const nav: NavEntry[] = [
     label: "Kommunikation",
     icon: Megaphone,
     roles: ["admin"],
+  },
+  {
+    type: "link",
+    href: "/vagtplanlaegning",
+    label: "Vagtplanlægning",
+    icon: CalendarClock,
+    roles: ["admin", "koekkenleder", "rengoringsleder"],
   },
   {
     type: "link",
