@@ -23,6 +23,7 @@ type KursuslederModuleDetailDialogProps = {
   day: CourseDay;
   module: CourseModule;
   onClose: () => void;
+  hideInterneNoter?: boolean;
 };
 
 export function KursuslederModuleDetailDialog({
@@ -31,6 +32,7 @@ export function KursuslederModuleDetailDialog({
   day,
   module: mod,
   onClose,
+  hideInterneNoter = false,
 }: KursuslederModuleDetailDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -237,7 +239,7 @@ export function KursuslederModuleDetailDialog({
             </section>
           )}
 
-          {mod.interneNoter.trim() && (
+          {!hideInterneNoter && mod.interneNoter.trim() && (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 Interne noter

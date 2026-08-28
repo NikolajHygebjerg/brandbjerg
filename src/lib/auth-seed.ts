@@ -53,6 +53,12 @@ export const SEED_USERS: SeedUser[] = [
     email: "jw@brandbjerg.dk",
     role: "kontor",
   },
+  {
+    id: "user-kursist-demo",
+    name: "Mette Hansen",
+    email: "deltager0@example.dk",
+    role: "kursist",
+  },
 ];
 
 /** Initialer → seed-bruger (kursusleder fra statusark) */

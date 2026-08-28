@@ -65,6 +65,9 @@ export default function HomePage() {
             Log ind
             <ArrowRight className="h-4 w-4" />
           </Button>
+          <Button href="/kursist" variant="outline" className="border-white/30 text-white hover:bg-white/10">
+            Min kursus (kursist)
+          </Button>
           <Button href="/overblik" variant="outline" className="border-white/30 text-white hover:bg-white/10">
             Ledelsesoverblik
           </Button>

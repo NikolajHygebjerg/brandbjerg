@@ -28,3 +28,7 @@ export function isBrandbjergEmail(email: string): boolean {
 export function canAccessStaffPages(role: UserRole): boolean {
   return isStaffRole(role);
 }
+
+export function canAccessKursistPages(role: UserRole): boolean {
+  return role === "kursist";
+}

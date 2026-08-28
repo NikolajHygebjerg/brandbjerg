@@ -11,9 +11,11 @@ import {
   isBrandbjergEmail,
   isStaffRole,
   userRoleLabels,
+  canAccessKursistPages,
   type UserRole,
 } from "@/lib/auth-types";
 import { canAccessStaffPages } from "@/lib/auth-storage";
+import { SEED_PASSWORD } from "@/lib/auth-seed";
 
 type Mode = "login" | "register";
 
@@ -31,7 +33,11 @@ export function AuthPage() {
   useEffect(() => {
     if (!hydrated || !user) return;
     router.replace(
-      canAccessStaffPages(user.role) ? "/planlaegning/statusark" : "/ingen-adgang",
+      canAccessStaffPages(user.role)
+        ? "/planlaegning/statusark"
+        : canAccessKursistPages(user.role)
+          ? "/kursist"
+          : "/ingen-adgang",
     );
   }, [hydrated, user, router]);
 
@@ -69,7 +75,11 @@ export function AuthPage() {
     }
 
     router.push(
-      canAccessStaffPages(result.user.role) ? "/planlaegning/statusark" : "/ingen-adgang",
+      canAccessStaffPages(result.user.role)
+        ? "/planlaegning/statusark"
+        : canAccessKursistPages(result.user.role)
+          ? "/kursist"
+          : "/ingen-adgang",
     );
   }
 
@@ -140,9 +150,9 @@ export function AuthPage() {
                     </p>
                   )}
                   {role === "kursist" && (
-                    <p className="mt-1 text-xs text-amber-700">
-                      Kursister har ikke adgang til platformens sider i denne
-                      version
+                    <p className="mt-1 text-xs text-teal-700">
+                      Kursister får adgang til Min kursus-appen med program og
+                      Eva-evalueringer
                     </p>
                   )}
                 </AuthField>
@@ -198,6 +208,10 @@ export function AuthPage() {
               ← Tilbage til forsiden
             </Link>
           </CardDescription>
+
+          <p className="mt-4 rounded-lg bg-teal-50 px-3 py-2 text-center text-xs text-teal-900">
+            Kursist-demo: deltager0@example.dk · Adgangskode {SEED_PASSWORD}
+          </p>
         </Card>
       </div>
     </div>
