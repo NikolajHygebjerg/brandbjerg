@@ -5,7 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
-import { isRengoringsassistent } from "@/lib/auth-permissions";
+import { canAccessRengoringAdmin, isRengoringsassistent } from "@/lib/auth-permissions";
 import { cn } from "@/lib/utils";
 import {
   todayIso,
@@ -37,8 +37,10 @@ import {
   RENGORING_TASKS_UPDATED_EVENT,
   updateRengoringTask,
 } from "@/lib/rengoring-task-storage";
+import { RengoringDelegationTab } from "@/components/mockup/rengoring-delegation-tab";
 
 type Tab = "vaerelser" | "lokaler";
+type MainTab = "oversigt" | "uddelegering";
 type VaerelseFilter = "all" | "klar" | "needs_cleaning";
 
 function buildMonthGrid(year: number, month: number): (string | null)[][] {
@@ -181,7 +183,18 @@ function RengoringAssistantView({
 }
 
 function RengoringLeaderView({ today }: { today: string }) {
+  const { user } = useAuth();
+  const showDelegation = user && canAccessRengoringAdmin(user.role);
+  const [mainTab, setMainTab] = useState<MainTab>("oversigt");
   const [selectedDate, setSelectedDate] = useState(today);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "uddelegering" && user && canAccessRengoringAdmin(user.role)) {
+      setMainTab("uddelegering");
+    }
+  }, [user]);
   const [activeTab, setActiveTab] = useState<Tab>("vaerelser");
   const [vaerelseFilter, setVaerelseFilter] = useState<VaerelseFilter>("all");
   const [tick, setTick] = useState(0);
@@ -287,6 +300,27 @@ function RengoringLeaderView({ today }: { today: string }) {
         </p>
       </div>
 
+      {showDelegation && (
+        <div className="flex gap-1 rounded-lg border border-emerald-200 bg-emerald-50/50 p-1">
+          <TabButton
+            active={mainTab === "oversigt"}
+            onClick={() => setMainTab("oversigt")}
+          >
+            Oversigt
+          </TabButton>
+          <TabButton
+            active={mainTab === "uddelegering"}
+            onClick={() => setMainTab("uddelegering")}
+          >
+            Uddelegering
+          </TabButton>
+        </div>
+      )}
+
+      {mainTab === "uddelegering" && showDelegation ? (
+        <RengoringDelegationTab today={today} />
+      ) : (
+        <>
       <Card className="border-emerald-200 bg-emerald-50/60">
         <CardTitle className="text-base text-emerald-900">
           Dagens opgaver
@@ -392,6 +426,8 @@ function RengoringLeaderView({ today }: { today: string }) {
             reload();
           }}
         />
+      )}
+        </>
       )}
     </div>
   );

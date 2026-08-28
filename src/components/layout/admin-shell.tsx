@@ -130,7 +130,7 @@ const nav: NavEntry[] = [
   },
   {
     type: "link",
-    href: "/rengoring/admin",
+    href: "/rengoring?tab=uddelegering",
     label: "Rengøringsadmin",
     icon: ClipboardList,
     roles: ["admin", "rengoringsleder"],
