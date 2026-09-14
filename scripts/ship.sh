@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Commit, push til GitHub (Vercel) og Cursor-origin — kør efter hver rettelse
+# Commit + push til GitHub (origin) — som normalt git workflow. Vercel følger GitHub main.
 set -euo pipefail
 
 MSG="${1:-Update mockup}"
 
 cd "$(dirname "$0")/.."
 BRANCH="$(git branch --show-current)"
-GITHUB_REPO="${GITHUB_REPOSITORY:-NikolajHygebjerg/brandbjerg}"
+
+bash scripts/setup-git-remotes.sh
+bash scripts/bootstrap-github-auth.sh
 
 if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   git add -A
@@ -16,48 +18,28 @@ else
   echo "✓ Ingen nye ændringer at committe"
 fi
 
-bash scripts/ensure-github-remote.sh
+token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
 
-push_to_github() {
-  local token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-  local ref="refs/heads/${BRANCH}"
-
-  if [ -n "$token" ]; then
-    git push "https://x-access-token:${token}@github.com/${GITHUB_REPO}.git" "${BRANCH}:${ref}"
-    return $?
-  fi
-
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    gh auth setup-git -h github.com 2>/dev/null || true
-    git push github "${BRANCH}"
-    return $?
-  fi
-
-  echo "✗ GitHub-push fejlede: ingen GH_TOKEN/GITHUB_TOKEN og gh er ikke logget ind." >&2
-  echo "  Vercel deployer kun ved push til https://github.com/${GITHUB_REPO}" >&2
-  echo "  Tilføj GH_TOKEN (repo scope) i Cloud Agent environment secrets, eller kør lokalt:" >&2
-  echo "    git push github ${BRANCH}" >&2
-  return 1
-}
-
-push_to_origin() {
-  if git remote get-url origin >/dev/null 2>&1; then
-    if git push -u origin "$BRANCH"; then
-      echo "✓ Pushed til origin/$BRANCH"
-    else
-      echo "⚠ Push til origin fejlede (Cursor-mirror)" >&2
-    fi
-  fi
-}
-
-echo "→ Pusher til GitHub (${GITHUB_REPO})…"
-if push_to_github; then
-  echo "✓ Pushed til github/$BRANCH — Vercel Git-integration deployer typisk inden for få minutter"
+echo "→ Pusher til origin (GitHub ${BRANCH})…"
+if [ -n "$token" ]; then
+  git push "https://x-access-token:${token}@github.com/NikolajHygebjerg/brandbjerg.git" "${BRANCH}:refs/heads/${BRANCH}"
+elif git push -u origin "$BRANCH"; then
+  :
 else
+  echo "✗ Push til GitHub fejlede." >&2
+  echo "  Sæt GH_TOKEN i Cursor Cloud Agents → Secrets, eller start agent fra" >&2
+  echo "  https://github.com/NikolajHygebjerg/brandbjerg med et Environment (repositoryDependencies)." >&2
+  echo "  Lokalt: git push origin ${BRANCH}" >&2
   exit 1
 fi
 
-push_to_origin
+echo "✓ Pushed til GitHub — Vercel deployer ved push til main"
+
+if git remote get-url cursor >/dev/null 2>&1; then
+  if git push cursor "$BRANCH" 2>/dev/null; then
+    echo "✓ Pushed til cursor (mirror)"
+  fi
+fi
 
 if npm run deploy; then
   echo "✓ Deploy færdig (Vercel CLI)"

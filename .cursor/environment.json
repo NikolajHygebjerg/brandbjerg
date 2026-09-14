@@ -1,5 +1,6 @@
 {
   "name": "Brandbjerg mockup",
-  "install": "npm ci && bash scripts/ensure-github-remote.sh",
+  "repositoryDependencies": ["github.com/NikolajHygebjerg/brandbjerg"],
+  "install": "npm ci && bash scripts/setup-git-remotes.sh",
   "start": "npm run dev"
 }

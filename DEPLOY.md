@@ -23,13 +23,14 @@ Cloud Agent kører dette **automatisk efter hver kodeændring** (se `.cursor/rul
 
 ### GitHub-push fra Cloud Agent (vigtigt)
 
-Vercel er koblet til **`NikolajHygebjerg/brandbjerg` på GitHub**, ikke Cursor’s midlertidige `origin`-mirror. `npm run ship` pusher derfor **altid til `github` først**.
+Git **`origin`** peger på **`https://github.com/NikolajHygebjerg/brandbjerg`** (via `scripts/setup-git-remotes.sh`). `npm run ship` committer og kører **`git push origin main`**.
 
 | Krav | Hvorfor |
 |------|---------|
-| Remote `github` | Oprettes automatisk via `scripts/ensure-github-remote.sh` |
-| **`GH_TOKEN`** (eller `GITHUB_TOKEN`) med `repo`-scope | Cloud Agent har som regel ikke `gh auth login` — token bruges til `git push` |
-| Agent kører mod det rigtige repo | «Nyt projekt»-sessions bruger ofte kun Cursor `origin` — så når `GH_TOKEN` mangler, når koden ikke til GitHub/Vercel |
+| **`origin` = GitHub** | Sættes automatisk ved install/ship |
+| **`GH_TOKEN`** (Runtime Secret) *eller* agent startet fra GitHub-repo med Environment | Uden auth kan Cloud Agent ikke pushe til GitHub |
+| **`repositoryDependencies`** i `.cursor/environment.json` | Cursor kan inkludere repo i genereret GitHub-adgang ved Environment-build |
+| Undgå kun «Nyt projekt» / tmp-repo | Brug agent på [brandbjerg](https://github.com/NikolajHygebjerg/brandbjerg) |
 
 **Opsæt token:** Cursor → Cloud Agent → Environment → Secrets → `GH_TOKEN` = GitHub PAT (classic) med `repo`.
 
