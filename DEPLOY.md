@@ -34,12 +34,27 @@ Git **`origin`** peger på **`https://github.com/NikolajHygebjerg/brandbjerg`** 
 
 **Opsæt token:** Cursor → Cloud Agent → Environment → Secrets → `GH_TOKEN` = GitHub PAT (classic) med `repo`.
 
+**Lokal push på Mac/PC** (Cursor «Connected to GitHub» gælder **ikke** terminalens `git`):
+
+GitHub accepterer ikke kodeord i `git push` — du skal bruge **GitHub CLI** eller **SSH**:
+
+```bash
+# Anbefalet (én gang)
+brew install gh          # hvis gh ikke findes
+gh auth login            # vælg GitHub.com → HTTPS → login i browser
+gh auth setup-git
+cd /sti/til/brandbjerg
+git push origin main
+```
+
+Alternativ: [SSH-nøgle til GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) og `git remote set-url origin git@github.com:NikolajHygebjerg/brandbjerg.git`.
+
 **Lokal nød-push** (hvis agent kun har pushet til Cursor):
 
 ```bash
-git remote add github https://github.com/NikolajHygebjerg/brandbjerg.git  # én gang
-git pull origin main   # eller hent fra agent-session
-git push github main
+git remote add origin https://github.com/NikolajHygebjerg/brandbjerg.git  # én gang
+git pull origin main   # eller merge fra agent
+git push origin main   # efter gh auth login
 ```
 
 ### Deploy-strategi (kort)
