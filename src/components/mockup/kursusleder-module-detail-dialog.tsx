@@ -250,13 +250,13 @@ export function KursuslederModuleDetailDialog({
             </div>
           )}
 
-          {mod.ubakBeskrivelse?.trim() && (
+          {(mod.ubakTekst ?? mod.ubakBeskrivelse)?.trim() && (
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                UBAK-beskrivelse
+                UBAK tekst
               </p>
               <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
-                {mod.ubakBeskrivelse}
+                {mod.ubakTekst ?? mod.ubakBeskrivelse}
               </p>
             </div>
           )}

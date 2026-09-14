@@ -4,10 +4,7 @@ import { Fragment } from "react";
 import type { Course } from "@/lib/mock-data";
 import { formatDate } from "@/lib/mock-data";
 import type { KontorParticipant } from "@/lib/kontor-types";
-import {
-  computeUbakBeskrivelseStats,
-  getUbakBeskrivelseRows,
-} from "@/lib/ubak-beskrivelse-utils";
+import { UbakPrintSheet } from "@/components/mockup/ubak-print-sheet";
 import { getPersonById } from "@/lib/person-utils";
 import { getProgramPrintRows, programDayHeading } from "@/lib/program-print-utils";
 import { ProgramPrintSheet } from "@/components/mockup/program-print-sheet";
@@ -32,8 +29,6 @@ export function KursuslederPrintAreas({
   velkomstText = "",
 }: KursuslederPrintAreasProps) {
   const leader = getPersonById(course.courseLeaderId);
-  const ubakRows = getUbakBeskrivelseRows(course);
-  const ubakStats = computeUbakBeskrivelseStats(course);
   const programRows = getProgramPrintRows(course);
 
   const sortLabel =
@@ -104,52 +99,12 @@ export function KursuslederPrintAreas({
       </div>
 
       <div id="kl-print-ubak" className="kl-print-area hidden">
-        <div className="p-8 text-black">
-          <h1 className="text-xl font-bold">UBAK beskrivelse — {course.title}</h1>
-          <p className="text-sm">
-            Kursusleder: {leader?.name ?? "—"} · Uge {courseWeek}
-          </p>
-          {course.kursetsHovedsigte?.trim() && (
-            <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-              {course.kursetsHovedsigte}
-            </p>
-          )}
-          <table className="mt-4 w-full border-collapse text-xs">
-            <thead>
-              <tr className="border-b-2 border-black text-left">
-                <th className="py-1 pr-2">Dag</th>
-                <th className="py-1 pr-2">Beskrivelse</th>
-                <th className="py-1 pr-2 text-right">UBAK</th>
-                <th className="py-1 pr-2">Almen karakter</th>
-                <th className="py-1">Underviser</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ubakRows.map((row, i) => (
-                <tr key={i} className="border-b border-slate-300 align-top">
-                  <td className="py-1 pr-2">{row.dayLabel}</td>
-                  <td className="py-1 pr-2">{row.beskrivelse}</td>
-                  <td className="py-1 pr-2 text-right tabular-nums">
-                    {row.ubakMinutter || "—"}
-                  </td>
-                  <td className="py-1 pr-2">{row.ubakBeskrivelse || "—"}</td>
-                  <td className="py-1">{row.underviser}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-black font-semibold">
-                <td colSpan={2} className="py-2">
-                  I alt
-                </td>
-                <td className="py-2 text-right">{ubakStats.ubakMinutter} min</td>
-                <td colSpan={2} className="py-2">
-                  UBAK: {ubakStats.ubakPct}% af ugens timer
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <UbakPrintSheet
+          course={course}
+          courseWeek={courseWeek}
+          leaderName={leader?.name ?? "—"}
+          className="kl-ubak-print--page p-8"
+        />
       </div>
 
       <div id="kl-print-program-full" className="kl-print-area hidden">

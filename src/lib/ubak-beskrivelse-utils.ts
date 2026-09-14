@@ -3,6 +3,7 @@ import { mergeCoursePlan } from "./course-plan-storage";
 import { moduleDurationMinutes } from "./mock-data";
 import { parseTime } from "./module-plan-utils";
 import { moduleUnderviserLabel } from "./module-display-utils";
+import { moduleUbakTekst } from "./ubak-print-utils";
 
 export interface UbakBeskrivelseRow {
   dayLabel: string;
@@ -10,7 +11,7 @@ export interface UbakBeskrivelseRow {
   tidsrum: string;
   beskrivelse: string;
   ubakMinutter: number;
-  ubakBeskrivelse: string;
+  ubakTekst: string;
   underviser: string;
   tidFra: string;
   tidTil: string;
@@ -45,7 +46,7 @@ function rowFromModule(
     tidsrum: inferDayPeriodLabel(mod.tidFra),
     beskrivelse: mod.overskrift || "—",
     ubakMinutter: mod.timing.ubak,
-    ubakBeskrivelse: mod.ubakBeskrivelse?.trim() ?? "",
+    ubakTekst: moduleUbakTekst(mod),
     underviser: moduleUnderviserLabel(mod) || "—",
     tidFra: mod.tidFra,
     tidTil: mod.tidTil,
@@ -58,7 +59,7 @@ export function getUbakBeskrivelseRows(course: Course): UbakBeskrivelseRow[] {
 
   merged.days.forEach((day, index) => {
     for (const mod of day.modules) {
-      if (mod.erMaltid) continue;
+      if (mod.erMaltid || mod.timing.ubak <= 0) continue;
       rows.push(rowFromModule(day.label, index + 1, mod));
     }
   });

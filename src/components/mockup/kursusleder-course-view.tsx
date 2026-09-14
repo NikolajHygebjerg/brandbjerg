@@ -26,10 +26,7 @@ import {
   getDocumentTemplate,
 } from "@/lib/document-template-storage";
 import { ProgramPrintSheet } from "@/components/mockup/program-print-sheet";
-import {
-  computeUbakBeskrivelseStats,
-  getUbakBeskrivelseRows,
-} from "@/lib/ubak-beskrivelse-utils";
+import { UbakPrintSheet } from "@/components/mockup/ubak-print-sheet";
 import { useAuth } from "@/context/auth-context";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { buildChecklistSummary } from "@/lib/checklist-summary";
@@ -481,7 +478,7 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         open={printUbakOpen}
         onClose={() => setPrintUbakOpen(false)}
         title="Print UBAK"
-        description="UBAK-beskrivelser for kurset"
+        description="Hovedsigte, programtotaler og UBAK-moduler"
         printTarget="kl-print-ubak"
       >
         <UbakPrintPreview course={course} />
@@ -528,19 +525,9 @@ function ProgramPrintPreview({ course }: { course: Course }) {
 }
 
 function UbakPrintPreview({ course }: { course: Course }) {
-  const rows = getUbakBeskrivelseRows(course);
-  const stats = computeUbakBeskrivelseStats(course);
   return (
-    <div className="text-xs">
-      <p className="font-semibold">{course.title}</p>
-      <p className="text-slate-600">UBAK i alt: {stats.ubakMinutter} min</p>
-      <ul className="mt-2 max-h-48 space-y-1 overflow-auto">
-        {rows.slice(0, 8).map((row, i) => (
-          <li key={i}>
-            {row.dayLabel}: {row.beskrivelse} ({row.ubakMinutter || 0} min)
-          </li>
-        ))}
-      </ul>
+    <div className="max-h-[min(70vh,520px)] overflow-auto rounded border border-slate-200 bg-white p-2">
+      <UbakPrintSheet course={course} className="kl-ubak-print--preview text-[8pt]" />
     </div>
   );
 }

@@ -95,8 +95,10 @@ export interface CourseModule {
   lokaleSpec?: LokaleSpecifikation;
   /** Modul har egen lokalespec — ellers arves kursus-standard */
   lokaleSpecManuallySet?: boolean;
-  /** Beskrivelse af undervisningens almene karakter (UBAK-ark) */
+  /** Beskrivelse af undervisningens almene karakter (UBAK-ark) — legacy */
   ubakBeskrivelse?: string;
+  /** UBAK tekst pr. modul (under UBAK-minutter i modulplan) */
+  ubakTekst?: string;
   /** Tilknyttet kontrakt (foredragsholder) */
   contractId?: string;
   klar: boolean;

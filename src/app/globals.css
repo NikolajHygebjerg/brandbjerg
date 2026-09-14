@@ -115,6 +115,55 @@ body {
   background: #fff;
 }
 
+.kl-ubak-print-title {
+  margin: 0;
+  font-size: 14pt;
+  font-weight: 700;
+}
+
+.kl-ubak-print-section {
+  margin-top: 5mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.kl-ubak-print-section-title {
+  margin: 0 0 2mm;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+.kl-ubak-print-hovedsigte {
+  margin: 0;
+  padding: 3mm;
+  border: 1px solid #d4a574;
+  background: #fffbeb;
+  font-size: 9.5pt;
+  line-height: 1.4;
+}
+
+.kl-ubak-print-day-heading {
+  margin: 0 0 1.5mm;
+  font-size: 9.5pt;
+  font-weight: 700;
+}
+
+.kl-ubak-print-module {
+  margin-bottom: 3mm;
+  padding-bottom: 2mm;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.kl-ubak-print-module:last-child {
+  border-bottom: none;
+}
+
+.kl-ubak-print--page {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.35;
+}
+
 @media print {
   body * {
     visibility: hidden;
