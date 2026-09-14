@@ -415,7 +415,7 @@ export function PedelWeekView({
       room.lokale,
     );
     return {
-      title: `Eva — ${room.lokale}`,
+      title: `Evaluér — ${room.lokale}`,
       subtitle: `${room.courseTitle} · ${room.dayLabel} · ${formatDate(room.dayDate)}`,
       initialText: existing?.text ?? "",
       contextLines: buildRoomContextLines(room),
@@ -848,7 +848,7 @@ function RoomTile({
             )}
             onClick={onOpenEval}
           >
-            Eva
+            Evaluér
           </Button>
         </div>
       </div>

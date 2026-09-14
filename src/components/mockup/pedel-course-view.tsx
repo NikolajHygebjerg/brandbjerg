@@ -164,7 +164,7 @@ export function PedelCourseView({ courseId }: { courseId: string }) {
     const { room } = evalTarget;
     const existing = findPedelEvaluation("room", courseId, room.dayDate, room.lokale);
     return {
-      title: `Eva — ${room.lokale}`,
+      title: `Evaluér — ${room.lokale}`,
       subtitle: `${room.dayLabel} · ${formatDate(room.dayDate)}`,
       initialText: existing?.text ?? "",
       contextLines: buildRoomContextLines(room),
@@ -430,7 +430,7 @@ function RoomTile({
             className={cn("h-7 px-2 text-xs", hasRoomEval && "ring-1 ring-emerald-400")}
             onClick={onOpenEval}
           >
-            Eva
+            Evaluér
           </Button>
         </div>
       </div>

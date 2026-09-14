@@ -70,7 +70,7 @@ export function KursuslederProgramBoard({ course }: { course: Course }) {
         <PedelEvaluationDialog
           open
           accent="blue"
-          title={`Eva — ${mod.overskrift || "Modul"}`}
+          title={`Evaluér — ${mod.overskrift || "Modul"}`}
           subtitle={`${day.label} · ${formatDate(day.date)} · ${mod.tidFra}–${mod.tidTil}`}
           initialText={existing?.text ?? ""}
           contextLines={buildModuleContextLines(day, mod)}
@@ -261,7 +261,7 @@ function ProgramModuleTile({
           className={cn("h-7 px-2 text-xs", hasEva && "ring-1 ring-emerald-400")}
           onClick={onOpenEval}
         >
-          Eva
+          Evaluér
         </Button>
       </div>
     </div>

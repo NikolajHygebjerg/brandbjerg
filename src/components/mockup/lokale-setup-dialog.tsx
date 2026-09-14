@@ -153,7 +153,7 @@ function SetupBlock({
             className={cn("h-7 px-2 text-xs", hasEva && "ring-1 ring-emerald-400")}
             onClick={() => setEvalOpen(true)}
           >
-            Eva
+            Evaluér
           </Button>
           <AskQuestionButton
             courseId={courseId}
@@ -167,7 +167,7 @@ function SetupBlock({
 
       <PedelEvaluationDialog
         open={evalOpen}
-        title={`Eva — ${room.lokale}`}
+        title={`Evaluér — ${room.lokale}`}
         subtitle={`${entry.tidFra}–${entry.tidTil} · ${room.dayLabel}`}
         initialText={existingEval?.text ?? ""}
         contextLines={buildEntryContextLines(entry)}

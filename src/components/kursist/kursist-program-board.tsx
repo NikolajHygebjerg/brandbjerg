@@ -220,7 +220,7 @@ function ProgramModuleTile({
           className={cn("h-7 px-2 text-xs", hasEva && "ring-1 ring-emerald-400")}
           onClick={onOpenEva}
         >
-          Eva
+          Evaluér
         </Button>
       </div>
     </div>

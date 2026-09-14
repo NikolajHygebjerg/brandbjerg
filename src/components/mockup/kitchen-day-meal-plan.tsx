@@ -154,7 +154,7 @@ function KitchenMealSlotEditor({
             )}
             onClick={() => setEvalOpen(true)}
           >
-            Eva
+            Evaluér
           </Button>
           {canRemove && onRemove && (
             <button
@@ -171,7 +171,7 @@ function KitchenMealSlotEditor({
 
       <KitchenEvaluationDialog
         open={evalOpen}
-        title={`Eva — ${slot.label}`}
+        title={`Evaluér — ${slot.label}`}
         subtitle={`${dayName} · ${date}`}
         initialText={existingEval?.text ?? ""}
         contextLines={[
