@@ -23,6 +23,7 @@ type KursuslederPrintAreasProps = {
   courseWeek: number;
   participants: KontorParticipant[];
   participantSort: ParticipantSortMode;
+  velkomstText?: string;
 };
 
 export function KursuslederPrintAreas({
@@ -30,6 +31,7 @@ export function KursuslederPrintAreas({
   courseWeek,
   participants,
   participantSort,
+  velkomstText = "",
 }: KursuslederPrintAreasProps) {
   const leader = getPersonById(course.courseLeaderId);
   const ubakRows = getUbakBeskrivelseRows(course);
@@ -45,6 +47,19 @@ export function KursuslederPrintAreas({
 
   return (
     <>
+      <div id="kl-print-velkomst" className="kl-print-area hidden">
+        <div className="p-8 text-black">
+          <h1 className="text-xl font-bold">Velkomst — {course.title}</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {formatDate(course.startDate)} – {formatDate(course.endDate)} · Uge{" "}
+            {courseWeek}
+          </p>
+          <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed">
+            {velkomstText.trim() || "—"}
+          </div>
+        </div>
+      </div>
+
       <div id="kl-print-participants" className="kl-print-area hidden">
         <div className="p-8 text-black">
           <h1 className="text-xl font-bold">{course.title}</h1>

@@ -48,7 +48,9 @@ body {
   body[data-print-target="kl-print-program-full"] #kl-print-program-full,
   body[data-print-target="kl-print-program-full"] #kl-print-program-full *,
   body[data-print-target="kl-print-program-a4"] #kl-print-program-a4,
-  body[data-print-target="kl-print-program-a4"] #kl-print-program-a4 * {
+  body[data-print-target="kl-print-program-a4"] #kl-print-program-a4 *,
+  body[data-print-target="kl-print-velkomst"] #kl-print-velkomst,
+  body[data-print-target="kl-print-velkomst"] #kl-print-velkomst * {
     visibility: visible;
   }
 

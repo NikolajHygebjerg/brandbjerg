@@ -502,6 +502,11 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         courseWeek={courseWeek}
         participants={sortedParticipants}
         participantSort={sortMode}
+        velkomstText={
+          velkomstDraft ||
+          course.checklist.afviklingVelkomstDraft ||
+          ""
+        }
       />
     </div>
   );

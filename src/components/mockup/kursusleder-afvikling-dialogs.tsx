@@ -18,6 +18,7 @@ function DialogShell({
   onClose,
   onPrint,
   printLabel = "Send til skolens printer",
+  footerExtra,
 }: {
   title: string;
   description?: string;
@@ -25,6 +26,7 @@ function DialogShell({
   onClose: () => void;
   onPrint?: () => void;
   printLabel?: string;
+  footerExtra?: React.ReactNode;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
@@ -46,6 +48,7 @@ function DialogShell({
           <Button type="button" variant="secondary" onClick={onClose}>
             Luk
           </Button>
+          {footerExtra}
           {onPrint && (
             <Button type="button" className="gap-2" onClick={onPrint}>
               <Printer className="h-4 w-4" />
@@ -85,6 +88,13 @@ export function KursuslederVelkomstDialog({
       title="Velkomst"
       description="Forslag fra skabelon (KK) — gemmes kun på dette kursus"
       onClose={onClose}
+      onPrint={() => triggerKursuslederPrint("kl-print-velkomst")}
+      printLabel="Print"
+      footerExtra={
+        <Button type="button" onClick={onSave}>
+          Gem på kursus
+        </Button>
+      }
     >
       <p className="mb-3 text-xs text-slate-500">
         Master-skabelon redigeres under{" "}
@@ -110,11 +120,6 @@ export function KursuslederVelkomstDialog({
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm leading-relaxed"
         placeholder={suggested}
       />
-      <div className="mt-3 flex justify-end">
-        <Button type="button" onClick={onSave}>
-          Gem på kursus
-        </Button>
-      </div>
     </DialogShell>
   );
 }
