@@ -4,12 +4,18 @@ import Link from "next/link";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
-import { triggerKursuslederPrint } from "@/components/mockup/kursusleder-print-trigger";
+import {
+  triggerKursuslederPrint,
+  triggerPdfPrint,
+} from "@/components/mockup/kursusleder-print-trigger";
 import {
   applyDocumentPlaceholders,
   getDocumentTemplate,
 } from "@/lib/document-template-storage";
 import type { Course } from "@/lib/mock-data";
+
+const DRIKKEVARERSEDdel_MASTER_PDF =
+  "/documents/drikkevarerseddel-master.pdf";
 
 function DialogShell({
   title,
@@ -161,63 +167,27 @@ export function KursuslederPrintPreviewDialog({
 export function DrikkevarerPrintDialog({
   open,
   onClose,
-  course,
-  courseNote,
-  onCourseNoteChange,
-  onSaveNote,
 }: {
   open: boolean;
   onClose: () => void;
-  course: Course;
-  courseNote: string;
-  onCourseNoteChange: (v: string) => void;
-  onSaveNote: () => void;
 }) {
   if (!open) return null;
-
-  const template = getDocumentTemplate("drikkevarerseddel");
-  const body = applyDocumentPlaceholders(template.body, {
-    kursusTitel: course.title,
-  });
 
   return (
     <DialogShell
       title="Print drikkevarerseddel"
-      description="Master som Drikkevarerseddel — NY Master.pdf"
+      description="Forhåndsvisning af master-PDF"
       onClose={onClose}
       onPrint={() => {
-        window.open("/documents/drikkevarerseddel-master.pdf", "_blank");
+        triggerPdfPrint(DRIKKEVARERSEDdel_MASTER_PDF);
+        onClose();
       }}
-      printLabel="Åbn PDF til print"
+      printLabel="Print"
     >
-      <p className="mb-2 text-xs text-slate-500">
-        Rediger master under{" "}
-        <Link href="/skabeloner" className="text-teal-700 underline">
-          Skabeloner
-        </Link>
-        .
-      </p>
-      <pre className="mb-4 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-800">
-        {body}
-      </pre>
-      <label className="block text-xs font-medium text-slate-600">
-        Kursusnote (valgfri — printes sammen med sedlen)
-      </label>
-      <textarea
-        value={courseNote}
-        onChange={(e) => onCourseNoteChange(e.target.value)}
-        rows={3}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-      />
-      <div className="mt-2 flex justify-end">
-        <Button type="button" variant="secondary" onClick={onSaveNote}>
-          Gem kursusnote
-        </Button>
-      </div>
       <iframe
         title="Drikkevarerseddel PDF"
-        src="/documents/drikkevarerseddel-master.pdf"
-        className="mt-4 h-64 w-full rounded border border-slate-200"
+        src={DRIKKEVARERSEDdel_MASTER_PDF}
+        className="h-[min(60vh,480px)] w-full rounded border border-slate-200"
       />
     </DialogShell>
   );

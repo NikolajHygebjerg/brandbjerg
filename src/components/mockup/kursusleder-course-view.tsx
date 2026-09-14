@@ -69,7 +69,6 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
   const [velkomstOpen, setVelkomstOpen] = useState(false);
   const [velkomstDraft, setVelkomstDraft] = useState("");
   const [drikkevareOpen, setDrikkevareOpen] = useState(false);
-  const [drikkevareNote, setDrikkevareNote] = useState("");
   const [printBadgesOpen, setPrintBadgesOpen] = useState(false);
   const [printProgramOpen, setPrintProgramOpen] = useState(false);
   const [printUbakOpen, setPrintUbakOpen] = useState(false);
@@ -336,10 +335,7 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
           <Button
             variant="secondary"
             className="justify-start"
-            onClick={() => {
-              setDrikkevareNote(course.checklist.drikkevarerseddelCourseNote ?? "");
-              setDrikkevareOpen(true);
-            }}
+            onClick={() => setDrikkevareOpen(true)}
           >
             Print drikkevarerseddel
           </Button>
@@ -443,12 +439,6 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
       <DrikkevarerPrintDialog
         open={drikkevareOpen}
         onClose={() => setDrikkevareOpen(false)}
-        course={course}
-        courseNote={drikkevareNote}
-        onCourseNoteChange={setDrikkevareNote}
-        onSaveNote={() =>
-          updateChecklist({ drikkevarerseddelCourseNote: drikkevareNote })
-        }
       />
 
       <KursuslederPrintPreviewDialog
