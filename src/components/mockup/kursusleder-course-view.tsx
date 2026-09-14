@@ -245,10 +245,24 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
             )}
           </CardTitle>
           {!checklist?.allDone && checklist && (
-            <p className="mt-2 text-xs text-amber-900">
-              Mangler: {checklist.missingLabels.slice(0, 3).join(", ")}
-              {checklist.missingLabels.length > 3 ? "…" : ""}
-            </p>
+            <>
+              <p className="mt-2 text-xs text-amber-900">
+                Mangler: {checklist.missingLabels.slice(0, 3).join(", ")}
+                {checklist.missingLabels.length > 3 ? "…" : ""}
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-3 w-full text-sm"
+                onClick={() => {
+                  document
+                    .getElementById("kursus-checkliste-liste")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                Gå til liste
+              </Button>
+            </>
           )}
         </Card>
 
