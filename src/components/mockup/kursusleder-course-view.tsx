@@ -374,6 +374,7 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
       <KursuslederEvaluationHistory courseId={courseId} />
 
       {checklist && (
+        <div id="kursus-checkliste-liste" className="scroll-mt-6">
         <Card>
           <CardTitle className="text-base">Checkliste — status</CardTitle>
           <ul className="mt-4 space-y-2">
@@ -405,6 +406,7 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
             ))}
           </ul>
         </Card>
+        </div>
       )}
 
       <WorkshopsOverviewPanel
