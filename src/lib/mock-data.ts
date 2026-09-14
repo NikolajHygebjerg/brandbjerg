@@ -117,6 +117,10 @@ export interface CourseChecklist {
   pedelPlanSent: boolean;
   welcomeLetterSent: boolean;
   welcomeLetterDraft: string;
+  /** Velkomst/tale ved afvikling — gemmes kun på kursus (skabelon fra KK) */
+  afviklingVelkomstDraft?: string;
+  /** Valgfri kursusnote på drikkevarerseddel ved print */
+  drikkevarerseddelCourseNote?: string;
 }
 
 export interface CourseDay {

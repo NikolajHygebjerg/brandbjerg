@@ -10,6 +10,7 @@ import {
   isTemplateCustomized,
   listTemplates,
 } from "@/lib/template-storage";
+import { DocumentTemplatesSection } from "@/components/mockup/document-templates-section";
 import { countTemplateModules } from "@/lib/template-utils";
 
 export function TemplateList() {
@@ -34,6 +35,8 @@ export function TemplateList() {
           vælges på et kursus.
         </p>
       </div>
+
+      <DocumentTemplatesSection />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {templates.map((template) => {

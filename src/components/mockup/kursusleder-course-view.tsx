@@ -7,21 +7,29 @@ import {
   AlertCircle,
   CheckCircle2,
   GraduationCap,
-  Mail,
-  Printer,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { KursuslederEvaluationHistory } from "@/components/mockup/kursusleder-evaluation-history";
-import { KursuslederPrintAreas } from "@/components/mockup/kursusleder-print-areas";
 import {
-  KursuslederCourseEvalButton,
-  KursuslederProgramBoard,
-} from "@/components/mockup/kursusleder-program-board";
-import { triggerKursuslederPrint } from "@/components/mockup/kursusleder-print-trigger";
-import { WelcomeLetterPanel } from "@/components/mockup/welcome-letter-panel";
+  DrikkevarerPrintDialog,
+  KursuslederPrintPreviewDialog,
+  KursuslederVelkomstDialog,
+} from "@/components/mockup/kursusleder-afvikling-dialogs";
+import { KursuslederEvaluationHistory } from "@/components/mockup/kursusleder-evaluation-history";
+import { KursuslederParticipantsDialog } from "@/components/mockup/kursusleder-participants-dialog";
+import { KursuslederPrintAreas } from "@/components/mockup/kursusleder-print-areas";
+import { KursuslederProgramBoard } from "@/components/mockup/kursusleder-program-board";
 import { WorkshopsOverviewPanel } from "@/components/mockup/workshops-overview-panel";
+import {
+  applyDocumentPlaceholders,
+  getDocumentTemplate,
+} from "@/lib/document-template-storage";
+import { getProgramPrintRows } from "@/lib/program-print-utils";
+import {
+  computeUbakBeskrivelseStats,
+  getUbakBeskrivelseRows,
+} from "@/lib/ubak-beskrivelse-utils";
 import { useAuth } from "@/context/auth-context";
 import { getStatusarkCourse } from "@/lib/brandbjerg-status";
 import { buildChecklistSummary } from "@/lib/checklist-summary";
@@ -44,6 +52,7 @@ import { netEnrolled } from "@/lib/statusark-utils";
 import {
   buildMailtoLink,
   getUserRolesOnCourse,
+  participantCity,
   sortParticipants,
   type ParticipantSortMode,
 } from "@/lib/kursusleder-utils";
@@ -56,7 +65,14 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
   const [missing, setMissing] = useState(false);
   const [sortMode, setSortMode] = useState<ParticipantSortMode>("efternavn");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showParticipants, setShowParticipants] = useState(false);
+  const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
+  const [velkomstOpen, setVelkomstOpen] = useState(false);
+  const [velkomstDraft, setVelkomstDraft] = useState("");
+  const [drikkevareOpen, setDrikkevareOpen] = useState(false);
+  const [drikkevareNote, setDrikkevareNote] = useState("");
+  const [printBadgesOpen, setPrintBadgesOpen] = useState(false);
+  const [printProgramOpen, setPrintProgramOpen] = useState(false);
+  const [printUbakOpen, setPrintUbakOpen] = useState(false);
   const [tick, setTick] = useState(0);
 
   const statusark = getStatusarkCourse(courseId);
@@ -191,7 +207,6 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
               </span>
             ))}
           </div>
-          <KursuslederCourseEvalButton course={course} />
         </div>
         <p className="mt-1 text-sm text-slate-500">
           Uge {courseWeek} · {formatDate(course.startDate)} –{" "}
@@ -199,7 +214,7 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardDescription>Deltagere</CardDescription>
           <CardTitle className="mt-1 text-2xl">{enrolled}</CardTitle>
@@ -237,48 +252,105 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
           )}
         </Card>
 
-        <Card>
-          <CardDescription>Handlinger</CardDescription>
-          <div className="mt-2 flex flex-col gap-2">
-            <Button
-              variant="secondary"
-              className="justify-start gap-2"
-              href={`/kursusleder/${courseId}/start`}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Start kursus
-            </Button>
-            <Button
-              variant="secondary"
-              className="justify-start gap-2"
-              onClick={() => setShowParticipants((v) => !v)}
-            >
-              <Users className="h-4 w-4" />
-              {showParticipants ? "Skjul deltagere" : "Vis deltagere"}
-            </Button>
-            <Button
-              variant="secondary"
-              className="justify-start gap-2"
-              href={`/kursusleder/evaluering/${courseId}`}
-            >
-              Evaluering
-            </Button>
-            <Button
-              variant="secondary"
-              className="justify-start gap-2"
-              href={`/planlaegning/kurser/${courseId}`}
-            >
-              Rediger kursus
-            </Button>
-          </div>
-        </Card>
+        <ActionBox title="Kursus">
+          <Button
+            variant="secondary"
+            className="justify-start gap-2"
+            onClick={() => setParticipantsDialogOpen(true)}
+          >
+            <Users className="h-4 w-4" />
+            Vis deltagere
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            href={`/planlaegning/kurser/${courseId}`}
+          >
+            Rediger kursus
+          </Button>
+        </ActionBox>
+
+        <ActionBox title="Afvikling">
+          <Button
+            variant="secondary"
+            className="justify-start gap-2"
+            href={`/kursusleder/${courseId}/start`}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Indkvartering
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start gap-2"
+            onClick={() => setParticipantsDialogOpen(true)}
+          >
+            <Users className="h-4 w-4" />
+            Vis deltagere
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            onClick={() => {
+              const current =
+                course.checklist.afviklingVelkomstDraft?.trim() ||
+                applyDocumentPlaceholders(
+                  getDocumentTemplate("velkomst-afvikling").body,
+                  { kursusTitel: course.title },
+                );
+              setVelkomstDraft(
+                course.checklist.afviklingVelkomstDraft ?? current,
+              );
+              setVelkomstOpen(true);
+            }}
+          >
+            Velkomst
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            onClick={() => setPrintBadgesOpen(true)}
+          >
+            Print navneskilte
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            onClick={() => setPrintProgramOpen(true)}
+          >
+            Print kursusprogram
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            onClick={() => {
+              setDrikkevareNote(course.checklist.drikkevarerseddelCourseNote ?? "");
+              setDrikkevareOpen(true);
+            }}
+          >
+            Print drikkevarerseddel
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            onClick={() => setPrintUbakOpen(true)}
+          >
+            Print UBAK
+          </Button>
+          <Button
+            variant="secondary"
+            className="justify-start"
+            href={`/kursusleder/evaluering/${courseId}`}
+          >
+            Evaluering
+          </Button>
+        </ActionBox>
       </div>
 
       <Card>
         <CardTitle className="text-base">Kursusprogram</CardTitle>
         <CardDescription className="mt-1">
-          Dag for dag — klik på et punkt for alle detaljer. Brug Eva til
-          evaluering af enkelte punkter.
+          Dag for dag — klik på et punkt for alle detaljer. Brug Evaluér på
+          enkelte punkter.
         </CardDescription>
         <div className="mt-4">
           <KursuslederProgramBoard course={course} />
@@ -321,155 +393,93 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         </Card>
       )}
 
-      <WelcomeLetterPanel
-        course={course}
-        participants={participants}
-        onUpdateChecklist={updateChecklist}
-        onParticipantsUpdated={() => setTick((t) => t + 1)}
-      />
-
       <WorkshopsOverviewPanel
         course={course}
         participants={participants}
         onRefresh={() => setTick((t) => t + 1)}
       />
 
-      {showParticipants && (
-        <Card className="overflow-hidden p-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
-            <div>
-              <CardTitle className="text-base">Deltagere</CardTitle>
-              <CardDescription>
-                Navn, særlige hensyn, værelse og mail
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-2 text-xs text-slate-500">
-                Sortér:
-                <select
-                  value={sortMode}
-                  onChange={(e) =>
-                    setSortMode(e.target.value as ParticipantSortMode)
-                  }
-                  className="rounded border border-slate-200 px-2 py-1 text-sm"
-                >
-                  <option value="efternavn">Efternavn</option>
-                  <option value="fornavn">Fornavn</option>
-                  <option value="vaerelse">Værelse</option>
-                </select>
-              </label>
-              <Button
-                variant="secondary"
-                className="gap-1 text-sm"
-                disabled={selectedIds.size === 0}
-                onClick={mailSelected}
-              >
-                <Mail className="h-4 w-4" />
-                Skriv til valgte
-              </Button>
-              <Button variant="secondary" className="gap-1 text-sm" onClick={mailAll}>
-                <Mail className="h-4 w-4" />
-                Skriv til alle
-              </Button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-white text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="w-10 px-4 py-3" />
-                  <th className="px-4 py-3">Navn</th>
-                  <th className="px-4 py-3">Værelse</th>
-                  <th className="px-4 py-3">E-mail</th>
-                  <th className="px-4 py-3">Særlige hensyn</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedParticipants.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                      Ingen tilmeldinger endnu
-                    </td>
-                  </tr>
-                ) : (
-                  sortedParticipants.map((p) => (
-                    <tr
-                      key={p.id}
-                      className="border-b border-slate-100 hover:bg-teal-50/30"
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(p.id)}
-                          onChange={() => toggleSelect(p.id)}
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {p.name}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-slate-700">
-                        {p.roomNumber ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">{p.email}</td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {p.specialConsiderations ? (
-                          <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
-                            {p.specialConsiderations}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <a
-                          href={buildMailtoLink([p.email], course.title)}
-                          className="text-xs font-medium text-teal-700 hover:underline"
-                        >
-                          Mail
-                        </a>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <KursuslederParticipantsDialog
+        open={participantsDialogOpen}
+        onClose={() => setParticipantsDialogOpen(false)}
+        courseTitle={course.title}
+        participants={sortedParticipants}
+        sortMode={sortMode}
+        onSortModeChange={setSortMode}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
+        onMailSelected={mailSelected}
+        onMailAll={mailAll}
+      />
 
-      <Card>
-        <CardTitle className="text-base">Print</CardTitle>
-        <CardDescription className="mt-1">
-          Printvenlige versioner til kursusafvikling
-        </CardDescription>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <PrintButton
-            label="Deltagerliste"
-            onClick={() => triggerKursuslederPrint("kl-print-participants")}
-          />
-          <PrintButton
-            label="Navneskilte (55×90 mm)"
-            onClick={() => triggerKursuslederPrint("kl-print-badges")}
-          />
-          <PrintButton
-            label="UBAK-skema"
-            onClick={() => triggerKursuslederPrint("kl-print-ubak")}
-          />
-          <PrintButton
-            label="Program (fuld)"
-            onClick={() => triggerKursuslederPrint("kl-print-program-full")}
-          />
-          <PrintButton
-            label="Program (A4 — tid, sted, titel)"
-            onClick={() => triggerKursuslederPrint("kl-print-program-a4")}
-          />
+      <KursuslederVelkomstDialog
+        open={velkomstOpen}
+        onClose={() => setVelkomstOpen(false)}
+        course={course}
+        draft={velkomstDraft}
+        onDraftChange={setVelkomstDraft}
+        onSave={() => {
+          updateChecklist({ afviklingVelkomstDraft: velkomstDraft });
+          setVelkomstOpen(false);
+        }}
+      />
+
+      <DrikkevarerPrintDialog
+        open={drikkevareOpen}
+        onClose={() => setDrikkevareOpen(false)}
+        course={course}
+        courseNote={drikkevareNote}
+        onCourseNoteChange={setDrikkevareNote}
+        onSaveNote={() =>
+          updateChecklist({ drikkevarerseddelCourseNote: drikkevareNote })
+        }
+      />
+
+      <KursuslederPrintPreviewDialog
+        open={printBadgesOpen}
+        onClose={() => setPrintBadgesOpen(false)}
+        title="Print navneskilte"
+        description="Forhåndsvisning — Avery 55×90 mm (justeres endeligt senere)"
+        printTarget="kl-print-badges"
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {sortedParticipants.slice(0, 6).map((p) => (
+            <div
+              key={p.id}
+              className="rounded border-2 border-dashed border-slate-300 p-3 text-center"
+            >
+              <p className="text-sm font-bold">{p.name}</p>
+              <p className="text-[10px] text-slate-600">{course.title}</p>
+              <p className="text-xs text-slate-700">{participantCity(p)}</p>
+            </div>
+          ))}
         </div>
-        <p className="mt-3 text-xs text-slate-500">
-          Navneskilte er tilpasset etiketteark 55×90 mm (fx JustMore
-          kongresmærke). Par vises sammen på deltagerlisten uanset sortering.
-        </p>
-      </Card>
+        {sortedParticipants.length > 6 && (
+          <p className="mt-2 text-xs text-slate-500">
+            + {sortedParticipants.length - 6} flere ved print
+          </p>
+        )}
+      </KursuslederPrintPreviewDialog>
+
+      <KursuslederPrintPreviewDialog
+        open={printProgramOpen}
+        onClose={() => setPrintProgramOpen(false)}
+        title="Print kursusprogram"
+        description="A4 — tid, sted og titel"
+        printTarget="kl-print-program-a4"
+      >
+        <ProgramPrintPreview course={course} />
+      </KursuslederPrintPreviewDialog>
+
+      <KursuslederPrintPreviewDialog
+        open={printUbakOpen}
+        onClose={() => setPrintUbakOpen(false)}
+        title="Print UBAK"
+        description="UBAK-beskrivelser for kurset"
+        printTarget="kl-print-ubak"
+      >
+        <UbakPrintPreview course={course} />
+      </KursuslederPrintPreviewDialog>
 
       <KursuslederPrintAreas
         course={course}
@@ -481,22 +491,63 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
   );
 }
 
-function PrintButton({
-  label,
-  onClick,
+function ActionBox({
+  title,
+  children,
 }: {
-  label: string;
-  onClick: () => void;
+  title: string;
+  children: React.ReactNode;
 }) {
   return (
-    <Button
-      type="button"
-      variant="secondary"
-      className="gap-2"
-      onClick={onClick}
-    >
-      <Printer className="h-4 w-4" />
-      {label}
-    </Button>
+    <Card>
+      <CardDescription className="font-semibold text-slate-800">
+        {title}
+      </CardDescription>
+      <div className="mt-2 flex flex-col gap-2">{children}</div>
+    </Card>
+  );
+}
+
+function ProgramPrintPreview({ course }: { course: Course }) {
+  const rows = getProgramPrintRows(course);
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="border-b text-left">
+          <th className="py-1 pr-2">Tid</th>
+          <th className="py-1 pr-2">Sted</th>
+          <th className="py-1">Titel</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.slice(0, 12).map((row, i) => (
+          <tr key={i} className="border-b border-slate-100">
+            <td className="py-1 pr-2 tabular-nums">
+              {row.tidFra}–{row.tidTil}
+            </td>
+            <td className="py-1 pr-2">{row.lokale || "—"}</td>
+            <td className="py-1">{row.overskrift}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function UbakPrintPreview({ course }: { course: Course }) {
+  const rows = getUbakBeskrivelseRows(course);
+  const stats = computeUbakBeskrivelseStats(course);
+  return (
+    <div className="text-xs">
+      <p className="font-semibold">{course.title}</p>
+      <p className="text-slate-600">UBAK i alt: {stats.ubakMinutter} min</p>
+      <ul className="mt-2 max-h-48 space-y-1 overflow-auto">
+        {rows.slice(0, 8).map((row, i) => (
+          <li key={i}>
+            {row.dayLabel}: {row.beskrivelse} ({row.ubakMinutter || 0} min)
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
