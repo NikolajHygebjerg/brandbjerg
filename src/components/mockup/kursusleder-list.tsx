@@ -152,6 +152,14 @@ export function KursuslederList() {
                       ))}
                     </div>
                   </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/kursusleder/${c.id}/start`}
+                      className="text-sm font-medium text-teal-700 hover:underline"
+                    >
+                      Start kursus
+                    </Link>
+                  </td>
                 </CourseListRow>
               ))
             )}

@@ -1,0 +1,5 @@
+{
+  "name": "Brandbjerg mockup",
+  "install": "npm ci && bash scripts/ensure-github-remote.sh",
+  "start": "npm run dev"
+}

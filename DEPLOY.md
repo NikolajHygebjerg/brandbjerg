@@ -21,6 +21,26 @@ Dette script:
 
 Cloud Agent kører dette **automatisk efter hver kodeændring** (se `.cursor/rules/ship-after-changes.mdc`).
 
+### GitHub-push fra Cloud Agent (vigtigt)
+
+Vercel er koblet til **`NikolajHygebjerg/brandbjerg` på GitHub**, ikke Cursor’s midlertidige `origin`-mirror. `npm run ship` pusher derfor **altid til `github` først**.
+
+| Krav | Hvorfor |
+|------|---------|
+| Remote `github` | Oprettes automatisk via `scripts/ensure-github-remote.sh` |
+| **`GH_TOKEN`** (eller `GITHUB_TOKEN`) med `repo`-scope | Cloud Agent har som regel ikke `gh auth login` — token bruges til `git push` |
+| Agent kører mod det rigtige repo | «Nyt projekt»-sessions bruger ofte kun Cursor `origin` — så når `GH_TOKEN` mangler, når koden ikke til GitHub/Vercel |
+
+**Opsæt token:** Cursor → Cloud Agent → Environment → Secrets → `GH_TOKEN` = GitHub PAT (classic) med `repo`.
+
+**Lokal nød-push** (hvis agent kun har pushet til Cursor):
+
+```bash
+git remote add github https://github.com/NikolajHygebjerg/brandbjerg.git  # én gang
+git pull origin main   # eller hent fra agent-session
+git push github main
+```
+
 ### Deploy-strategi (kort)
 
 | Metode | Hvornår | Kræver |
