@@ -122,7 +122,7 @@ export function KursuslederList() {
           />
           <tbody>
             {courses.length === 0 ? (
-              <CourseListEmptyRow colSpan={5}>
+              <CourseListEmptyRow colSpan={6}>
                 Ingen kurser fundet hvor du er kursusleder eller underviser i{" "}
                 {activeYear}.
               </CourseListEmptyRow>
