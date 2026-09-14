@@ -9,10 +9,8 @@ import {
   getUbakBeskrivelseRows,
 } from "@/lib/ubak-beskrivelse-utils";
 import { getPersonById } from "@/lib/person-utils";
-import {
-  getProgramPrintRows,
-  programDayHeading,
-} from "@/lib/program-print-utils";
+import { getProgramPrintRows, programDayHeading } from "@/lib/program-print-utils";
+import { ProgramPrintSheet } from "@/components/mockup/program-print-sheet";
 import {
   participantCity,
   type ParticipantSortMode,
@@ -185,48 +183,7 @@ export function KursuslederPrintAreas({
       </div>
 
       <div id="kl-print-program-a4" className="kl-print-area hidden">
-        <div className="p-8 text-black">
-          <h1 className="text-lg font-bold">{course.title}</h1>
-          <p className="text-xs text-slate-600">
-            Program · {formatDate(course.startDate)} – {formatDate(course.endDate)}
-          </p>
-          <table className="mt-4 w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b-2 border-black text-left text-xs uppercase">
-                <th className="py-2 pr-3">Tid</th>
-                <th className="py-2 pr-3">Sted</th>
-                <th className="py-2">Overskrift</th>
-              </tr>
-            </thead>
-            <tbody>
-              {programRows.map((row, i) => {
-                const showDayHeader =
-                  i === 0 || programRows[i - 1].dayDate !== row.dayDate;
-                return (
-                  <Fragment key={`row-${i}`}>
-                    {showDayHeader && (
-                      <tr>
-                        <td
-                          colSpan={3}
-                          className="border-b border-slate-400 bg-slate-100 py-2 pl-1 text-xs font-bold uppercase"
-                        >
-                          {programDayHeading(row)}
-                        </td>
-                      </tr>
-                    )}
-                    <tr className="border-b border-slate-200">
-                      <td className="py-2 pr-3 tabular-nums whitespace-nowrap">
-                        {row.tidFra}–{row.tidTil}
-                      </td>
-                      <td className="py-2 pr-3">{row.lokale || "—"}</td>
-                      <td className="py-2 font-medium">{row.overskrift}</td>
-                    </tr>
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ProgramPrintSheet course={course} className="kl-program-a4--print" />
       </div>
     </>
   );

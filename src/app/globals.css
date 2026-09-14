@@ -18,6 +18,103 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Kursusprogram — printlayout (reference: Brandbjerg A4-program) */
+.kl-program-a4 {
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.35;
+  color: #000;
+}
+
+.kl-program-a4-title {
+  margin: 0;
+  font-size: 16pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kl-program-a4-subtitle p {
+  margin: 0.15em 0 0;
+  font-size: 11pt;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.kl-program-a4-dates {
+  margin: 0.35em 0 0;
+  font-size: 11pt;
+}
+
+.kl-program-a4-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm 8mm;
+  margin-top: 5mm;
+  align-items: start;
+}
+
+.kl-program-a4-day {
+  margin-bottom: 4mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.kl-program-a4-day-heading {
+  margin: 0 0 1.5mm;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+.kl-program-a4-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kl-program-a4-line {
+  margin-bottom: 2mm;
+}
+
+.kl-program-a4-line-main {
+  margin: 0;
+}
+
+.kl-program-a4-time,
+.kl-program-a4-headline {
+  font-weight: 700;
+}
+
+.kl-program-a4-body {
+  margin: 0.5mm 0 0;
+  font-weight: 400;
+}
+
+.kl-program-a4-accent {
+  margin: 0.5mm 0 0;
+  font-weight: 400;
+  color: #c00;
+}
+
+.kl-program-a4-footer {
+  margin: 4mm 0 0;
+  font-size: 8.5pt;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.kl-program-a4--print {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 16mm 12mm;
+}
+
+.kl-program-a4--preview {
+  width: 210mm;
+  padding: 10mm 12mm;
+  background: #fff;
+}
+
 @media print {
   body * {
     visibility: hidden;
@@ -113,5 +210,11 @@ body {
     top: 0;
     width: 100%;
     padding: 12mm;
+  }
+
+  body[data-print-target="kl-print-program-a4"] #kl-print-program-a4 .kl-program-a4--print {
+    width: 100%;
+    min-height: auto;
+    padding: 12mm 14mm;
   }
 }

@@ -25,7 +25,7 @@ import {
   applyDocumentPlaceholders,
   getDocumentTemplate,
 } from "@/lib/document-template-storage";
-import { getProgramPrintRows } from "@/lib/program-print-utils";
+import { ProgramPrintSheet } from "@/components/mockup/program-print-sheet";
 import {
   computeUbakBeskrivelseStats,
   getUbakBeskrivelseRows,
@@ -481,7 +481,7 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
         open={printProgramOpen}
         onClose={() => setPrintProgramOpen(false)}
         title="Print kursusprogram"
-        description="A4 — tid, sted og titel"
+        description="A4 — to kolonner som trykt program"
         printTarget="kl-print-program-a4"
       >
         <ProgramPrintPreview course={course} />
@@ -530,28 +530,10 @@ function ActionBox({
 }
 
 function ProgramPrintPreview({ course }: { course: Course }) {
-  const rows = getProgramPrintRows(course);
   return (
-    <table className="w-full text-xs">
-      <thead>
-        <tr className="border-b text-left">
-          <th className="py-1 pr-2">Tid</th>
-          <th className="py-1 pr-2">Sted</th>
-          <th className="py-1">Titel</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.slice(0, 12).map((row, i) => (
-          <tr key={i} className="border-b border-slate-100">
-            <td className="py-1 pr-2 tabular-nums">
-              {row.tidFra}–{row.tidTil}
-            </td>
-            <td className="py-1 pr-2">{row.lokale || "—"}</td>
-            <td className="py-1">{row.overskrift}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="max-h-[min(70vh,520px)] overflow-auto rounded border border-slate-200 bg-white p-2">
+      <ProgramPrintSheet course={course} className="kl-program-a4--preview text-[8pt]" />
+    </div>
   );
 }
 
