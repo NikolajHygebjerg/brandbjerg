@@ -83,7 +83,8 @@ export interface KontorAlert {
     | "relocation_success"
     | "info"
     | "workshop_closed"
-    | "bedding_extra";
+    | "bedding_extra"
+    | "course_arrival_report";
   message: string;
   participantId?: string;
   roomNumber?: string;

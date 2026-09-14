@@ -78,9 +78,13 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
     [courseId, courseWeek, participants],
   );
 
-  const alerts = loadAlerts().filter(
+  const courseAlerts = loadAlerts().filter(
     (a) => a.courseId === courseId && !a.read,
   );
+  const arrivalReports = courseAlerts.filter(
+    (a) => a.type === "course_arrival_report",
+  );
+  const alerts = courseAlerts.filter((a) => a.type !== "course_arrival_report");
 
   const enrolled =
     statusark != null
@@ -131,6 +135,34 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
         </p>
       </div>
 
+      {arrivalReports.length > 0 && (
+        <Card className="border-teal-200 bg-teal-50/80">
+          <CardTitle className="flex items-center gap-2 text-base text-teal-950">
+            <AlertTriangle className="h-5 w-5" />
+            Indtjekning fra kursusleder
+          </CardTitle>
+          <ul className="mt-3 space-y-4">
+            {arrivalReports.map((a) => (
+              <li
+                key={a.id}
+                className="flex items-start justify-between gap-3 text-sm text-teal-950"
+              >
+                <span className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                  {a.message}
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 text-xs font-medium underline"
+                  onClick={() => markAlertRead(a.id)}
+                >
+                  Markér læst
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {alerts.length > 0 && (
         <Card className="border-red-200 bg-red-50">
           <CardTitle className="flex items-center gap-2 text-base text-red-900">
@@ -143,7 +175,7 @@ export function KontorCourseView({ courseId }: { courseId: string }) {
                 key={a.id}
                 className="flex items-start justify-between gap-3 text-sm text-red-900"
               >
-                <span>{a.message}</span>
+                <span className="whitespace-pre-wrap">{a.message}</span>
                 <button
                   type="button"
                   className="shrink-0 text-xs font-medium underline"

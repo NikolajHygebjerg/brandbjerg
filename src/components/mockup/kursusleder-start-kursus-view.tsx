@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 import { getCourseDetailById } from "@/lib/course-list";
@@ -25,6 +26,10 @@ import {
 } from "@/lib/kontor-types";
 import { formatDate, type Course } from "@/lib/mock-data";
 import {
+  buildStartKursusKontorReport,
+  countArrived,
+} from "@/lib/kursusleder-start-kontor-report";
+import {
   getUserRolesOnCourse,
   sortParticipants,
   type ParticipantSortMode,
@@ -37,6 +42,9 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
   const [missing, setMissing] = useState(false);
   const [sortMode] = useState<ParticipantSortMode>("efternavn");
   const [tick, setTick] = useState(0);
+  const [kontorDialogOpen, setKontorDialogOpen] = useState(false);
+  const [kontorMessageDraft, setKontorMessageDraft] = useState("");
+  const [sentToKontor, setSentToKontor] = useState(false);
 
   useEffect(() => {
     const found = getCourseDetailById(courseId);
@@ -70,6 +78,11 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
         sortMode,
       ),
     [participants, sortMode],
+  );
+
+  const arrivalStats = useMemo(
+    () => countArrived(participants),
+    [participants],
   );
 
   if (missing) {
@@ -138,6 +151,33 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
       });
     }
     refreshList();
+  }
+
+  function sendReportToKontor(leaderMessage?: string) {
+    if (!course) return;
+    const message = buildStartKursusKontorReport({
+      courseTitle: course.title,
+      participants,
+      allArrived: arrivalStats.allArrived,
+      leaderMessage,
+    });
+    addAlert({
+      type: "course_arrival_report",
+      courseId,
+      message,
+    });
+    setKontorDialogOpen(false);
+    setKontorMessageDraft("");
+    setSentToKontor(true);
+  }
+
+  function handleSendClick() {
+    if (arrivalStats.allArrived) {
+      sendReportToKontor();
+      return;
+    }
+    setKontorMessageDraft("");
+    setKontorDialogOpen(true);
   }
 
   return (
@@ -211,6 +251,91 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
           </table>
         </div>
       </Card>
+
+      <Card className="border-teal-200 bg-teal-50/40">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-teal-950">
+              {arrivalStats.allArrived
+                ? "Alle er ankommet — send til kontor"
+                : "Ikke alle indtjekket — send alligevel til kontor?"}
+            </p>
+            <p className="mt-1 text-xs text-teal-800/90">
+              {arrivalStats.arrived} af {arrivalStats.total} markeret som
+              ankommet
+              {sentToKontor && (
+                <span className="ml-2 font-medium text-emerald-700">
+                  · Sendt til kontor
+                </span>
+              )}
+            </p>
+          </div>
+          <Button
+            type="button"
+            className="shrink-0 bg-teal-700 hover:bg-teal-800"
+            disabled={arrivalStats.total === 0}
+            onClick={handleSendClick}
+          >
+            Send
+          </Button>
+        </div>
+      </Card>
+
+      {kontorDialogOpen && (
+        <SendToKontorDialog
+          message={kontorMessageDraft}
+          onMessageChange={setKontorMessageDraft}
+          onCancel={() => setKontorDialogOpen(false)}
+          onConfirm={() => sendReportToKontor(kontorMessageDraft)}
+        />
+      )}
+    </div>
+  );
+}
+
+function SendToKontorDialog({
+  message,
+  onMessageChange,
+  onCancel,
+  onConfirm,
+}: {
+  message: string;
+  onMessageChange: (v: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div
+        className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl"
+        role="dialog"
+        aria-labelledby="kontor-dialog-title"
+      >
+        <h2
+          id="kontor-dialog-title"
+          className="text-base font-semibold text-slate-900"
+        >
+          Ikke alle indtjekket — vil du skrive en besked til kontor?
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Beskeden sendes sammen med tjeklisten over deltagere til kontoret.
+        </p>
+        <textarea
+          value={message}
+          onChange={(e) => onMessageChange(e.target.value)}
+          rows={4}
+          placeholder="Valgfri besked til kontor…"
+          className="mt-4 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Annuller
+          </Button>
+          <Button type="button" onClick={onConfirm}>
+            Send
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
