@@ -12,7 +12,6 @@ import { ensureParticipantsForCourse } from "@/lib/kontor-participants";
 import {
   BEDDING_EXTRA_INVOICE_KR,
   inferBeddingOrdered,
-  isSengetojFulfilledForLeader,
   isSengetojGreenForLeader,
 } from "@/lib/kontor-bedding-utils";
 import {
@@ -30,8 +29,6 @@ import {
   sortParticipants,
   type ParticipantSortMode,
 } from "@/lib/kursusleder-utils";
-import { cn } from "@/lib/utils";
-
 export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
   const router = useRouter();
@@ -109,6 +106,15 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
     refreshList();
   }
 
+  function toggleBeddingHandedOut(p: KontorParticipant, handedOut: boolean) {
+    updateParticipant(p.courseId, p.id, {
+      beddingHandedOutByLeaderAt: handedOut
+        ? new Date().toISOString()
+        : undefined,
+    });
+    refreshList();
+  }
+
   function toggleExtraBedding(p: KontorParticipant, approved: boolean) {
     if (inferBeddingOrdered(p)) return;
 
@@ -127,6 +133,7 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
       updateParticipant(p.courseId, p.id, {
         beddingExtraApproved: false,
         beddingExtraNotifiedAt: undefined,
+        beddingHandedOutByLeaderAt: undefined,
         beddingOnRoom: false,
       });
     }
@@ -151,8 +158,9 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
           {formatDate(course.endDate)}
         </p>
         <p className="mt-2 text-sm text-slate-600">
-          Tjek indkvartering, sengetøj og ankomst. Sengetøj bestilt ved
-          tilmelding vises som grønt når rengøring har lagt det på værelset.
+          Tjek indkvartering, sengetøj og ankomst. Bestilt sengetøj bliver grønt
+          når rengøring har lagt det på værelset, eller når du afkrydser ved
+          udlevering.
         </p>
       </div>
 
@@ -194,6 +202,7 @@ export function KursuslederStartKursusView({ courseId }: { courseId: string }) {
                     participant={p}
                     onToggleArrived={toggleArrived}
                     onToggleExtraBedding={toggleExtraBedding}
+                    onToggleBeddingHandedOut={toggleBeddingHandedOut}
                     onNoteChange={setNote}
                   />
                 ))
@@ -210,16 +219,19 @@ function ParticipantStartRow({
   participant: p,
   onToggleArrived,
   onToggleExtraBedding,
+  onToggleBeddingHandedOut,
   onNoteChange,
 }: {
   participant: KontorParticipant;
   onToggleArrived: (p: KontorParticipant, arrived: boolean) => void;
   onToggleExtraBedding: (p: KontorParticipant, approved: boolean) => void;
+  onToggleBeddingHandedOut: (p: KontorParticipant, handedOut: boolean) => void;
   onNoteChange: (p: KontorParticipant, note: string) => void;
 }) {
   const ordered = inferBeddingOrdered(p);
-  const fulfilled = isSengetojFulfilledForLeader(p);
   const green = isSengetojGreenForLeader(p);
+  const onRoom = Boolean(p.beddingOnRoom);
+  const handedOut = Boolean(p.beddingHandedOutByLeaderAt);
   const [noteDraft, setNoteDraft] = useState(p.startCourseNote ?? "");
 
   useEffect(() => {
@@ -238,11 +250,12 @@ function ParticipantStartRow({
       <td className="px-4 py-3">
         <SengetojCell
           ordered={ordered}
-          fulfilled={fulfilled}
           green={green}
-          waitingForRoom={ordered && !p.beddingOnRoom}
+          onRoom={onRoom}
+          handedOut={handedOut}
           extraApproved={Boolean(p.beddingExtraApproved)}
           onExtraChange={(checked) => onToggleExtraBedding(p, checked)}
+          onHandedOutChange={(checked) => onToggleBeddingHandedOut(p, checked)}
         />
       </td>
       <td className="px-4 py-3 text-center">
@@ -279,61 +292,77 @@ function ParticipantStartRow({
 
 function SengetojCell({
   ordered,
-  fulfilled,
   green,
-  waitingForRoom,
+  onRoom,
+  handedOut,
   extraApproved,
   onExtraChange,
+  onHandedOutChange,
 }: {
   ordered: boolean;
-  fulfilled: boolean;
   green: boolean;
-  waitingForRoom: boolean;
+  onRoom: boolean;
+  handedOut: boolean;
   extraApproved: boolean;
   onExtraChange: (checked: boolean) => void;
+  onHandedOutChange: (checked: boolean) => void;
 }) {
   if (green) {
+    const label = onRoom
+      ? "På værelset"
+      : handedOut
+        ? "Udleveret"
+        : "OK";
     return (
       <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
-        <CheckCircle2 className="size-4 shrink-0" />
-        På værelset
+        <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+        {label}
       </span>
     );
   }
 
-  if (ordered && waitingForRoom) {
+  if (ordered) {
     return (
-      <span className="text-xs text-amber-800">
-        Bestilt — afventer rengøring
-      </span>
-    );
-  }
-
-  if (ordered && fulfilled) {
-    return (
-      <span className="inline-flex items-center gap-1 text-emerald-700">
-        <CheckCircle2 className="size-4" />
-        Ja
-      </span>
+      <label className="inline-flex max-w-[220px] cursor-pointer items-start gap-2">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-emerald-600"
+          checked={handedOut}
+          onChange={(e) => onHandedOutChange(e.target.checked)}
+        />
+        <span className="text-xs leading-snug text-slate-600">
+          Afventer rengøring (tryk ved udlevering)
+        </span>
+      </label>
     );
   }
 
   if (!ordered) {
+    if (extraApproved) {
+      return (
+        <label className="inline-flex max-w-[220px] cursor-pointer items-start gap-2">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-emerald-600"
+            checked={handedOut}
+            onChange={(e) => onHandedOutChange(e.target.checked)}
+          />
+          <span className="text-xs leading-snug text-slate-600">
+            Afventer sengetøj (tryk ved udlevering)
+          </span>
+        </label>
+      );
+    }
     return (
       <label className="inline-flex cursor-pointer items-center gap-2">
         <input
           type="checkbox"
-          className={cn(
-            "size-4 rounded border-slate-300 text-teal-600",
-            extraApproved && !green && "accent-emerald-600",
-          )}
+          className="size-4 rounded border-slate-300 text-teal-600"
           checked={extraApproved}
           onChange={(e) => onExtraChange(e.target.checked)}
         />
         <span className="text-xs text-slate-600">
-          {extraApproved
-            ? "Godkendt — afventer sengetøj"
-            : "Ikke bestilt (tjek ved ønske)"}
+          Ikke bestilt (tjek ved ønske)
         </span>
       </label>
     );

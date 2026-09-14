@@ -59,6 +59,8 @@ export interface KontorParticipant {
   beddingOrdered?: boolean;
   /** Rengøring har lagt sengetøj på værelset (synket ved indkvarteringsnat) */
   beddingOnRoom?: boolean;
+  /** Kursusleder har udleveret bestilt sengetøj ved indkvartering */
+  beddingHandedOutByLeaderAt?: string;
   /** Kursusleder har godkendt sengetøj ved indkvartering uden forudbestilling */
   beddingExtraApproved?: boolean;
   beddingExtraNotifiedAt?: string;

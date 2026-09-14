@@ -18,16 +18,22 @@ export function participantWantsBedding(p: KontorParticipant): boolean {
   return inferBeddingOrdered(p) || Boolean(p.beddingExtraApproved);
 }
 
-/** Sengetøj-kolonne for kursusleder er afkrydset. */
+/** Sengetøj-kolonne for kursusleder er afkrydset (grøn). */
 export function isSengetojFulfilledForLeader(p: KontorParticipant): boolean {
-  if (inferBeddingOrdered(p)) {
-    return Boolean(p.beddingOnRoom);
-  }
-  return Boolean(p.beddingExtraApproved);
+  return isSengetojGreenForLeader(p);
 }
 
 export function isSengetojGreenForLeader(p: KontorParticipant): boolean {
-  return participantWantsBedding(p) && Boolean(p.beddingOnRoom);
+  if (Boolean(p.beddingOnRoom)) return true;
+  if (inferBeddingOrdered(p) && p.beddingHandedOutByLeaderAt) return true;
+  if (!inferBeddingOrdered(p) && p.beddingExtraApproved && p.beddingHandedOutByLeaderAt) {
+    return true;
+  }
+  return false;
+}
+
+export function isSengetojOnRoomFromCleaning(p: KontorParticipant): boolean {
+  return Boolean(p.beddingOnRoom);
 }
 
 export function getParticipantsInRoomOnNight(
