@@ -55,6 +55,17 @@ export interface KontorParticipant {
   invoiceSentAt?: string;
   welcomeLetterSentAt?: string;
   paidAt?: string;
+  /** Bestilt ved tilmelding */
+  beddingOrdered?: boolean;
+  /** Rengøring har lagt sengetøj på værelset (synket ved indkvarteringsnat) */
+  beddingOnRoom?: boolean;
+  /** Kursusleder har godkendt sengetøj ved indkvartering uden forudbestilling */
+  beddingExtraApproved?: boolean;
+  beddingExtraNotifiedAt?: string;
+  /** Indkvarteret / ankommet */
+  arrivedAt?: string;
+  /** Note fra kursusleder ved start kursus */
+  startCourseNote?: string;
 }
 
 export interface CourseEnrollmentLimits {
@@ -65,7 +76,12 @@ export interface CourseEnrollmentLimits {
 
 export interface KontorAlert {
   id: string;
-  type: "relocation_failed" | "relocation_success" | "info" | "workshop_closed";
+  type:
+    | "relocation_failed"
+    | "relocation_success"
+    | "info"
+    | "workshop_closed"
+    | "bedding_extra";
   message: string;
   participantId?: string;
   roomNumber?: string;

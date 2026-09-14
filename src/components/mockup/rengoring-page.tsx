@@ -17,6 +17,10 @@ import {
   addDaysIso,
 } from "@/lib/date-utils";
 import {
+  RENGORING_BEDDING_UPDATED_EVENT,
+  setBeddingPlacedOnRoom,
+} from "@/lib/rengoring-bedding-storage";
+import {
   RENGORING_UPDATED_EVENT,
   setLokaleKlar,
   setVaerelseKlar,
@@ -288,12 +292,14 @@ function RengoringLeaderView({ today }: { today: string }) {
     }
     syncAutoRengoringTasksForDate(today);
     window.addEventListener(RENGORING_UPDATED_EVENT, onUpdate);
+    window.addEventListener(RENGORING_BEDDING_UPDATED_EVENT, onUpdate);
     window.addEventListener(KONTOR_UPDATED_EVENT, onUpdate);
     window.addEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
     window.addEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
     window.addEventListener(RENGORING_NOTES_UPDATED_EVENT, reload);
     return () => {
       window.removeEventListener(RENGORING_UPDATED_EVENT, onUpdate);
+      window.removeEventListener(RENGORING_BEDDING_UPDATED_EVENT, onUpdate);
       window.removeEventListener(KONTOR_UPDATED_EVENT, onUpdate);
       window.removeEventListener(ANSAT_VAERELSE_BOOKING_UPDATED_EVENT, onUpdate);
       window.removeEventListener(RENGORING_TASKS_UPDATED_EVENT, onUpdate);
@@ -444,6 +450,10 @@ function RengoringLeaderView({ today }: { today: string }) {
           onFilterChange={setVaerelseFilter}
           onToggleKlar={(room, klar) => {
             setVaerelseKlar(room, selectedDate, klar);
+            reload();
+          }}
+          onToggleBeddingPlaced={(room, placed) => {
+            setBeddingPlacedOnRoom(room, selectedDate, placed);
             reload();
           }}
           onRoomClick={(room) =>

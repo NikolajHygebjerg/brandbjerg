@@ -5,6 +5,10 @@ import { getCoursesForYear } from "./course-list";
 import { eachNight, addDaysIso } from "./date-utils";
 import { getAllRoomNumbers, roomWeekKey, roomFloor } from "./room-utils";
 import {
+  countBeddingSetsNeededForRoom,
+} from "./kontor-bedding-utils";
+import { isBeddingPlacedOnRoom } from "./rengoring-bedding-storage";
+import {
   getLatestVaerelseKlarDate,
   isVaerelseKlar,
 } from "./rengoring-storage";
@@ -84,6 +88,23 @@ export interface RengoringVaerelseRow {
   inUse: boolean;
   klar: boolean;
   needsCleaning: boolean;
+  beddingSetsNeeded: number;
+  beddingPlaced: boolean;
+}
+
+function withBeddingFields(
+  date: string,
+  row: Omit<RengoringVaerelseRow, "beddingSetsNeeded" | "beddingPlaced">,
+): RengoringVaerelseRow {
+  const beddingSetsNeeded = countBeddingSetsNeededForRoom(
+    row.roomNumber,
+    date,
+  );
+  return {
+    ...row,
+    beddingSetsNeeded,
+    beddingPlaced: isBeddingPlacedOnRoom(row.roomNumber, date),
+  };
 }
 
 export function getVaerelserForRengoringDate(
@@ -110,13 +131,15 @@ export function getVaerelserForRengoringDate(
 
     const needsCleaning = !klar && relevant;
 
-    rows.push({
-      roomNumber,
-      floor: roomFloor(roomNumber),
-      inUse,
-      klar,
-      needsCleaning,
-    });
+    rows.push(
+      withBeddingFields(date, {
+        roomNumber,
+        floor: roomFloor(roomNumber),
+        inUse,
+        klar,
+        needsCleaning,
+      }),
+    );
   }
 
   return rows.sort(
@@ -136,13 +159,13 @@ export function getAllVaerelserGridForDate(date: string): RengoringVaerelseRow[]
 
     const inUse = isRoomInUseOnNight(roomNumber, date);
     const klar = isVaerelseKlar(roomNumber, date);
-    return {
+    return withBeddingFields(date, {
       roomNumber,
       floor: roomFloor(roomNumber),
       inUse,
       klar,
       needsCleaning: false,
-    };
+    });
   });
 }
 

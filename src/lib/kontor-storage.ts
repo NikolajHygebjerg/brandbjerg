@@ -4,6 +4,7 @@ import type {
   RoomWeekCell,
   CourseEnrollmentLimits,
 } from "./kontor-types";
+import { inferBeddingOrdered } from "./kontor-bedding-utils";
 import { roomWeekKey } from "./room-utils";
 
 const ROOM_PREFIX = "brandbjerg-kontor-rooms-";
@@ -67,9 +68,15 @@ export function loadAllParticipants(): Record<string, KontorParticipant[]> {
 }
 
 function normalizeParticipant(p: KontorParticipant): KontorParticipant {
-  if (p.roomType) return p;
-  const enkelt = p.preferences.some((pref) => pref.type === "enevaerelse");
-  return { ...p, roomType: enkelt ? "enkelt" : "dobbelt" };
+  let next = p;
+  if (!p.roomType) {
+    const enkelt = p.preferences.some((pref) => pref.type === "enevaerelse");
+    next = { ...next, roomType: enkelt ? "enkelt" : "dobbelt" };
+  }
+  if (p.beddingOrdered == null) {
+    next = { ...next, beddingOrdered: inferBeddingOrdered(p) };
+  }
+  return next;
 }
 
 export function loadParticipantsForCourse(

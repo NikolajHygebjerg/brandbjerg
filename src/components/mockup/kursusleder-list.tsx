@@ -116,6 +116,7 @@ export function KursuslederList() {
                 <CourseListHeaderCell>Datoer</CourseListHeaderCell>
                 <CourseListHeaderCell>Deltagere</CourseListHeaderCell>
                 <CourseListHeaderCell>Din rolle</CourseListHeaderCell>
+                <CourseListHeaderCell>Handlinger</CourseListHeaderCell>
               </>
             }
           />

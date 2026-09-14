@@ -133,6 +133,7 @@ export function registerNewParticipant(
     ]
       .filter(Boolean)
       .join(" · "),
+    beddingOrdered: data.bedding === "ja",
   };
 
   const before = [...participants];

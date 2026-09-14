@@ -243,6 +243,14 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
             <Button
               variant="secondary"
               className="justify-start gap-2"
+              href={`/kursusleder/${courseId}/start`}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Start kursus
+            </Button>
+            <Button
+              variant="secondary"
+              className="justify-start gap-2"
               onClick={() => setShowParticipants((v) => !v)}
             >
               <Users className="h-4 w-4" />

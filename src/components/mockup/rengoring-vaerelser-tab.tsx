@@ -196,10 +196,12 @@ function StatusCheckbox({
 function RoomCell({
   row,
   onToggleKlar,
+  onToggleBeddingPlaced,
   onRoomClick,
 }: {
   row: RengoringVaerelseRow;
   onToggleKlar: (room: string, klar: boolean) => void;
+  onToggleBeddingPlaced: (room: string, placed: boolean) => void;
   onRoomClick: (room: string) => void;
 }) {
   const hasNote = hasRengoringNote("vaerelse", row.roomNumber);
@@ -234,6 +236,15 @@ function RoomCell({
           label="Klar"
           onChange={(checked) => onToggleKlar(row.roomNumber, checked)}
         />
+        {row.beddingSetsNeeded > 0 && (
+          <StatusCheckbox
+            checked={row.beddingPlaced}
+            label={`Sengetøj (${row.beddingSetsNeeded})`}
+            onChange={(checked) =>
+              onToggleBeddingPlaced(row.roomNumber, checked)
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -253,6 +264,7 @@ export function RengoringVaerelserTab({
   onYearChange,
   onFilterChange,
   onToggleKlar,
+  onToggleBeddingPlaced,
   onRoomClick,
 }: {
   selectedDate: string;
@@ -268,6 +280,7 @@ export function RengoringVaerelserTab({
   onYearChange: (year: number) => void;
   onFilterChange: (f: VaerelseFilter) => void;
   onToggleKlar: (room: string, klar: boolean) => void;
+  onToggleBeddingPlaced: (room: string, placed: boolean) => void;
   onRoomClick: (room: string) => void;
 }) {
   const rowByRoom = useMemo(() => {
@@ -329,6 +342,7 @@ export function RengoringVaerelserTab({
                 rowByRoom={rowByRoom}
                 filter={vaerelseFilter}
                 onToggleKlar={onToggleKlar}
+                onToggleBeddingPlaced={onToggleBeddingPlaced}
                 onRoomClick={onRoomClick}
               />
             ))}
@@ -359,6 +373,7 @@ function BuildingColumn({
   rowByRoom,
   filter,
   onToggleKlar,
+  onToggleBeddingPlaced,
   onRoomClick,
 }: {
   column: (typeof ROOM_BUILDING_COLUMNS)[number];
@@ -366,6 +381,7 @@ function BuildingColumn({
   rowByRoom: Map<string, RengoringVaerelseRow>;
   filter: VaerelseFilter;
   onToggleKlar: (room: string, klar: boolean) => void;
+  onToggleBeddingPlaced: (room: string, placed: boolean) => void;
   onRoomClick: (room: string) => void;
 }) {
   const visibleRooms = roomNumbers.filter((room) => {
@@ -403,6 +419,7 @@ function BuildingColumn({
                 key={room}
                 row={row}
                 onToggleKlar={onToggleKlar}
+                onToggleBeddingPlaced={onToggleBeddingPlaced}
                 onRoomClick={onRoomClick}
               />
             );

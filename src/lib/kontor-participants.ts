@@ -98,6 +98,14 @@ function mockParticipant(
     prefs.some((p) => p.type === "enevaerelse") || index % 7 === 0;
 
   const city = CITIES[index % CITIES.length];
+  const beddingOrdered = index % 5 < 2;
+  const specialWithBedding = [
+    special,
+    beddingOrdered ? "Sengetøj: Ja (+150 kr.)" : "Sengetøj: Nej",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return {
     id,
     courseId,
@@ -112,7 +120,8 @@ function mockParticipant(
     roomMateId: null,
     roomType: wantsEnkelt ? "enkelt" : "dobbelt",
     preferences: prefs,
-    specialConsiderations: special,
+    specialConsiderations: specialWithBedding,
+    beddingOrdered,
     confirmationSentAt: index % 7 !== 6 ? registeredAt : undefined,
     invoiceSentAt: paid ? registeredAt : undefined,
     welcomeLetterSentAt: index % 9 !== 8 ? registeredAt : undefined,
