@@ -9,6 +9,9 @@ import {
   isWorkshopModule,
   moduleDurationMinutes,
   timingTotal,
+  canMarkModuleKlar,
+  formatModuleKlarMissingMessage,
+  getModuleKlarMissingFields,
   type CourseModule,
   type LokaleSpecifikation,
   type MealDetails,
@@ -227,7 +230,13 @@ export function ModuleEditDialog({
               <Button
                 variant={mod.klar ? "secondary" : "primary"}
                 className="h-9"
-                onClick={() => onChange({ klar: !mod.klar })}
+                onClick={() => {
+                  if (!mod.klar && !canMarkModuleKlar(mod)) {
+                    window.alert(formatModuleKlarMissingMessage(mod));
+                    return;
+                  }
+                  onChange({ klar: !mod.klar });
+                }}
               >
                 {mod.klar ? (
                   "Fjern klar-markering"
@@ -688,6 +697,13 @@ function RegularForm({
           </div>
         )}
       </div>
+
+      {!mod.klar && getModuleKlarMissingFields(mod).length > 0 && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          For at markere klar: udfyld{" "}
+          {getModuleKlarMissingFields(mod).join(", ")}.
+        </p>
+      )}
     </div>
   );
 }

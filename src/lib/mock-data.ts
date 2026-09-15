@@ -45,6 +45,7 @@ export interface MealDetails {
 
 export type { HeldagsturPlan } from "./heldagstur-utils";
 import { anyHeldagsturPunktUklar } from "./heldagstur-utils";
+import { canMarkModuleKlar } from "./module-klar-utils";
 import type { HeldagsturPlan } from "./heldagstur-utils";
 import type { WorkshopOption } from "./workshop-types";
 export type { WorkshopOption } from "./workshop-types";
@@ -347,14 +348,6 @@ export function isHeldagsturModule(mod: CourseModule): boolean {
 }
 
 export function isModuleFilled(mod: CourseModule) {
-  if (isWorkshopModule(mod)) {
-    const options = (mod.workshops ?? []).filter((w) => w.overskrift.trim());
-    return Boolean(
-      mod.overskrift.trim() &&
-        options.length > 0 &&
-        options.every((w) => w.maxDeltagere > 0),
-    );
-  }
   if (isHeldagsturModule(mod)) {
     const punkter = mod.heldagstur?.punkter ?? [];
     if (punkter.length === 0) return false;
@@ -365,10 +358,14 @@ export function isModuleFilled(mod: CourseModule) {
       return false;
     });
   }
-  return Boolean(
-    mod.overskrift.trim() && mod.underviser.trim() && mod.tidFra && mod.tidTil,
-  );
+  return canMarkModuleKlar(mod);
 }
+
+export {
+  canMarkModuleKlar,
+  formatModuleKlarMissingMessage,
+  getModuleKlarMissingFields,
+} from "./module-klar-utils";
 
 export function getAllModules(course: Course) {
   return course.days.flatMap((day) =>

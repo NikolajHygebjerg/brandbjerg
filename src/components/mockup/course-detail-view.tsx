@@ -928,8 +928,8 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                 </div>
                 {incompleteCount > 0 && (
                   <p className="mt-2 text-xs text-amber-700">
-                    {incompleteCount} modul(er) mangler udfyldning — du kan
-                    stadig gemme kladde og fortsætte senere.
+                    {incompleteCount} modul(er) mangler udfyldning før de kan
+                    markeres klar — du kan stadig gemme kladde.
                   </p>
                 )}
                 {!kitchenValidation.ok && course.days.length > 0 && (

@@ -9,7 +9,9 @@ import {
   type HeldagsturPunkt,
 } from "@/lib/heldagstur-utils";
 import {
+  canMarkModuleKlar,
   formatDate,
+  formatModuleKlarMissingMessage,
   isHeldagsturModule,
   isWorkshopModule,
   timingTotal,
@@ -335,6 +337,14 @@ function ModuleTile({
   const hasTiming = !mod.erMaltid && timingSum > 0;
   const meal = mod.maltid;
 
+  function handleToggleReady(klar: boolean) {
+    if (klar && !canMarkModuleKlar(mod)) {
+      window.alert(formatModuleKlarMissingMessage(mod));
+      return;
+    }
+    onToggleReady(klar);
+  }
+
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData(
@@ -362,7 +372,7 @@ function ModuleTile({
         <div className="relative min-w-0 flex-1">
           <ReadyCheckbox
             checked={mod.klar}
-            onChange={onToggleReady}
+            onChange={handleToggleReady}
             className="absolute right-2 top-2 z-10"
           />
           {courseId && (
@@ -468,7 +478,7 @@ function ModuleTile({
         <div className="relative min-w-0 flex-1">
           <ReadyCheckbox
             checked={mod.klar}
-            onChange={onToggleReady}
+            onChange={handleToggleReady}
             className="absolute right-2 top-2 z-10"
           />
           {courseId && (
@@ -522,7 +532,7 @@ function ModuleTile({
       <div className="relative min-w-0 flex-1">
         <ReadyCheckbox
           checked={mod.klar}
-          onChange={onToggleReady}
+          onChange={handleToggleReady}
           className="absolute right-2 top-2 z-10"
         />
         {courseId && (

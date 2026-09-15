@@ -386,7 +386,7 @@ function ChecklistAction({
           {!allModulesFilled && incompleteModules.length > 0 && (
             <p className="text-xs text-amber-700">
               {incompleteModules.length} modul(er) mangler udfyldning (overskrift,
-              underviser eller tid).
+              underviser, mail, pris, brødtekst, UBAK tid/tekst m.m.).
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -411,8 +411,8 @@ function ChecklistAction({
     case "modules-ready":
       return (
         <p className="text-xs text-slate-600">
-          Sæt flueben i højre hjørne af hvert modul i modulplanen, når det er
-          klar — f.eks. når foredragsholder er booket.
+          Sæt flueben når modulet er fuldt udfyldt (overskrift, underviser, mail,
+          pris, brødtekst, UBAK m.m.) — systemet blokerer ellers for «klar».
         </p>
       );
 
