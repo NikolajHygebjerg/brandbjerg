@@ -36,10 +36,14 @@ type DropTarget = {
   index: number;
 } | null;
 
+export type ModuleLibraryOption = { id: string; title: string };
+
 type ModulePlanBoardProps = {
   days: CourseDay[];
   courseId?: string;
   editingModule: EditingModule;
+  moduleLibrary?: ModuleLibraryOption[];
+  onAddModuleFromLibrary?: (dayId: string, libId: string) => void;
   onSelectModule: (dayId: string, moduleId: string) => void;
   onAddModule: (dayId: string) => void;
   onMoveModule: (

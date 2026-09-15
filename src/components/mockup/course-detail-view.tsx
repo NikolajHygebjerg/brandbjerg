@@ -953,43 +953,11 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                 )}
               </Card>
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-slate-600">
-                  Klik på et modul for at redigere. Træk via håndtaget for at
-                  flytte mellem dage og tidspunkter — klokkeslettet opdateres
-                  automatisk.
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-                    value={lastActiveDayId}
-                    onChange={(e) => setLastActiveDayId(e.target.value)}
-                  >
-                    {course.days.map((day) => (
-                      <option key={day.id} value={day.id}>
-                        {day.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (e.target.value && lastActiveDayId) {
-                        addModuleFromLibrary(lastActiveDayId, e.target.value);
-                      }
-                      e.target.value = "";
-                    }}
-                  >
-                    <option value="">Tilføj fra modulliste…</option>
-                    {moduleLibrary.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <p className="text-sm text-slate-600">
+                Klik på et modul for at redigere. Træk via håndtaget for at
+                flytte mellem dage og tidspunkter — klokkeslettet opdateres
+                automatisk. Tilføj fra modulliste via menuen over hver dag.
+              </p>
 
               <ModulePlanBoard
                 days={course.days}
