@@ -291,14 +291,6 @@ export function KursuslederCourseView({ courseId }: { courseId: string }) {
           </Button>
           <Button
             variant="secondary"
-            className="justify-start gap-2"
-            onClick={() => setParticipantsDialogOpen(true)}
-          >
-            <Users className="h-4 w-4" />
-            Vis deltagere
-          </Button>
-          <Button
-            variant="secondary"
             className="justify-start"
             onClick={() => {
               const current =
