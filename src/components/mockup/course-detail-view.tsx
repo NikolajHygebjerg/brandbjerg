@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, FileSpreadsheet, LayoutTemplate, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
   createEmptyModule,
   formatDate,
   formatDKK,
+  formatIncompleteModuleLine,
   getIncompleteModules,
   moduleLibrary,
   type Course,
@@ -515,7 +516,11 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
   const programTotals =
     course.days.length > 0 ? computeProgramTotals(course.days) : null;
 
-  const incompleteCount = getIncompleteModules(course).length;
+  const incompleteModules = useMemo(
+    () => getIncompleteModules(course),
+    [course],
+  );
+  const incompleteCount = incompleteModules.length;
   const kitchenValidation = validateKitchenPlan(course);
 
   const editingDay = editingModule
@@ -927,10 +932,19 @@ export function CourseDetailView({ course: initial }: { course: Course }) {
                   </div>
                 </div>
                 {incompleteCount > 0 && (
-                  <p className="mt-2 text-xs text-amber-700">
-                    {incompleteCount} modul(er) mangler udfyldning før de kan
-                    markeres klar — du kan stadig gemme kladde.
-                  </p>
+                  <div className="mt-2 text-xs text-amber-800">
+                    <p>
+                      {incompleteCount} modul(er) mangler udfyldning — du kan
+                      stadig gemme kladde og fortsætte senere.
+                    </p>
+                    <ul className="mt-1.5 max-h-40 list-inside list-disc space-y-0.5 overflow-y-auto text-amber-900">
+                      {incompleteModules.map((mod) => (
+                        <li key={`${mod.dayId}-${mod.id}`}>
+                          {formatIncompleteModuleLine(mod)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 {!kitchenValidation.ok && course.days.length > 0 && (
                   <div className="mt-3">

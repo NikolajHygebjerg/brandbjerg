@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   formatDate,
+  formatIncompleteModuleLine,
   getAllModules,
   getIncompleteModules,
   getUnreadyModules,
@@ -384,10 +385,19 @@ function ChecklistAction({
       return (
         <div className="space-y-2">
           {!allModulesFilled && incompleteModules.length > 0 && (
-            <p className="text-xs text-amber-700">
-              {incompleteModules.length} modul(er) mangler udfyldning (overskrift,
-              underviser, mail, pris, brødtekst, UBAK tid/tekst m.m.).
-            </p>
+            <div className="text-xs text-amber-800">
+              <p>
+                {incompleteModules.length} modul(er) mangler udfyldning — du kan
+                stadig gemme kladde og fortsætte senere.
+              </p>
+              <ul className="mt-1 max-h-32 list-inside list-disc space-y-0.5 overflow-y-auto">
+                {incompleteModules.map((mod) => (
+                  <li key={`${mod.dayId}-${mod.id}`}>
+                    {formatIncompleteModuleLine(mod)}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <div className="flex flex-wrap gap-2">
             <Button

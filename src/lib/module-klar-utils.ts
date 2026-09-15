@@ -76,3 +76,44 @@ export function formatModuleKlarMissingMessage(mod: CourseModule): string {
   if (fields.length === 0) return "";
   return `Udfyld først: ${fields.join(", ")}`;
 }
+
+/** Feltnavne til visning i modulplan (inkl. heldagstur). */
+export function getModuleIncompleteDisplayFields(
+  mod: CourseModule,
+): string[] {
+  const fields = getModuleKlarMissingFields(mod);
+  if (fields.length > 0) return fields;
+
+  if (isHeldagsturModule(mod)) {
+    const punkter = mod.heldagstur?.punkter ?? [];
+    if (punkter.length === 0) return ["Dagsplan for heldagstur"];
+    const issues: string[] = [];
+    for (const p of punkter) {
+      if (p.type === "besoeg" && !p.besoeg?.overskrift.trim()) {
+        issues.push("Besøg uden overskrift");
+      }
+      if (p.type === "maltid" && !p.maltid?.forplejning?.trim()) {
+        issues.push("Måltid under heldagstur");
+      }
+    }
+    return issues.length > 0 ? issues : ["Heldagstur-punkter"];
+  }
+
+  return fields;
+}
+
+export function formatIncompleteModuleLine(
+  mod: CourseModule & { dayLabel?: string },
+): string {
+  const day = mod.dayLabel?.trim() || "—";
+  const title =
+    mod.overskrift.trim() ||
+    mod.maltid?.forplejning?.trim() ||
+    (isHeldagsturModule(mod) ? "Heldagstur" : "Modul");
+  const time =
+    mod.tidFra && mod.tidTil ? `${mod.tidFra}–${mod.tidTil}` : "—";
+  const missing = getModuleIncompleteDisplayFields(mod);
+  const missingNote =
+    missing.length > 0 ? ` — mangler: ${missing.join(", ")}` : "";
+  return `${day} · ${time} · ${title}${missingNote}`;
+}

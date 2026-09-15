@@ -363,6 +363,7 @@ export function isModuleFilled(mod: CourseModule) {
 
 export {
   canMarkModuleKlar,
+  formatIncompleteModuleLine,
   formatModuleKlarMissingMessage,
   getModuleKlarMissingFields,
 } from "./module-klar-utils";
