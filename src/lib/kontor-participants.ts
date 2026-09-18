@@ -129,11 +129,10 @@ function mockParticipant(
   };
 }
 
-/** Generer mock-deltagere fra statusark-tilmeldingstal */
-export function ensureParticipantsForCourse(courseId: string): KontorParticipant[] {
-  const existing = loadParticipantsForCourse(courseId);
-  if (existing.length > 0) return existing;
-
+/** Generer mock-deltagere fra statusark (uden localStorage — til API/mobil). */
+export function generateParticipantsForCourse(
+  courseId: string,
+): KontorParticipant[] {
   const sa = getStatusarkCourse(courseId);
   if (!sa) return [];
 
@@ -151,12 +150,25 @@ export function ensureParticipantsForCourse(courseId: string): KontorParticipant
     );
   }
 
-  const assigned = assignRoomsForCourse(
+  return assignRoomsForCourse(
     courseId,
     sa.courseWeekNumber,
     statusarkYear,
     participants,
   );
+}
+
+/** Generer mock-deltagere fra statusark-tilmeldingstal */
+export function ensureParticipantsForCourse(courseId: string): KontorParticipant[] {
+  const existing = loadParticipantsForCourse(courseId);
+  if (existing.length > 0) return existing;
+
+  const assigned = generateParticipantsForCourse(courseId);
+  if (assigned.length === 0) return [];
+
+  const sa = getStatusarkCourse(courseId);
+  if (!sa) return assigned;
+
   saveParticipantsForCourse(courseId, assigned);
   syncCourseRoomOccupancy(statusarkYear, sa.courseWeekNumber, courseId, assigned);
   return assigned;

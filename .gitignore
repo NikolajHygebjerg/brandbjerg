@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Flutter (apps/brandbjerg_app)
+apps/brandbjerg_app/.dart_tool/
+apps/brandbjerg_app/build/
+apps/brandbjerg_app/.flutter-plugins
+apps/brandbjerg_app/.flutter-plugins-dependencies
+apps/brandbjerg_app/.pub-cache/
+apps/brandbjerg_app/.pub/
+apps/brandbjerg_app/**/Generated.xcconfig
+apps/brandbjerg_app/**/flutter_export_environment.sh

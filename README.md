@@ -31,6 +31,10 @@ npm run dev
 
 Åbn [http://localhost:4317](http://localhost:4317)
 
+## Flutter-app (iOS / Android / web)
+
+Mobilappen ligger i **`apps/brandbjerg_app/`** og kalder **`/api/v1/*`** på samme Next.js-projekt — den overskriver ikke web-mockuppen. Se [apps/brandbjerg_app/README.md](./apps/brandbjerg_app/README.md) og [docs/MOBILE_APP.md](./docs/MOBILE_APP.md).
+
 ## Indhold
 
 | Side | Beskrivelse |
