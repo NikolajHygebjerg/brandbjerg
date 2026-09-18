@@ -8,7 +8,10 @@
     "start": "next start",
     "deploy": "npx vercel deploy --prod --yes",
     "deploy:preview": "npx vercel deploy --yes",
-    "ship": "bash scripts/ship.sh"
+    "ship": "bash scripts/ship.sh",
+    "flutter:path": "echo 'export PATH=\"$HOME/flutter/bin:$PATH\"'",
+    "flutter:pub": "bash -c 'export PATH=\"$HOME/flutter/bin:$PATH\"; cd apps/brandbjerg_app && flutter pub get'",
+    "flutter:run:web": "bash -c 'export PATH=\"$HOME/flutter/bin:$PATH\"; cd apps/brandbjerg_app && flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:4317'"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

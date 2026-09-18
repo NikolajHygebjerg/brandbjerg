@@ -24,13 +24,14 @@ Tilføj `export PATH="$HOME/flutter/bin:$PATH"` permanent i `~/.bashrc` eller `~
 
 ### Første gang i `apps/brandbjerg_app`
 
+Platform-mapper (`android/`, `ios/`, `web/`) ligger **allerede i git**. Du behøver normalt **ikke** `flutter create` igen — kun:
+
 ```bash
 cd apps/brandbjerg_app
-flutter create . --org dk.brandbjerg --project-name brandbjerg_app --platforms=android,ios,web
 flutter pub get
 ```
 
-`flutter create .` tilføjer `android/`, `ios/` og `web/` — de ligger ikke i git før du har kørt kommandoen.
+Kør kun `flutter create . --org dk.brandbjerg --project-name brandbjerg_app --platforms=android,ios,web` hvis du har en gammel clone uden platform-mapper.
 
 ---
 
