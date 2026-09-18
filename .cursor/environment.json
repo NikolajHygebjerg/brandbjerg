@@ -1,6 +1,6 @@
 {
   "name": "Brandbjerg mockup",
   "repositoryDependencies": ["github.com/NikolajHygebjerg/brandbjerg"],
-  "install": "npm ci && bash scripts/setup-git-remotes.sh",
+  "install": "npm ci && bash scripts/setup-git-remotes.sh && bash scripts/install-flutter.sh",
   "start": "npm run dev"
 }

@@ -49,3 +49,4 @@ apps/brandbjerg_app/.pub-cache/
 apps/brandbjerg_app/.pub/
 apps/brandbjerg_app/**/Generated.xcconfig
 apps/brandbjerg_app/**/flutter_export_environment.sh
+apps/brandbjerg_app/.idea/

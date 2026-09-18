@@ -4,7 +4,9 @@ Mobil- og web-app til **kursister** og **medarbejdere**, der kører **sideløben
 
 ## Første gang
 
-1. [Installer Flutter](https://docs.flutter.dev/get-started/install) (stable).
+**Fejlsøgning (flutter not found, port 4317, git push):** se [QUICKSTART.da.md](./QUICKSTART.da.md).
+
+1. Installer Flutter — Mac: `brew install --cask flutter` · Linux/agent: `bash scripts/install-flutter.sh` fra repo-roden (se [QUICKSTART.da.md](./QUICKSTART.da.md)).
 2. Opret platform-mapper (engang):
 
 ```bash
